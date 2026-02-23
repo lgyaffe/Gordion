@@ -6,7 +6,7 @@
 #include "Index.h"
 #include "Global.h"
 
-using OpTerm = Term<uint> ;				// Term with list index
+using OpTerm = Term<doub,uint> ;			// Term with list index
 
 class OpSum : public vector<OpTerm>			// Op linear combination
     {

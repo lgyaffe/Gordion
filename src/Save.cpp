@@ -112,9 +112,10 @@ void Save::save_vev (string vevfile)			// Save vev data
 
 void Save::write_header (fstream& stream, int ncoup, int nvev)	// Write file header
     {
-    filehdr.name  = theory.name ;
-    filehdr.ncoup = ncoup ;
-    filehdr.nvev  = nvev ;
+    filehdr.name    = theory.name ;
+    filehdr.version = global.version ;
+    filehdr.ncoup   = ncoup ;
+    filehdr.nvev    = nvev ;
     stream.write (cast_to<char*>(&filehdr), sizeof filehdr) ;
     if (stream.fail()) ioerror ("write_header: I/O error!") ;
     }
@@ -397,7 +398,7 @@ void Save::write_vev ()					// Write Vev's
     auto	ptr	{ numerics.vev.memptr() } ;
 
     stream.seekp (0, ios::end) ;
-    stream.write (cast_to<const char*>(ptr), nvev * sizeof (doub)) ;
+    stream.write (cast_to<const char*>(ptr), nvev * sizeof (real)) ;
     if (stream.fail()) ioerror ("write_vev: I/O error!") ;
     if (Blab::blablevel[BLAB::SAVE]) cout << "Wrote Vevs\n" << flush ;
     }
@@ -471,6 +472,11 @@ bool Save::read_header (fstream& stream, bool write)	// Read save file header
 
     stream.read (cast_to<char*>(&hdr), sizeof hdr) ;
     if (stream.fail()) ioerror ("read_header: I/O error!") ;
+
+    if (hdr.version.incompat()) 
+	gripe (format("Inconsistent save file {}: wrong real num type", hdr.name.data())) ;
+    if (hdr.version.newer())
+	cout << format("Warning: save file {} from newer program version", hdr.name.data()) ;
 
     if (theory.name == hdr.name || theory.parent() == hdr.name)
 	{
@@ -790,7 +796,7 @@ void Save::read_vev (int set)				// Read Vev data
     if (set < 0) stream.seekg (offset, ios_base::end) ;
     else	 stream.seekg (offset + sizeof filehdr, ios_base::beg) ;
 
-    stream.read (cast_to<char*>(ptr), filehdr.nvev * sizeof (doub)) ;
+    stream.read (cast_to<char*>(ptr), filehdr.nvev * sizeof (real)) ;
     if (stream.fail()) ioerror ("read_vev: I/O error!") ;
     if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Vev\n" << flush ;
     }

@@ -31,8 +31,14 @@ using std::unordered_map ;
 using std::unordered_set ;
 using std::exception ;
 
+#ifdef VEV32
+using real   = float ;			// Poly coeffs & vev's
+#else
+using real   = double ;			// Poly coeffs & vev's
+#endif
+
 using cmplx  = complex<double> ;	// Complex eigenvalues
-using doub   = double ;			// Expectation values, etc.
+using doub   = double ;			// Spectral matrices, etc.
 using symb   = char ;			// Basic symbol type
 using uchar  = uint8_t ;		// Hterm #
 using ushort = uint16_t ;		// Gen #, Obs/Poly length

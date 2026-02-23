@@ -4,7 +4,7 @@
 #include "Poly.h"
 #include "Ode.h"
 
-using Numvec = arma::vec ;
+using Numvec = arma::Col<real> ;
 using Nummtx = arma::mat ;
 using Cmplxv = arma::cx_vec ;
 using Cmplxm = arma::cx_mat ;

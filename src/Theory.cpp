@@ -8,6 +8,7 @@ void Theory::theoryinit()			// Verity theory applicability
     global.savedir.append (theory.name.data()) ;
     global.MMAdir.append  (theory.name.data()) ;
     Print::print_theory() ;
+    Print::print_version() ;
     }
 
 void Theory::theorydefn ()			// Define hamiltonian or action

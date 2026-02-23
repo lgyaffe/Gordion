@@ -3,6 +3,7 @@
 #include "Gordion.h"
 #include "Coupling.h"
 #include "Data.h"
+#include "Version.h"
 #include <mutex>
 
 namespace Save
@@ -56,7 +57,8 @@ namespace Save
     struct FileHdr			// Save file header
 	{
 	char8	name ;
-	uint	ncoup ;
+	Version	version ;
+	ushort	ncoup ;
 	uint	nvev ;
 
 	ulong vevsize()   const { return nvev  * sizeof (doub) ; }

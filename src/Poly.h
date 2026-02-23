@@ -37,10 +37,10 @@ class Polyindx : public array<uint,PSIZ>		// Obs index tuples
     friend ostream& operator<< (ostream&, const Polyindx&) ;
     } ;
 
-class PolyTerm : public Term<Polyindx>			// Polynomial term
+class PolyTerm : public Term<real,Polyindx>		// Polynomial term
     {
     public:
-    using	Term<Polyindx>::Term ;
+    using	Term<real,Polyindx>::Term ;
 
     operator	Polyindx()	  const { return item ; }	// Conversion
     const uint	operator[](int i) const { return item[i] ; }	// Subscript

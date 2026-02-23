@@ -570,6 +570,11 @@ void Print::print_theory()			// Print theory
 	}
     }
 
+void Print::print_version()			// Print program version
+    {
+    cout << "Program version: " << global.version << "\n" ;
+    }
+
 void Print::print_rkmethods()			// Print Runge-Kutta method name
     {
     cout << "Avaliable RK integration methods:\n" ;

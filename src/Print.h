@@ -63,6 +63,7 @@ namespace Print
     void print_symmsets  () ;
     void print_sysindex  () ;
     void print_theory    () ;
+    void print_version   () ;
     void print_vevindex  () ;
     } ;
 

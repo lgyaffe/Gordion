@@ -87,7 +87,7 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
 
     if (global.info().nobs != global.nobs())		// integrate vev subvec
 	{
-	doub*	vevptr { &vev [global.stage ? global.nobsG() : 0] } ; 
+	real*	vevptr { &vev [global.stage ? global.nobsG() : 0] } ; 
 	Numvec	subvev { vevptr, nvev, false, true } ;
 	ok = ode.integrate (s, 1.0, subvev) ;
 	}
@@ -416,10 +416,9 @@ void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
     uint	offset	{ global.stage ? global.nobsG() : 0 } ;
     auto&	geos	{ global.data().geos[bcktnum] } ;
     auto&	delta	{ numerics.delta } ;
-    doub*	dv 	{ numerics.dvev_buf } ;
-    const doub*	v	{ numerics.vev_buf } ;
+    real*	dv 	{ numerics.dvev_buf } ;
+    const real*	v	{ numerics.vev_buf } ;
     int		ngens	( delta.size() ) ;
-    doub	coeff ;
 
     if (geos.entry().ncol != last - first + 1 ||
 	geos.entry().nrow != ngens)
@@ -434,7 +433,7 @@ void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
     for (const auto& poly : geos)
 	{
 	const GeoHdr&	info ( poly ) ;
-	doub		val  ( 0.0 ) ;
+	real		val  ( 0.0 ) ;
 
 	if (info.indx < first || info.indx > last)
 	    fatal (format ("Inconsistent geo record: bucket {} indx {} first {} last {}!",
@@ -573,8 +572,8 @@ bool Numerics::check_curv (const Nummtx& curv)				// OK curvature eigs?
     if (curv.n_rows) 
 	{
 	Cmplxv	eigs  { arma::eig_gen(curv) } ;
-	uvec	reals { arma::sort_index (real (eigs)) } ;
-	uvec	imags { arma::sort_index (imag (eigs),"descend") } ;
+	uvec	reals { arma::sort_index (arma::real (eigs)) } ;
+	uvec	imags { arma::sort_index (arma::imag (eigs),"descend") } ;
 	bool	negok { theory.euclid && global.stage } ;
 	uint	minr  ( reals[0] ) ;
 	uint	maxi  ( imags[0] ) ;

@@ -7,10 +7,10 @@
 class Symm ;
 class SymmSum ;
 
-class SymmTerm : public Term<uint>			// Symmetry index with coeff
+class SymmTerm : public Term<doub,uint>			// Symmetry index with coeff
     {
     public:
-    using	Term<uint>::Term ;
+    using	Term<doub,uint>::Term ;
     SymmSum	operator+(SymmTerm) const ;		// Add SymmTerm
     SymmSum	operator-(SymmTerm) const ;		// Subtract SymmTerm
     SymmTerm	operator/(doub z)   const		// Rescale SymmTerm

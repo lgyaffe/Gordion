@@ -3,6 +3,7 @@
 #include "Counter.h"
 #include "Coupling.h"
 #include "Data.h"
+#include "Version.h"
 #include <atomic>
 
 #ifdef PARALLEL
@@ -79,6 +80,7 @@ class Global					// Global data
     fstream	sysstream  ;			// Sys info file stream
     fstream	vevstream  ;			// Vev data file stream
     ofstream	MMAstream  ;			// MMA file stream
+    Version	version    ;			// Program version
 
     auto&	info	(int i)	{ return stageinfo[i] ; }
     auto&	data	(int i)	{ return stagedata[i] ; }
