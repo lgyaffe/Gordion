@@ -6,6 +6,14 @@
 #include "Gripe.h"
 #include <filesystem>
 
+#ifndef PAGESIZE					// used below in alignas
+#if __APPLE__ && __arm64__ 
+#define PAGESIZE 16 * 1024
+#else
+#define PAGESIZE 4096
+#endif
+#endif
+
 using std::ios_base ;
 
 static constexpr int		rhdrsiz = sizeof (RecHdr) ;
@@ -55,7 +63,7 @@ void Save::save_sys (string sysfile)			// Save sys info
 
 void Save::save_vev (string vevfile)			// Save vev data
     {
-    alignas (16*1024) char mybuf [512*1024] ;
+    alignas (PAGESIZE) char mybuf [512*1024] ;
 
     if (Blab::blablevel[BLAB::SAVE]) cout << "Saving vev's\n" << flush ;
 
@@ -707,7 +715,7 @@ void Save::read_geos (int stage)			// Read Geo records
 
 void Save::read_geo_bckt (int bcktnum)			// Read Geo bucket
     {
-    alignas (16*1024) thread_local char	mybuf [512*1024] ;
+    alignas (PAGESIZE) thread_local char	mybuf [512*1024] ;
     thread_local vector<RecHdr>		myvec ;
     thread_local fstream		mystream ;
     thread_local string			mypath { syspath } ;
