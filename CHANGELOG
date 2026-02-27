@@ -1,0 +1,8 @@
+Feb 9, 2026:
+    Added Version.h.
+    Added VEV32 preprocessor symbol & real typedef for selecting 32 bit vev's and poly coeffs
+    Added version numbers to save file headers, incompatibility checking in Save::read_header
+
+Feb 27, 20206:
+    Added PAGESIZE preprocessor definitions in Save.cpp, used in I/O buffer alignas specifications
+
