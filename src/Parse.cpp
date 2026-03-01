@@ -188,7 +188,7 @@ bool Parse::parse_save (istringstream& line)		// Parse "save" command
     bool	valid { true } ;
     string	word, word2 ;
 
-    if (line.eof()) gripe ("Save which information?") ;
+    if (eos(line)) gripe ("Save which information?") ;
     else if (parse_args (line,word,word2) || parse_args(line,word))
 	{
 	if      (isword(word,"sys"))
@@ -478,9 +478,9 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
 		}
 	    Build::mk_geos () ;				// Must be last for autosave
 	    }
-	else if (isword(word,"geodesics") && line.eof())	Build::mk_geos () ;
-	else if (isword(word,"gradient")  && line.eof())	Build::mk_grad () ;
-	else if (isword(word,"curvature") && line.eof())	Build::mk_curv (rep) ;
+	else if (isword(word,"geodesics") && eos(line))	Build::mk_geos () ;
+	else if (isword(word,"gradient")  && eos(line))	Build::mk_grad () ;
+	else if (isword(word,"curvature") && eos(line))	Build::mk_curv (rep) ;
 	else if (isword(word,"curvature") && parse_args(line,word))
 	    {
 	    if (isword(word,"all"))
@@ -498,7 +498,7 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
 		    }
 		}
 	    }
-	else if (isword(word,"lagrange") && line.eof() && isH) Build::mk_lagr (rep) ;
+	else if (isword(word,"lagrange") && eos(line) && isH) Build::mk_lagr (rep) ;
 	else if (isword(word,"lagrange") && parse_args(line,word) && isH)
 	    {
 	    if (isword(word,"all"))
@@ -532,33 +532,33 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
     if (line >> word)
 	{
 	try {
-	    if (isword(word,"freeenergy")  && line.eof() && !isH)
+	    if (isword(word,"freeenergy")	&& eos(line) && !isH)
 		{
 		numerics.eval_H (true) ;
 		}
-	    else if (isword(word,"hamiltonian") && line.eof() && isH)
+	    else if (isword(word,"hamiltonian")	&& eos(line) && isH)
 		{
 		numerics.eval_H (true) ;
 		}
-	    else if (isword(word,"gradient")    && line.eof())
+	    else if (isword(word,"gradient")    && eos(line))
 		{
 		numerics.eval_grad (true) ;
 		}
 	    else if (isword(word,"curvature"))
 		{
-		if (line.eof())		numerics.eval_curv (rep, true, 1) ;
+		if (eos(line))		numerics.eval_curv (rep, true, 1) ;
 		else if (isstar (line))	numerics.eval_curv (rep, true, 2) ;
 		else valid = false ;
 		}
-	    else if (isword(word,"lagrange")    && line.eof() && isH)
+	    else if (isword(word,"lagrange")    && eos(line) && isH)
 		{
 		numerics.eval_lagr (rep, true) ;
 		}
-	    else if (isword(word,"delta")       && line.eof())
+	    else if (isword(word,"delta")       && eos(line))
 		{
 		numerics.eval_delta (true) ;
 		}
-	    else if (isword(word,"spectrum")    && line.eof() && isH)
+	    else if (isword(word,"spectrum")    && eos(line) && isH)
 		{
 		numerics.eval_spectra (rep, true) ;
 		}
@@ -584,12 +584,12 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
 		}
 	    else if (isword(word,"geodesics"))
 		{
-		if (line.eof()) gripe ("Print how many geodesic values?") ;
+		if (eos(line)) gripe ("Print how many geodesic values?") ;
 		else if (isstar (line))		numerics.eval_geos (0) ;
 		else if (parse_args (line,i))	numerics.eval_geos (i) ;
 		else valid = false ;
 		}
-	    else if (isword(word,"geostats") && line.eof())
+	    else if (isword(word,"geostats") && eos(line))
 		{
 		Build::do_geostats() ;
 		Print::print_geostats() ;
@@ -610,11 +610,11 @@ bool Parse::parse_do (istringstream& line)		// Parse "do" commands
     if (line >> word)
 	{
 	try {
-	    if (isword(word,"step") && line.eof())
+	    if (isword(word,"step") && eos(line))
 		{
 		numerics.do_step () ;
 		}
-	    else if (isword(word,"minimize") && line.eof())
+	    else if (isword(word,"minimize") && eos(line))
 		{
 		numerics.do_minimize () ;
 		}
@@ -698,7 +698,7 @@ bool Parse::parse_add (istringstream& line)		// Parse "add" command
 		    else gripe ("unknown order for " + word) ;
 		    gotword = false ;
 		    }
-		} while (!line.eof()) ;
+		} while (!eos(line)) ;
 
 	    if (sum.size())
 		{
@@ -727,7 +727,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	{
 	if  (isword(word,"observables"))
 	    {
-	    if (line.eof()) gripe ("Print which observables?") ;
+	    if (eos(line)) gripe ("Print which observables?") ;
 	    else if (isstar (line))		print_obs () ;
 	    else if (parse_args (line,i))	print_obs (i) ;
 	    else if (parse_args (line,i,j))	print_obs (i,j) ;
@@ -740,7 +740,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    }
 	else if (isword(word,"operator"))
 	    {
-	    if (line.eof()) gripe ("Print which operators?") ;
+	    if (eos(line)) gripe ("Print which operators?") ;
 	    else if (isstar (line))		print_op () ;
 	    else if (parse_args (line,i))	print_op (i) ;
 	    else if (parse_args (line,i,j))	print_op (i,j) ;
@@ -748,27 +748,27 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    }
 	else if (isword(word,"symmetry"))
 	    {
-	    if (line.eof()) gripe ("Print which symmetries?") ;
+	    if (eos(line)) gripe ("Print which symmetries?") ;
 	    else if (isstar (line))		print_symm () ;
 	    else if (parse_args (line,word))	print_symm (word) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"representation"))
 	    {
-	    if (line.eof())			print_rep () ;
+	    if (eos(line))			print_rep () ;
 	    else if (parse_args (line,word))	print_rep (word) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"generator"))
 	    {
-	    if (line.eof())			print_gen (false) ;
+	    if (eos(line))			print_gen (false) ;
 	    else if (isstar (line))		print_gen (true) ;
 	    else if (parse_args (line,i))	print_gen (i,true) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"gradient"))
 	    {
-	    if (line.eof())  gripe ("Print which gradient elements?") ;
+	    if (eos(line))  gripe ("Print which gradient elements?") ;
 	    else if (isstar (line))		print_grad () ;
 	    else if (parse_args (line,i))	print_grad (i) ;
 	    else if (parse_args (line,i,j))	print_grad (i,j) ;
@@ -776,7 +776,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    }
 	else if (isword(word,"curvature"))
 	    {
-	    if (line.eof()) gripe ("Print which curvature elements?") ;
+	    if (eos(line)) gripe ("Print which curvature elements?") ;
 	    else if (isstar (line))		print_curv () ;
 	    else if (parse_args (line,i))	print_curv (i) ;
 	    else if (parse_args (line,i,j))	print_curv (i,j) ;
@@ -785,7 +785,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    }
 	else if (isword(word,"geodesics"))
 	    {
-	    if (line.eof()) gripe ("Print which geodesic elements?") ;
+	    if (eos(line)) gripe ("Print which geodesic elements?") ;
 	    else if (isstar (line))		print_geodesic () ;
 	    else if (parse_args (line,i))	print_geodesic (i) ;
 	    else if (parse_args (line,i,j))	print_geodesic (i,j) ;
@@ -793,7 +793,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    }
 	else if (isword(word,"lagrange") && isH)
 	    {
-	    if (line.eof()) gripe ("Print which lagrange elements?") ;
+	    if (eos(line)) gripe ("Print which lagrange elements?") ;
 	    else if (isstar (line))		print_lagrange () ;
 	    else if (parse_args (line,i))	print_lagrange (i) ;
 	    else if (parse_args (line,i,j))	print_lagrange (i,j) ;
@@ -801,29 +801,29 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    }
 	else if (isword(word,"mode") && isH)
 	    {
-	    if (line.eof())  gripe ("Print which eigenmodes?") ;
+	    if (eos(line))  gripe ("Print which eigenmodes?") ;
 	    else if (isstar (line))		 print_mode () ;
 	    else if (parse_args (line,i))	 print_mode (i) ;
 	    else valid = false ;
 	    }
-	else if (isword(word,"freeenergy")  && line.eof() && !isH) print_freeenergy  () ;
-	else if (isword(word,"hamiltonian") && line.eof() &&  isH) print_hamiltonian () ;
-	else if (isword(word,"spectrum")    && line.eof() &&  isH) print_spectrum    () ;
-	else if (isword(word,"baseobs")     && line.eof())	print_base      () ;
-	else if (isword(word,"blablevels")  && line.eof())	print_blab      () ;
-	else if (isword(word,"bcktlist")    && line.eof())	print_bcktlist  () ;
-	else if (isword(word,"cache")       && line.eof())	print_cache     () ;
-	else if (isword(word,"couplings")   && line.eof())	print_couplings () ;
-	else if (isword(word,"fermiinit")   && line.eof())	print_fermiinit () ;
-	else if (isword(word,"geostats")    && line.eof())	print_geostats  () ;
-	else if (isword(word,"obsstats")    && line.eof())	print_obsstats  () ;
-	else if (isword(word,"primary")     && line.eof())	print_primary   () ;
-	else if (isword(word,"rkmethods")   && line.eof())	print_rkmethods () ;
-	else if (isword(word,"state")       && line.eof())	print_state     () ;
-	else if (isword(word,"stats")       && line.eof())	print_stats     () ;
-	else if (isword(word,"symmsets")    && line.eof())	print_symmsets  () ;
-	else if (isword(word,"sysindex")    && line.eof())	print_sysindex  () ;
-	else if (isword(word,"vevindex")    && line.eof())	print_vevindex  () ;
+	else if (isword(word,"freeenergy")  && eos(line) && !isH) print_freeenergy  () ;
+	else if (isword(word,"hamiltonian") && eos(line) &&  isH) print_hamiltonian () ;
+	else if (isword(word,"spectrum")    && eos(line) &&  isH) print_spectrum    () ;
+	else if (isword(word,"baseobs")     && eos(line))	print_base      () ;
+	else if (isword(word,"blablevels")  && eos(line))	print_blab      () ;
+	else if (isword(word,"bcktlist")    && eos(line))	print_bcktlist  () ;
+	else if (isword(word,"cache")       && eos(line))	print_cache     () ;
+	else if (isword(word,"couplings")   && eos(line))	print_couplings () ;
+	else if (isword(word,"fermiinit")   && eos(line))	print_fermiinit () ;
+	else if (isword(word,"geostats")    && eos(line))	print_geostats  () ;
+	else if (isword(word,"obsstats")    && eos(line))	print_obsstats  () ;
+	else if (isword(word,"primary")     && eos(line))	print_primary   () ;
+	else if (isword(word,"rkmethods")   && eos(line))	print_rkmethods () ;
+	else if (isword(word,"state")       && eos(line))	print_state     () ;
+	else if (isword(word,"stats")       && eos(line))	print_stats     () ;
+	else if (isword(word,"symmsets")    && eos(line))	print_symmsets  () ;
+	else if (isword(word,"sysindex")    && eos(line))	print_sysindex  () ;
+	else if (isword(word,"vevindex")    && eos(line))	print_vevindex  () ;
 	else valid = false ;
 	}
     else valid = false ;
@@ -840,7 +840,7 @@ bool Parse::parse_test (istringstream& line)		// Parse "test" commands
 	{
 	if (isword(word,"jacobi"))
 	    {
-	    if (line.eof())
+	    if (eos(line))
 		{
 		Test::jacobi () ;
 		}
@@ -856,7 +856,7 @@ bool Parse::parse_test (istringstream& line)		// Parse "test" commands
 		}
 	    else valid = false ;
 	    }
-	else if (isword(word,"irreps") && line.eof())
+	else if (isword(word,"irreps") && eos(line))
 	    {
 	    Test::irreps () ;
 	    }
@@ -1115,4 +1115,9 @@ bool Parse::isstar (istringstream& line)		// Next word == "*"?
     line.clear() ;
     line.seekg (pos) ;
     return false ;
+    }
+
+bool Parse::eos (istringstream& line)			// End of string?
+    {
+    return line.peek() == EOF ;
     }

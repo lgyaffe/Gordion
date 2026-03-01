@@ -65,7 +65,8 @@ static constexpr ulong ipow(ulong base, ulong exp, ulong ans = 1) // Integer pow
     return exp < 1 ? ans : ipow(base*base, exp/2, (exp % 2) ? ans * base : ans) ;
     }
 
-#ifdef __cpp_lib_format_uchar
+#if __cpp_lib_format
+#include <format>
 using std::format ;
 #else 					// If C++20 std::format not available
 #include <sstream>
