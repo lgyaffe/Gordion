@@ -1,8 +1,11 @@
 Feb 9, 2026:
     Added Version.h.
-    Added VEV32 preprocessor symbol & real typedef for selecting 32 bit vev's and poly coeffs
-    Added version numbers to save file headers, incompatibility checking in Save::read_header
+    Added VEV32 preprocessor symbol & real typedef for selecting 32 bit vev's and poly coeffs.
+    Added version numbers to save file headers, incompatibility checking in Save::read_header.
 
 Feb 27, 20206:
-    Added PAGESIZE preprocessor definitions in Save.cpp, used in I/O buffer alignas specifications
+    Added PAGESIZE preprocessor definitions in Save.cpp, used in I/O buffer alignas specifications.
+    Enclosed std::locale("en_US.UTF-8") statements in Print.cpp in try/catch block.
 
+Mar 1, 2026:
+    Added Parse::eos to encapuslate proper testing for end of input string.
