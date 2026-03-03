@@ -10,6 +10,8 @@
 #include <iostream>
 #include <iomanip>
 #include <complex>
+#include <algorithm>
+#include <format>
 
 using std::ios ;			// I/O classes & functions
 using std::cout ;
@@ -65,10 +67,9 @@ static constexpr ulong ipow(ulong base, ulong exp, ulong ans = 1) // Integer pow
     return exp < 1 ? ans : ipow(base*base, exp/2, (exp % 2) ? ans * base : ans) ;
     }
 
-#if __cpp_lib_format
-#include <format>
+#ifdef __cpp_lib_format
 using std::format ;
-#else 					// If C++20 std::format not available
+#else
 #include <sstream>
 #include <string_view>
 
