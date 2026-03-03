@@ -1117,7 +1117,3 @@ bool Parse::isstar (istringstream& line)		// Next word == "*"?
     return false ;
     }
 
-bool Parse::eos (istringstream& line)			// End of string?
-    {
-    return line.peek() == EOF ;
-    }

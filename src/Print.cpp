@@ -587,7 +587,8 @@ void Print::print_rkmethods()			// Print Runge-Kutta method name
 
 void Print::print_stats ()			// Print global statistics
     {
-    cout.imbue (std::locale("en_US.UTF-8")) ;
+    try { cout.imbue (std::locale("en_US.UTF-8")) ; }
+    catch (const std::exception&) {}
     cout << "  Canonical obs:        " << ObsList::obs.nobs()       << "\n" ;
     cout << "  Basic obs:            " << ObsList::base.nobs()      << "\n" ;
     cout << "  Operator terms:       " << Op::list.size()           << "\n" ;
@@ -738,7 +739,8 @@ void Print::print_obsstats ()			// Print observable statistics
 
 void Print::print_geostats ()			// Print geodesic statistics
     {
-    cout.imbue (std::locale("en_US.UTF-8")) ;
+    try { cout.imbue (std::locale("en_US.UTF-8")) ; }
+    catch (const std::exception&) {}
     cout << "Geodesic equations:\t" << global.count().ngeos << "\n" ;
     cout << "\t terms:   \t" << global.count().geoterms << "\n" ;
     for (int ord (0) ; ord <= PSIZ ; ++ord)

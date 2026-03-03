@@ -35,7 +35,7 @@ void Global::clearobs ()			// Clear observables
 	Canon::cache.clear() ;
 	global.info(0).nobs = 1 ;
 	global.info(1).nobs = 0 ;
-	global.info(0).maxord = 4 ;
+	global.info(0).maxord = 2 ;
 	global.info(1).maxord = 2 ;
 	}
     else

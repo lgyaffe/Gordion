@@ -4,10 +4,6 @@
 #include "Rep.h"
 #include "Blab.h"
 #include "Gripe.h"
-#if (0)
-#include <algorithm>
-#include <cfloat>
-#endif
 
 thread_local int depth (0) ;		// Used in debugging output
 

@@ -23,6 +23,7 @@ namespace Parse
     bool parse_save  (istringstream&) ;		// Parse "save" command
     bool parse_load  (istringstream&) ;		// Parse "load" command
     bool isstar	     (istringstream&) ;		// Is next word == "*"?
+    bool eos	     (istringstream&) ;		// End of string?
 
     void	 print_help  () ;		// Print command help
     void	 sig_catch (int) ;		// Catch interrupts
@@ -34,11 +35,16 @@ namespace Parse
 	auto pos { line.tellg() } ;
 	if (pos != -1)
 	    {
-	    if ((line >> ... >> args) && line.eof()) return true ;
+	    if ((line >> ... >> args) && eos(line)) return true ;
 	    line.clear() ;
 	    line.seekg (pos) ;
 	    }
 	return false;
+	}
+
+    inline bool eos (istringstream& line)	// End of string?
+	{
+	return line.peek() == EOF ;
 	}
 
     inline bool isword(const string& w, const string& cmd, int min=1)
