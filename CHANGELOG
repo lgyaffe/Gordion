@@ -9,3 +9,6 @@ Feb 27, 20206:
 
 Mar 1, 2026:
     Added Parse::eos to encapuslate proper testing for end of input string.
+
+Mar 7, 2026:
+    Fixed definition of is_coord() in Obs.h
