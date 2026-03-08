@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <complex>
 #include <algorithm>
-#include <format>
+#include <version>
 
 using std::ios ;			// I/O classes & functions
 using std::cout ;
@@ -68,6 +68,7 @@ static constexpr ulong ipow(ulong base, ulong exp, ulong ans = 1) // Integer pow
     }
 
 #ifdef __cpp_lib_format
+#include <format>
 using std::format ;
 #else
 #include <sstream>
