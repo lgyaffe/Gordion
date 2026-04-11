@@ -1,4 +1,5 @@
 #include "Ode.h"
+#include <cmath>
 
 bool Ode::integrate (double& s, double goal, Numvec& y)	//  Integrate dy/ds = rhs(y,s)
     {

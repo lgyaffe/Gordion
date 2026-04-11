@@ -77,6 +77,7 @@ class Op : public SymbStr				// Op = generator term
     static void		setprimary () ;			// Identify primary Ops
     static OpSum 	loop_dt (Op) ;			// Return [EE,loop]/2
     static OpSum 	loop_dt (OpSum) ;		// Return [EE,loops]/2
+    static OpSum 	flipT (OpSum) ;			// Flip fermion staggering
     static OpType	optype (const string) ;		// Determine type
     static uint		store (const Op&) ;		// Store in list
     static void		purge (uint limit)		// Purge entries

@@ -150,6 +150,23 @@ OpSum Op::loop_dt (OpSum s)			// Loop OpSum -> Eloop OpSum
     return ans ;
     }
 
+OpSum Op::flipT (OpSum s)			// Flip bilinear staggering
+    {
+    cout << "Op::flipT OpSum: " << s.size() << "\n" ;
+    OpSum ans ;
+    for (auto& t : s)
+	{
+	cout << "t " << list[t.item] << "\n" ;
+	Op op { list[t.item] } ;
+	if (op.type != OpType::Fermion) fatal ("Bad call to flipT") ;
+	op.front() = stag(op.front()) ;
+	cout << " storing " << op << "\n" ;
+	ans.emplace_back ( Op::store(op) ) ;
+	cout << " ans.size " << ans.size() << "\n" ;
+	}
+    return ans ;
+    }
+
 OpSum Op::loop_dt (OpTerm t, OpSum& ans)	// Loop OpTerm -> Eloop OpSum
     {
     Op op { list[t.item] } ;

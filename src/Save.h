@@ -61,7 +61,7 @@ namespace Save
 	ushort	ncoup ;
 	uint	nvev ;
 
-	ulong vevsize()   const { return nvev  * sizeof (doub) ; }
+	ulong vevsize()   const { return nvev  * sizeof (real) ; }
 	ulong coupsize()  const { return ncoup * sizeof (Coupling) ; }
 	ulong cvsetsize() const { return coupsize() + vevsize() ; }
 	bool is_sysfile() const { return !ncoup && !nvev ; }

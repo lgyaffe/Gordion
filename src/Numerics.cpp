@@ -274,10 +274,10 @@ Cmplxv& Numerics::eval_spectra (int repnum, bool print)	// Evaluate particle spe
 	curv += arma::trans(curv) ;
 	curv /= 2.0 ;
 	}
-    constexpr doub tiny { 1.e-100 } ;
     constexpr doub gunk { 1.e-10 } ;
     constexpr doub huge { 1.e80 } ;
-    lagr.diag() += tiny ;
+    doub tikh { numerics.tikhonov } ;
+    if (tikh) lagr.diag() += tikh ;
     status.reset() ;
 
     if (speclim && speclim < global.info().maxgen)

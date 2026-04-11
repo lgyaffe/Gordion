@@ -232,9 +232,9 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    global.approx = ObsList::obs.approx = i ;
 	    }
-	else if (isword(word,"autoEgens") && parse_args (line,flag))
+	else if (isword(word,"autoToddgens") && parse_args (line,flag))
 	    {
-	    Gen::autoEgens = flag ;
+	    Gen::autoToddgens = flag ;
 	    }
 	else if (isword(word,"autosave") && parse_args (line,flag))
 	    {
@@ -335,6 +335,10 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		}
 	    else global.sysfile = word ;
 	    global.sysstream.close() ;
+	    }
+	else if (isword(word,"tikhonov") && parse_args (line,value))
+	    {
+	    numerics.tikhonov = value ;
 	    }
 	else if (isword(word,"timing") && parse_args (line,flag))
 	    {
@@ -644,7 +648,6 @@ bool Parse::parse_add (istringstream& line)		// Parse "add" command
 	    {
 	    doub	coef  (0) ;
 	    short	order (0) ;
-	    char	left, right ;
 	    bool	gotcoef { line >> coef } ;
 	    bool	gotword { false } ;
 
@@ -878,17 +881,39 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    const char*	sgn { obs.canon() < 0 ? "-" : "" } ;
 	    cout << word << " -> " << sgn << obs << "\n" ;
 	    }
+	else if (isword(word,"compose") && parse_args (line,word2,word))
+	    {
+	    try {
+		auto		indx1	{ Symm::known(std::move(word)).item } ;
+		auto		indx2	{ Symm::known(std::move(word2)).item } ;
+		const auto&	symm1	{ Symm::list[indx1] } ;
+		const auto&	symm2	{ Symm::list[indx2] } ;
+		auto		indx3	{ symm2 (symm1) } ;
+		const auto&	symm3	{ Symm::list[indx3] } ;
+		cout << symm2.name << " * " << symm1.name << " = " << symm3.name << "\n" ;
+		}
+	    catch (const exception& e)
+		{
+		gripe ("Unknown symmetry " + word2 + " or " + word) ;
+		}
+	    }
 	else if (isword(word,"transform") && parse_args (line,word,word2))
 	    {
-	    auto	indx	{ Symm::known(std::move(word)).item } ;
-	    const auto&	s	{ Symm::list[indx] } ;
-	    Obs		oa	{ word2 } ;
-	    Obs		ob	{ oa } ;
-	    bool	Cflip	{ ob.is_fermi() || ob.is_Loop() } ;
-	    int		start	( Cflip && s.isCodd() ? ob.size() - 1 : 0 ) ;
-	    int		sgn	{ ob.trans(s,start) } ;
-	    char	c	{ sgn == 1 ? '+' : '-' } ;
-	    cout << s.name << "(" << oa << ") = " << c << " " << ob << "\n" ;
+	    try {
+		auto		indx	{ Symm::known(std::move(word)).item } ;
+		const auto&	s	{ Symm::list[indx] } ;
+		Obs		oa	{ word2 } ;
+		Obs		ob	{ oa } ;
+		bool		Cflip	{ ob.is_fermi() || ob.is_Loop() } ;
+		int		start	( Cflip && s.isCodd() ? ob.size() - 1 : 0 ) ;
+		int		sgn	{ ob.trans(s,start) } ;
+		char		c	{ sgn == 1 ? '+' : '-' } ;
+		cout << s.name << "(" << oa << ") = " << c << " " << ob << "\n" ;
+		}
+	    catch (const exception& e)
+		{
+		gripe ("Unknown symmetry " + word + " or Obs " + word2) ;
+		}
 	    }
 	else if (isword(word,"u1bound") && parse_args (line,word))
 	    {
@@ -968,7 +993,7 @@ void Parse::print_help ()					// Print command help
     {
     cout << "Usage: " << program << cmdargs << "\n" ;
     cout << R"(Commands:
-add		generator	[(order)] [<coeff>] <Op> [...]
+add		generator	[(order)] [<coeff>] <op> [...]
 
 build		observables	<maxorder>
 		geodesics
@@ -1052,7 +1077,7 @@ save		sys		[<filename>]
 
 set		stage		gauge | fermi
 		approx		false | true
-		autoEgens	true | false
+		autoToddgens	true | false
 		autosave	false | true |
 		blab		<source_file> <value>
 		checkobs	false | true
@@ -1076,6 +1101,7 @@ set		stage		gauge | fermi
 		svdlim		<value>
 		sysfile		<filename>
 		timing		true | false
+		tikhonov	<value>
 		vevfile		<filename>
 		MMAappend	true | false
 		MMAdir		<directory>

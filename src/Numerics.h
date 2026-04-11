@@ -45,6 +45,7 @@ class Numerics
     doub	mintol  = dflttol ;	// Minimiization tolerance
     doub	odetol  = dflttol ;	// ODE integration tolerance
     doub	svdlim  = dfltlim ;	// Singular value threshold
+    doub	tikhonov = 0 ;		// Lagrange Tikhonov shift
     uint	odemax	= Ode::dfltmax ;// Max ODE integration steps
     uint	minmax  = 500 ;		// Max Newton iterations
     short	minlim  = 0 ;		// Minimization generator order limit

@@ -326,10 +326,13 @@ int Gen::addgen (OpSum&& s)			// Add new generator
     switch (Op::list[s.front().item].type)
 	{
 	case OpType::Loop:
-	    if (autoEgens)	added += project (Op::loop_dt(s)) ;
+	    if (autoToddgens)	added += project (Op::loop_dt(s)) ;
 	    if (!theory.euclid)	added += project (std::move(s)) ; break ;
+	case OpType::Fermion:
+	    if (autoToddgens)	added += project (Op::flipT(s)) ;
+				added += project (std::move(s)) ; break ;
 	case OpType::Eloop:
-	case OpType::Fermion:	added += project (std::move(s)) ; break ;
+				added += project (std::move(s)) ; break ;
 	default:		break ;
 	}
     if (added) Op::setprimary () ;
@@ -354,8 +357,8 @@ void Gen::geninit ()				// Generator initialization
 	    for (int j(i) ; ++j < theory.dim ;)
 		{
 		Op plaq { string {l[i],l[j],L[i],L[j]}, loop, 2 } ;
-		if (autoEgens)	project (Op::loop_dt (plaq)) ; 
-		if (isham)	project (plaq) ;
+		if (autoToddgens)	project (Op::loop_dt (plaq)) ; 
+		if (isham)		project (plaq) ;
 		}
 	    }
 
@@ -368,8 +371,8 @@ void Gen::geninit ()				// Generator initialization
 		    if (i == k || j == k) continue ;
 			{
 			Op rect { string {l[i],l[j],l[k],L[j],L[i],L[k]}, loop, 4 } ;
-			if (autoEgens)	project (Op::loop_dt (rect)) ; 
-			if (isham)	project (rect) ;
+			if (autoToddgens)	project (Op::loop_dt (rect)) ; 
+			if (isham)		project (rect) ;
 			}
 		    }
 		}
@@ -383,7 +386,7 @@ void Gen::geninit ()				// Generator initialization
 		    {
 		    if (i == k || j == k) continue ;
 		    Op fig8 { string {l[i],l[k],l[j],L[k],L[j],l[k],L[i],L[k]}, loop, 4 } ;
-		    if (autoEgens)	project (Op::loop_dt (fig8)) ; 
+		    if (autoToddgens)	project (Op::loop_dt (fig8)) ; 
 		    if (isham)		project (fig8) ;
 		    }
 		}
@@ -395,8 +398,8 @@ void Gen::geninit ()				// Generator initialization
 		{
 		if (i == j) continue ;
 		Op plaq2 { string {l[i],l[j],L[i],L[j],l[i],l[j],L[i],L[j]}, loop, 4 } ;
-		if (autoEgens)	project (Op::loop_dt (plaq2)) ; 
-		if (isham)	project (plaq2) ;
+		if (autoToddgens)	project (Op::loop_dt (plaq2)) ; 
+		if (isham)		project (plaq2) ;
 		}
 	    }
 
@@ -405,8 +408,8 @@ void Gen::geninit ()				// Generator initialization
 	    if (theory.box.comp[i])
 		{
 		Op polyakov  { string (theory.box.comp[i],   l[i]), loop, 2 } ;
-		if (autoEgens)	project (Op::loop_dt (polyakov)) ; 
-		if (isham)	project (polyakov) ;
+		if (autoToddgens)	project (Op::loop_dt (polyakov)) ; 
+		if (isham)		project (polyakov) ;
 		}
 	    }
 
@@ -420,7 +423,7 @@ void Gen::geninit ()				// Generator initialization
 		    string plaq {l[i],l[j],L[i],L[j]} ;
 		    string poly (theory.box.comp[i], l[i]) ;
 		    Op plaqpoly { plaq+poly, loop, 4 } ;
-		    if (autoEgens)	project (Op::loop_dt (plaqpoly)) ; 
+		    if (autoToddgens)	project (Op::loop_dt (plaqpoly)) ; 
 		    if (isham)		project (plaqpoly) ;
 		    }
 		}
@@ -429,15 +432,6 @@ void Gen::geninit ()				// Generator initialization
     else if (theory.nf > 0)
 	{
 	OpType ferm { OpType::Fermion } ;
-
-	for (int k(0) ; k < theory.nf ; k += 2)		// Ff, Gf
-	    {
-	    if (!isham)
-		{
-		Op Gf { string {F[k+1],f[k]}, ferm, 0 } ;
-		project (Gf) ;
-		}
-	    }
 
 	for (int k(0) ; k < theory.nf ; k += 2)		// Fxf, Gxf
 	    for (int i(0) ; i < theory.dim ; ++i)
@@ -448,6 +442,16 @@ void Gen::geninit ()				// Generator initialization
 		Op Fxf { string {F[k],l[i],f[k]}, ferm, 1 } ;
 		project (Fxf) ;
 		}
+
+/*
+	for (int k(0) ; k < theory.nf ; k += 2)		// Ff, Gf
+	    {
+	    if (!isham)
+		{
+		Op Gf { string {F[k+1],f[k]}, ferm, 0 } ;
+		project (Gf) ;
+		}
+	    }
 
 	for (int k(0) ; k < theory.nf ; k += 2)		// Fxyf, Gxyf
 	    for (int i(0) ; i < theory.dim ; ++i)
@@ -470,6 +474,7 @@ void Gen::geninit ()				// Generator initialization
 		    Op Fplaqf { string {F[k],l[i],l[j],L[i],L[j],f[k]}, ferm, 4 } ;
 		    project (Fplaqf) ;
 		    }
+*/
 	}
     }
 

@@ -640,7 +640,7 @@ void Print::print_state ()			// Print global state variables
     cout << " Auto save:          " << global.autosave   << "\n" ;
     cout << " Neg curvature ok:   " << global.oknegeig   << "\n" ;
     cout << " Symmetrize curv:    " << global.symcurv    << "\n" ;
-    cout << " Auto E-loop gens:   " << Gen::autoEgens    << "\n" ;
+    cout << " Auto T-odd gens:    " << Gen::autoToddgens << "\n" ;
     cout << " Check obs:          " << Obs::check        << "\n" ;
     cout << " Dot obs:            " << SymbStr::dots     << "\n" ;
     cout << " Geo swap:           " << global.geoswap    << "\n" ;
@@ -653,6 +653,7 @@ void Print::print_state ()			// Print global state variables
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
     cout << " Svd truncation:     " << numerics.svdlim   << "\n" ;
     cout << " Spectrum gen limit: " << numerics.speclim  << "\n" ;
+    cout << " Tikhonov shift:     " << numerics.tikhonov << "\n" ;
     cout << " Save directory:     " << global.savedir    << "\n" ;
     cout << " Sys info file:      " << global.sysfilename() << "\n" ;
     cout << " Vev data file:      " << global.vevfilename() << "\n" ;

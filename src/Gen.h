@@ -35,7 +35,7 @@ class Gen : public OpSum		// Coherence algebra generator
     bool isgauge()	const { return type == OpType::Loop ||
 				       type == OpType::Eloop ; }
 
-    static inline bool autoEgens { true } ;	// Use commutator E-gens?
+    static inline bool autoToddgens { true } ;	// Use commutator E-gens?
     static inline bool gennorm   { false } ;	// Normalize generators?
 
     static bool	isnew     (int, const Gen&) ;	// Dependency test
