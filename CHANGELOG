@@ -12,3 +12,8 @@ Mar 1, 2026:
 
 Mar 7, 2026:
     Fixed definition of is_coord() in Obs.h
+
+Apr 14, 2026:
+    Modified Coupling.{h,cpp} and Theory.cpp to allow products of powers of adjustable
+    coupling constants as coefficients in Hamiltonian (or free energy) terms.
+    Modified Makefile with commend about possible definition of MASSSCALE symbol.
