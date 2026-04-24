@@ -2,6 +2,9 @@
 #include "Print.h"
 #include "Global.h"
 #include "Obs.h"
+#ifndef MASSSCALE
+#define MASSSCALE 0
+#endif
 
 void Theory::theoryinit()			// Verity theory applicability
     {
@@ -13,25 +16,29 @@ void Theory::theoryinit()			// Verity theory applicability
 
 void Theory::theorydefn ()			// Define hamiltonian or action
     {
-    char8	lambda	{"lambda"} ;
-    int		lamindx ( Coupling::indx (lambda) ) ;
-    PolyMap	map	{ ObsList::obs } ;
-    ObsList&	obslist { ObsList::obs } ;
-    ObsList&	baslist { ObsList::base } ;
-    symb	link[4] { 0x00, 0x01, 0x02, 0x03 } ;
-    symb	Link[4] { 0x04, 0x05, 0x06, 0x07 } ;
-    symb	ferm[4] { 0x28, 0x29, 0x2a, 0x2b } ;
-    symb	Ferm[4] { 0x2c, 0x2d, 0x2e, 0x2f } ;
+    Coeff	unitcoeff {} ;
+    char8	lambda	  {"lambda"} ;
+    int		lamindx   ( Coupling::indx (lambda) ) ;
+    PolyMap	map	  { ObsList::obs } ;
+    ObsList&	obslist   { ObsList::obs } ;
+    ObsList&	baslist   { ObsList::base } ;
+    symb	link[4]   { 0x00, 0x01, 0x02, 0x03 } ;
+    symb	Link[4]   { 0x04, 0x05, 0x06, 0x07 } ;
+    symb	ferm[4]   { 0x28, 0x29, 0x2a, 0x2b } ;
+    symb	Ferm[4]   { 0x2c, 0x2d, 0x2e, 0x2f } ;
+
+    if (lamindx < 0)
+	{
+	Coupling::list.emplace_back (lambda) ;
+	lamindx = Coupling::indx (lambda) ;
+	Coupling::list[lamindx].value = 1000 ;
+	}
+    Coeff lamcoeff	{{lamindx,1}} ;
+    Coeff laminvcoeff	{{lamindx,-1}} ;
 
     ObsList::freeze = false ;
     if (global.stage == 0)
 	{
-	if (lamindx < 0)
-	    {
-	    Coupling::list.emplace_back (lambda) ;
-	    lamindx = Coupling::indx (lambda) ;
-	    Coupling::list[lamindx].value = 1000 ;
-	    }
 	global.info().Hterms.clear() ;
 
 	if (!theory.euclid)
@@ -48,7 +55,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 		map.add (PolyTerm (obslist.catalog (baslist(indx)), coeff)) ;
 		}
 	    ckinetic.push_map (map) ;
-	    global.info().Hterms.emplace_back (lamindx, 1, kinetic, ckinetic) ;
+	    global.info().Hterms.emplace_back (lamcoeff, kinetic, ckinetic) ;
 	    }
 	else
 	    {
@@ -60,7 +67,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 	    gauge_ent.push_back (PolyTerm(indx, -1.0)) ;
 	    map.add (PolyTerm (obslist.catalog (baslist(indx)), -1.0)) ;
 	    cgauge_ent.push_map (map) ;
-	    global.info().Hterms.emplace_back (lamindx, 0, gauge_ent, cgauge_ent) ;
+	    global.info().Hterms.emplace_back (unitcoeff, gauge_ent, cgauge_ent) ;
 	    }
 
 	ObsPoly plaquette  (baslist) ;
@@ -102,7 +109,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 		}
 	    }
 	cplaquette.push_map (map) ;
-	global.info().Hterms.emplace_back (lamindx, -1, plaquette, cplaquette) ;
+	global.info().Hterms.emplace_back (laminvcoeff, plaquette, cplaquette) ;
 	}
     else if (theory.nf)
 	{
@@ -111,9 +118,10 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 	if (massindx < 0)
 	    {
 	    Coupling::list.emplace_back (mass) ;
-	    massindx = Coupling::indx (mass) ;
+	    massindx  = Coupling::indx (mass) ;
 	    Coupling::list[massindx].value = 1 ;
 	    }
+	Coeff masscoeff {{massindx,1},{lamindx,MASSSCALE}} ;
 	global.info().Hterms.clear() ;
 	
 	if (!theory.euclid)
@@ -129,7 +137,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 		map.add (PolyTerm (obslist.catalog (baslist(indx)), 0.25)) ;
 		}
 	    ckinetic_F.push_map (map) ;
-	    global.info().Hterms.emplace_back (lamindx, 1, kinetic_F, ckinetic_F) ;
+	    global.info().Hterms.emplace_back (lamcoeff, kinetic_F, ckinetic_F) ;
 	    }
 
 	ObsPoly hop_term   (baslist) ;
@@ -151,7 +159,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 		}
 	    }
 	chop_term.push_map (map) ;
-	global.info().Hterms.emplace_back (lamindx, 0, hop_term, chop_term) ;
+	global.info().Hterms.emplace_back (unitcoeff, hop_term, chop_term) ;
 
 	ObsPoly mass_term  (baslist) ;
 	ObsPoly cmass_term (obslist) ;
@@ -176,7 +184,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 	    map.add (PolyTerm (obslist.catalog (baslist(indx)), 1.0)) ;
 	    }
 	cmass_term.push_map (map) ;
-	global.info().Hterms.emplace_back (massindx, 1, mass_term, cmass_term, iseuc) ;
+	global.info().Hterms.emplace_back (masscoeff, mass_term, cmass_term, iseuc) ;
 
 	if (theory.euclid)
 	    {
@@ -188,7 +196,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 	    fermi_ent.push_back (PolyTerm(indx, -1.0)) ;
 	    map.add (PolyTerm (obslist.catalog (baslist(indx)), -1.0)) ;
 	    cfermi_ent.push_map (map) ;
-	    global.info().Hterms.emplace_back (lamindx, 0, fermi_ent, cfermi_ent) ;
+	    global.info().Hterms.emplace_back (unitcoeff, fermi_ent, cfermi_ent) ;
 	    }
 	}
     ObsList::freeze = true ;

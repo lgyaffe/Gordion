@@ -32,17 +32,36 @@ class Coupling : public char8		// Adjustable coupling constant
 
 using Couplings = vector<Coupling> ;
 
+struct Factor
+    {
+    int		indx ;
+    doub	exp ;
+    } ;
+
+class Coeff : public vector<Factor>
+    {
+    public:
+    using vector::vector ;
+    doub operator() () const
+	{
+	auto&	list { Coupling::list } ;
+	doub	ans  { 1.0 } ;
+	for (auto& f : *this)
+	    if (f.exp) ans *= std::pow(list[f.indx].value, f.exp) ;
+	return ans ;
+	}
+    } ;
+
 class AdjTerm                           // ObsPoly times adjustable coupling
     {
     public:
-    short	coupindx ;			// Coupling index
-    short	exponent = 1 ;			// Coupling exponent
+    Coeff	coeff ;				// Adjustable coefficient
     bool	imag  ;				// Imaginary coefficient?
     ObsPoly	poly  {ObsList::base} ;		// Observable polynomial
     ObsPoly	cpoly {ObsList::obs} ;		// Canonicalized form
 
-    AdjTerm (int i, int e, ObsPoly& p, ObsPoly &c, bool img = false)
-	: coupindx(i), exponent(e), poly(p), cpoly(c), imag(img) {}
+    AdjTerm (Coeff& c, ObsPoly& p, ObsPoly &can, bool img = false)
+	: coeff(c), poly(p), cpoly(can), imag(img) {}
 
     friend ostream& operator<< (ostream&, const vector<AdjTerm>&) ;
     } ;

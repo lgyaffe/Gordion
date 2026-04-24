@@ -142,7 +142,6 @@ Numvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
     int		ngens	{ global.info().neven.front() } ;
     int		nterms	( Hterms.size() ) ;
     int		Hterm   { -1 } ;
-    doub	coeff ;
 
     if (grad.entry().ncol != nterms ||
 	grad.entry().nrow != ngens) gripe ("Need to (re)build gradient!") ;
@@ -153,14 +152,9 @@ Numvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
 	const GradHdr&	info ( poly ) ;
 	doub		val  ( 0.0 ) ;
 	for (const auto& term : poly) val += termvalue (term) ;
-	if (info.Hterm != Hterm)
-	    {
-	    Hterm = info.Hterm ;
-	    int	exp  { Hterms[Hterm].exponent } ;
-	    int	indx { Hterms[Hterm].coupindx } ;
-	    coeff = exp ? std::pow (coup[indx].value, exp) : 1.0 ;
-	    }
-	gradient [info.gen] += coeff * val ;
+	if (Hterm != info.Hterm)
+	    Hterm  = info.Hterm ;
+	gradient [info.gen] += Hterms[Hterm].coeff() * val ;
 	}
     if (print) cout << "Gradient = \n" << gradient ;
     return gradient ;
@@ -188,16 +182,11 @@ Nummtx& Numerics::eval_curv (int repnum, bool all, int print)	// Evaluate curvat
 	const CurvHdr&	info ( poly ) ;
 	if (info.gen1 < nuse && info.gen2 < nuse)
 	    {
-	    doub	val  ( 0.0 ) ;
+	    doub val  ( 0.0 ) ;
 	    for (const auto& term : poly) val += termvalue (term) ;
-	    if (info.Hterm != Hterm)
-		{
-		Hterm = info.Hterm ;
-		int	exp  { Hterms[Hterm].exponent } ;
-		int	indx { Hterms[Hterm].coupindx } ;
-		coeff = exp ? std::pow (coup[indx].value, exp) : 1.0 ;
-		}
-	    curvature (info.gen1,info.gen2) += coeff * val ;
+	    if (Hterm != info.Hterm)
+		Hterm  = info.Hterm ;
+	    curvature (info.gen1,info.gen2) += Hterms[Hterm].coeff() * val ;
 	    }
 	}
     if (print > 1)
@@ -243,16 +232,9 @@ doub Numerics::eval_H (bool print)			// Evaluate Hamiltonian/free energy
     H = 0 ;
     for (const auto& Hterm : Hterms)
 	{
-	doub	polyval (0.0) ;
-	int	indx  { Hterm.coupindx } ;
-	int	exp   { Hterm.exponent } ;
-	doub	coeff { exp ? std::pow (coup[indx].value, exp) : 1.0 } ;
-
-	for (const auto& polyterm : Hterm.cpoly)
-	    {
-	    polyval += termvalue (polyterm) ;
-	    }
-	H += coeff * polyval ;
+	doub	val (0.0) ;
+	for (const auto& term : Hterm.cpoly) val += termvalue (term) ;
+	H += Hterm.coeff() * val ;
 	}
     if (print)
 	{
@@ -693,13 +675,11 @@ void Numerics::numericsinit ()					// Initialize expectation values
 	}
     else // global.stage == Global::Fermi
 	{
-	doub	condensate (-0.5) ;
-	if (theory.euclid)
-	    {
-	    char8 mass  { "mass" } ;
-	    int   mindx	{ Coupling::indx (mass) } ;
-	    condensate = -1.0 / Coupling::list[mindx].value ;
-	    }
+	char8	mass { "mass" } ;
+	auto	m    { Coupling::list[Coupling::indx (mass)].value } ;
+	doub	condensate ;
+	if (theory.euclid)	condensate = -1.0 / m ;
+	else			condensate = m > 0 ? -0.5 : 0.5 ;
 	numerics.vev.tail(global.nobsF()).zeros() ;
 	for (const auto& [indx_f,indx_g] : ObsList::obs.fermiinit)
 	    {

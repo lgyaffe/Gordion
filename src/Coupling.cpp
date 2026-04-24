@@ -6,15 +6,15 @@ ostream& operator<< (ostream& stream, const vector<AdjTerm>& vec)	// Print AdjTe
     string	sep ;
     for (auto& term : vec)
 	{
-	int  c { term.coupindx } ;
-	int  e { term.exponent } ;
-
 	stream << sep ;
-	if (e)
+	for (auto& f : term.coeff)
 	    {
-	    if (e == -1)	stream << "1/" ;
+	    int  c { f.indx } ;
+	    doub e { f.exp  } ;
+	    if (!e)		continue ;
+	    if (e < 0)		stream << "1/" ;
 	    			stream << Coupling::list[c].data() ;
-	    if (abs(e) != 1)	stream << "^" << e ;
+	    if (abs(e) != 1)	stream << "^" << abs(e) ;
 				stream << " " ;
 	    }
 	stream << "( " << term.poly << " ) " ;
