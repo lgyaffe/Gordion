@@ -6,14 +6,17 @@
 
 TARGET   = gordion
 CXX      = c++
-LDFLAGS  = -ltbb -larmadillo
 
-# Run "make -DBG=1 ..." for compilation with -g:
+# Run "make DBG=1 ..." for compilation with -g:
 ifdef DBG
-CXXFLAGS = -std=c++20 -I. -O0 -g
+CXXFLAGS = -O0 -g
+LDFLAGS  = -larmadillo
 else
-CXXFLAGS = -std=c++20 -I. -O3 -DPARALLEL
+CXXFLAGS = -O3 -DPARALLEL
+LDFLAGS  = -ltbb -larmadillo
 endif
+CXXFLAGS += -std=c++20 -I.
+# add -DMASSSCALE=<numeric_value> to CXXFLAGS if desired
 
 # Extract previous theory target:
 PREVTHY := $(shell test -h $(TARGET) && readlink $(TARGET) | sed 's/$(TARGET)-//')
