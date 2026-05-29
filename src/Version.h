@@ -27,6 +27,7 @@ Version history:
     added 'active' boolean to Gen's.
     added generator add, suspend & activate commands.
     deprecated previous "add generator" command.
+    support use for Eigen library instead of Armadillo for linear algebra
 */
 
 class Version					// Program version
