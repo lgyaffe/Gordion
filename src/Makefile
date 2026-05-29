@@ -14,9 +14,9 @@ CXX      = c++
 CXXFLAGS = -std=c++20 -I.
 
 ifdef EIGEN
-CXXFLAGS = -DEIGEN
+CXXFLAGS += -DEIGEN
 else
-CXXFLAGS = -DARMA
+CXXFLAGS += -DARMA
 LDFLAGS  = -larmadillo
 endif
 
