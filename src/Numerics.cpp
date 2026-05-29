@@ -31,10 +31,10 @@ void Numerics::do_flow (int indx, doub v0, doub v1, doub inc)	// Flow coupling
 	    cout << std::defaultfloat << e.what() << "\n" ;
 	    abort (format ("Aborting flow at {} = {:.6f}", coupling.data(), value)) ;
 	    }
-	if (value == v1)				break ;
-	else if (abs(value - v1) > abs(1.6 * inc))	value += inc ;
-	else if (abs(value - v1) > abs(inc))		value  = (value + v1)/2 ;
-	else						value  = v1 ;
+	if (value == v1)				 break ;
+	else if (std::abs(value-v1) > std::abs(1.6*inc)) value += inc ;
+	else if (std::abs(value-v1) > std::abs(inc))	 value  = (value + v1)/2 ;
+	else						 value  = v1 ;
 	}
     cout << std::setprecision (prevprec) << std::defaultfloat ;
     }
@@ -51,7 +51,7 @@ void Numerics::do_minimize ()				// Do minimization
     do  {
 	if (global.interrupt || ++iters > minmax) break ;
 	delta_s = do_step (tol) ;
-	steps += abs(delta_s) ;
+	steps += std::abs(delta_s) ;
 	tol = mintol ;
 	} while (delta_s > 0) ;
 
@@ -398,14 +398,14 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 
 	for (int indx(global.stage ? 0 : 1) ; indx < nvev ; ++indx)
 	    {
-	    if (abs(v[indx]) > maxv)
+	    if (std::abs(v[indx]) > maxv)
 		{
-		maxv = abs(v[indx]) ;
+		maxv = std::abs(v[indx]) ;
 		maxi = indx ;
 		}
-	    if (abs(dv[indx]) > maxdv)
+	    if (std::abs(dv[indx]) > maxdv)
 		{
-		maxdv = abs(dv[indx]) ;
+		maxdv = std::abs(dv[indx]) ;
 		maxdi = indx ;
 		}
 	    }
@@ -629,9 +629,9 @@ bool Numerics::check_loops ()						// Loop vevs < 1?
     for (int indx(1) ; indx < nvev ; ++indx)
 	{
 	auto p { ObsList::obs.at(indx) } ;
-	if (p->is_Loop() && abs(numerics.vev[indx]) > maxv)
+	if (p->is_Loop() && std::abs(numerics.vev[indx]) > maxv)
 	    {
-	    maxv = abs(numerics.vev[indx]) ;
+	    maxv = std::abs(numerics.vev[indx]) ;
 	    maxi = indx ;
 	    }
 	}

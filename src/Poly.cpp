@@ -46,7 +46,7 @@ PolyTerm PolyTerm::operator* (const PolyTerm& fac) const // Multiply PolyTerms
 void PolyTerm::print (ostream& stream, const ObsList& l) const // Print PolyTerm
     {
     coeffprt (stream, coeff) ;
-    if (!item[0] && is_one(abs(coeff))) stream << l(item[0]) ;
+    if (!item[0] && is_one(std::abs(coeff))) stream << l(item[0]) ;
     for (int k(0) ; k < PSIZ ; ++k)
 	if (item[k]) stream << (k ? " " : "") << l(item[k]) ;
     }

@@ -6,7 +6,7 @@ ostream& coeffprt (ostream& stream, doub c)	// Nicely print object coefficient
     if (c)
 	{
 	const string sgn { c > 0 ? "+" : "-" } ;
-	c = abs(c) ;
+	c = std::abs(c) ;
 	doub x { c * sqrt(2.0) } ;
 	if      (is_one (c))	stream << sgn ;
 	else if (is_int (c))	stream << sgn <<    c << " " ;

@@ -507,9 +507,9 @@ ObsStats::ObsStats (const ObsList& list)			 // Construct ObsStats
 	lengthsum += p->size() ;
 	if (p->is_Loop() && indx && indx < nvev)
 	    {
-	    if (abs(vevs[indx]) > maxloopvev)
+	    if (std::abs(vevs[indx]) > maxloopvev)
 		{
-		maxloopvev = abs(vevs[indx]) ;
+		maxloopvev = std::abs(vevs[indx]) ;
 		maxloop = indx ;
 		}
 	    }

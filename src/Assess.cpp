@@ -373,11 +373,11 @@ PolyTerm Obs::approximate (const ObsList& list) const		// Approximate Obs?
 	    if (!bilinear())	// Strongly prefer more even factorizations
 		{
 		float asym ( 2.0 * (t->pos - s->pos) / size() - 1.0 ) ;
-		score = 10 * abs(asym) ;
+		score = 10 * std::abs(asym) ;
 		}
 	    else 		// Strongly prefer large subloop
 		{
-		score = 10 * abs(t->pos - s->pos) / size() ;
+		score = 10 * std::abs (t->pos - s->pos) / size() ;
 		}
 	    // Prefer not to cut at E's
 	    if (inclE (s->in) || inclE (s->out)) score += 2 ;
@@ -533,7 +533,7 @@ short Obs::u1bound (short oldmin) const		// Lower bound xorder, gauge Obs only
 		}
 	    for (auto& f : flux)		// Sum up [ij] flux
 		{
-		for (auto v : f) minord += 2 * abs (v) ;
+		for (auto v : f) minord += 2 * std::abs (v) ;
 		}
 	    }
 	}

@@ -254,7 +254,7 @@ void Gen::normalize (int repnum)			// Normalize generator
 		if (theory.euclid && is_Fermion())
 		    {
 		    PolyTerm reindx { tmplist.catalog (obs) } ;
-		    normsq += abs(ans[reindx]) ;
+		    normsq += std::abs(ans[reindx]) ;
 		    }
 		else normsq += ans[Polyindx()] ;
 		}

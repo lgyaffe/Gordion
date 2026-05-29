@@ -149,7 +149,7 @@ Proj& Proj::operator-=(const Proj& proj)		// Subtract from projector
 bool Proj::allzero () const				// Test if all (essentially) zero
     {
     auto eps { 100 * std::numeric_limits<doub>::epsilon() } ;
-    return std::all_of (begin(), end(), [eps](doub x) { return abs(x) <= eps ; }) ;
+    return std::all_of (begin(), end(), [eps](doub x) { return std::abs(x) <= eps ; }) ;
     }
 
 bool Proj::C_even () const				// Charge conjugation even rep?

@@ -1,5 +1,4 @@
 #include "Ode.h"
-#include <cmath>
 
 bool Ode::integrate (doub& s, doub goal, Dvec& y)	//  Integrate dy/ds = rhs(y,s)
     {
@@ -13,7 +12,7 @@ bool Ode::integrate (doub& s, doub goal, Dvec& y)	//  Integrate dy/ds = rhs(y,s)
     for (auto& b : deriv)
 	if (b.size() != y.size()) set_size (b, y.size()) ;
 
-    if (!maxstepsize || maxstepsize > abs(goal - s)) maxstepsize = abs (goal - s) ;
+    if (!maxstepsize || maxstepsize > std::abs(goal - s)) maxstepsize = std::abs (goal - s) ;
 
     doub	stepsize { initstepsize ? initstepsize : maxstepsize } ;
     doub	errnorm   (0) ;
@@ -36,7 +35,7 @@ bool Ode::integrate (doub& s, doub goal, Dvec& y)	//  Integrate dy/ds = rhs(y,s)
 	if (maxstepsize && stepsize > maxstepsize) stepsize = maxstepsize ;
 
 	doub next_s  { goal } ;
-	doub delta_s ( abs (next_s - s) ) ;
+	doub delta_s { std::abs (next_s - s) } ;
 	if (stepsize < delta_s)
 	    {
 	    if (stepsize > delta_s / 2) stepsize = delta_s / 2 ;
