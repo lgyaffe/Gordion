@@ -36,7 +36,7 @@ bool Ode::integrate (doub& s, doub goal, Dvec& y)	//  Integrate dy/ds = rhs(y,s)
 	if (maxstepsize && stepsize > maxstepsize) stepsize = maxstepsize ;
 
 	doub next_s  { goal } ;
-	doub delta_s { abs (next_s - s) } ;
+	doub delta_s ( abs (next_s - s) ) ;
 	if (stepsize < delta_s)
 	    {
 	    if (stepsize > delta_s / 2) stepsize = delta_s / 2 ;
