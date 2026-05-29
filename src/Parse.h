@@ -11,13 +11,14 @@ namespace Parse
     void parse_cmd   (const string&)  ;		// Parse command word
     bool parse_set   (istringstream&) ;		// Parse "set" commands
     bool parse_reset (istringstream&) ;		// Parse "reset" commands
-    bool parse_call  (istringstream&) ;		// Parse "call" commands
     bool parse_build (istringstream&) ;		// Parse "build" commands
-    bool parse_eval  (istringstream&) ;		// Parse "evalaute" commands
+    bool parse_call  (istringstream&) ;		// Parse "call" commands
     bool parse_do    (istringstream&) ;		// Parse "do" commands
+    bool parse_eval  (istringstream&) ;		// Parse "evalaute" commands
+    bool parse_gen   (istringstream&) ;		// Parse "generator" commands
     bool parse_add   (istringstream&) ;		// Parse "add" command
-    bool parse_test  (istringstream&) ;		// Parse "test" commands
     bool parse_print (istringstream&) ;		// Parse "print" commands
+    bool parse_test  (istringstream&) ;		// Parse "test" commands
     bool parse_read  (istringstream&) ;		// Parse "read" command
     bool parse_write (istringstream&) ;		// Parse "write" command
     bool parse_save  (istringstream&) ;		// Parse "save" command

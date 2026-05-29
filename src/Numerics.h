@@ -3,12 +3,7 @@
 #include "Global.h"
 #include "Poly.h"
 #include "Ode.h"
-
-using Numvec = arma::Col<real> ;
-using Nummtx = arma::mat ;
-using Cmplxv = arma::cx_vec ;
-using Cmplxm = arma::cx_mat ;
-using uvec   = arma::uvec ;
+#include "Linalg.h"
 
 class Status
     {
@@ -26,30 +21,29 @@ class Numerics
     {
     public:
     doub	H ;			// Hamiltonian/free energy value
-    Numvec	gradient ;		// Hamiltonian gradient
-    Nummtx	curvature ;		// Hamiltonian curvature
-    Numvec	delta ;			// Riemann normal coords
-    Numvec	vev ;			// Numerical expectation values
-    Numvec	dvev ;			// Expectation value derivatives
-    Nummtx	lagrange ;		// Lagrange matrix
-    Cmplxv	spectrum ;		// Oscillation spectrum
-    Cmplxm	modes ;			// Oscillation eigenvectors
+    Dvec	gradient ;		// Hamiltonian gradient
+    Dmtx	curvature ;		// Hamiltonian curvature (T-even)
+    Dmtx	metric ;		// Hamiltonian curvature (T-odd)
+    Dmtx	lagrange ;		// Lagrange bracket matrix
+    Dvec	delta ;			// Riemann normal coords
+    Rvec	vev ;			// Numerical expectation values
+    Rvec	dvev ;			// Expectation value derivatives
+    Cvec	spectrum ;		// Oscillation spectrum
+    Cmtx	modes ;			// Oscillation eigenvectors
+    Uvec	Tevens ;		// T-even active generators
+    Uvec	Todds ;			// T-odd active generators
     short	lastrep ;		// Symmetry representation
 
-    Numvec	vev_tmp ;		// Temporary vev vector
-    const doub*	vev_buf ;		// Pointer to vev buffer data
-    doub*	dvev_buf ;		// Pointer to dvev buffer data
+    Rvec	vev_tmp ;		// Temporary vev vector
+    const real*	vev_buf ;		// Pointer to vev buffer data
+    real*	dvev_buf ;		// Pointer to dvev buffer data
 
-    doub	dflttol = 1.e-8 ;	// Default tolerance
-    doub	dfltlim = 1.e-7 ;	// Default svd limit
+    doub	svdcut  = 0 ;		// Singular value cutoff
+    doub	dflttol = 1.e-10 ;	// Default tolerance
     doub	mintol  = dflttol ;	// Minimiization tolerance
     doub	odetol  = dflttol ;	// ODE integration tolerance
-    doub	svdlim  = dfltlim ;	// Singular value threshold
-    doub	tikhonov = 0 ;		// Lagrange Tikhonov shift
     uint	odemax	= Ode::dfltmax ;// Max ODE integration steps
     uint	minmax  = 500 ;		// Max Newton iterations
-    short	minlim  = 0 ;		// Minimization generator order limit
-    short	speclim = 0 ;		// Spectrum generator order limit
     RKdef	rk {RKdef::list[0]} ;	// RK method
 
     struct
@@ -63,11 +57,14 @@ class Numerics
     void	do_flow		(int,doub,doub,doub) ;	// Do coupling flow
     doub	eval_H		(bool=false) ;		// Evaluate H
     void	eval_geos	(int=0) ;		// Evaluate Obs derivs
-    Numvec&	eval_grad	(bool=false) ;		// Evaluate dH
-    Numvec&	eval_delta	(bool=false) ;		// Predict minimum
-    Cmplxv&	eval_spectra	(int,bool=false) ;	// Evaluate spectrum
-    Nummtx&	eval_lagr	(int,bool=false) ;	// Evaluate Lagrange brkt
-    Nummtx&	eval_curv	(int,bool,int=0) ;	// Evaluate ddH
+    doub	eval_delta	(bool=false) ;		// Predict minimum
+    const Dvec&	eval_grad	(bool=false) ;		// Evaluate dH
+    const Dmtx&	eval_curv	(int,int=0) ;		// Evaluate T-even ddH
+    const Dmtx&	eval_metr	(int,int=0) ;		// Evaluate T-odd ddH
+    const Dmtx&	eval_lagr	(uint,bool=false) ;	// Evaluate Lagrange brkt
+    const Uvec&	eval_inuse	(uint,bool=false) ;	// Active generator list
+    const Cvec&	eval_spectra	(int,bool=false) ;	// Evaluate spectrum
+    const Cvec&	eval_spectra	(string,bool=false) ;	// Evaluate spectrum
     void	write_data	(doub) ;		// Write to datafile
 
     inline static Status status ;			// Status info
@@ -94,16 +91,16 @@ class Numerics
     static void	numericsinit () ;				// Initialize
     static bool	curv_rpt     (int = -1) ;			// Curvature probs?
     static void status_rpt   (uint,uint) ;			// Report status
-    static void	do_dvev      (doub, const Numvec&, Numvec&) ;	// Do vev derivs
+    static void	do_dvev      (doub, const Rvec&, Rvec&) ;	// Do vev derivs
     static void	do_dvev_bckt (const uint3&) ;			// Do dvev bucket
-    static bool check_curv   (const Nummtx&) ;			// Curvature OK?
-    static doub	err_norm     (const Numvec&, const Numvec&) ;	// ODE error norm
+    static bool check_curv   (const Dmtx&) ;			// Curvature OK?
+    static doub	err_norm     (const Rvec&, const Rvec&) ;	// ODE error norm
     static bool built_rep    (int) ;				// Is rep built?
     static string MMAform    (doub) ;				// "E" -> "*^"
 
     static void	data_write   (ofstream&, const string, doub, doub) ;
-    static void	data_write   (ofstream&, const string, doub, const Numvec&) ;
-    static void	data_write   (ofstream&, const string, doub, const Cmplxv&) ;
+    static void	data_write   (ofstream&, const string, doub, const Rvec&) ;
+    static void	data_write   (ofstream&, const string, doub, const Cvec&) ;
     } ;
 
 extern Numerics numerics ;

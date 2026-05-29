@@ -115,19 +115,35 @@ void Op::setprimary ()				// Determine Op primacy
 	for (int j(0) ; j < i ; ++j)
 	    {
 	    Op op2 { list[j] } ;	// N.B. non-ref 'cuz list may grow
-	    if (!op2.order || op2.is_Fermion() != stage) continue ;
 
-	    if (op1.order + op2.order <= global.info().maxgen)
+	    if (!op2.order || op2.is_Fermion() != stage)	continue ;
+	    if (op1.order + op2.order > maxgen)			continue ;
+
+	    Gen ans1 ;
+	    Commute::op_commute (1.0, op1, op2, ans1) ;
+
+	    for (auto& term : ans1)
 		{
-		Gen ans ;
-		Commute::op_commute (1.0, op1, op2, ans) ;
+		const Op& new1 { list[term.item] } ;
 
-		for (auto& term : ans)
+		if (new1.order == op1.order + op2.order)
+		    new1.primary = false ;
+
+		for (int k(0) ; k <= i ; ++k)
 		    {
-		    const Op& op3 { list[term.item] } ;
-		    if (op3.order == op1.order + op2.order)
+		    Op op3 { list[k] } ;// N.B. non-ref 'cuz list may grow
+
+		    if (!op3.order || op3.is_Fermion() != stage)	continue ;
+		    if (op1.order + op2.order + op3.order > maxgen)	continue ;
+
+		    Gen ans2 ;
+		    Commute::op_commute (1.0, op3, new1, ans2) ;
+
+		    for (auto& term : ans2)
 			{
-			op3.primary = false ;
+			const Op& new2 { list[term.item] } ;
+			if (new2.order == op3.order + op2.order + op1.order)
+			    new2.primary = false ;
 			}
 		    }
 		}
@@ -152,17 +168,13 @@ OpSum Op::loop_dt (OpSum s)			// Loop OpSum -> Eloop OpSum
 
 OpSum Op::flipT (OpSum s)			// Flip bilinear staggering
     {
-    cout << "Op::flipT OpSum: " << s.size() << "\n" ;
     OpSum ans ;
     for (auto& t : s)
 	{
-	cout << "t " << list[t.item] << "\n" ;
 	Op op { list[t.item] } ;
 	if (op.type != OpType::Fermion) fatal ("Bad call to flipT") ;
 	op.front() = stag(op.front()) ;
-	cout << " storing " << op << "\n" ;
 	ans.emplace_back ( Op::store(op) ) ;
-	cout << " ans.size " << ans.size() << "\n" ;
 	}
     return ans ;
     }

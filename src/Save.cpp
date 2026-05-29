@@ -402,8 +402,8 @@ void Save::write_coup ()				// Write Coupling's
 void Save::write_vev ()					// Write Vev's
     {
     auto&	stream	{ global.vevstream } ;
-    uint	nvev	( numerics.vev.n_elem ) ;
-    auto	ptr	{ numerics.vev.memptr() } ;
+    uint	nvev	( ncol(numerics.vev) ) ;
+    auto	ptr	{ memptr(numerics.vev) } ;
 
     stream.seekp (0, ios::end) ;
     stream.write (cast_to<const char*>(ptr), nvev * sizeof (real)) ;
@@ -494,7 +494,7 @@ bool Save::read_header (fstream& stream, bool write)	// Read save file header
 	return !write && ( hdr.nvev == global.nobs()	// parent thy vev file
 			|| hdr.nvev == global.nobsG() )
 		      && hdr.ncoup <= ncoup 
-		      && hdr.nvev  <= numerics.vev.n_elem ;
+		      && hdr.nvev  <= ncol(numerics.vev) ;
 	}
     else gripe (format("Inconsistent save file theory {}", hdr.name.data())) ;
     }
@@ -799,7 +799,7 @@ void Save::read_vev (int set)				// Read Vev data
     {
     auto&	stream	{ global.vevstream } ;
     ulong	offset	{ filehdr.coupsize() + set * filehdr.cvsetsize() } ;
-    auto	ptr	{ numerics.vev.memptr() } ;
+    auto	ptr	{ memptr(numerics.vev) } ;
 
     if (set < 0) stream.seekg (offset, ios_base::end) ;
     else	 stream.seekg (offset + sizeof filehdr, ios_base::beg) ;

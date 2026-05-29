@@ -148,7 +148,7 @@ Proj& Proj::operator-=(const Proj& proj)		// Subtract from projector
 
 bool Proj::allzero () const				// Test if all (essentially) zero
     {
-    auto eps { 100 * std::numeric_limits<double>::epsilon() } ;
+    auto eps { 100 * std::numeric_limits<doub>::epsilon() } ;
     return std::all_of (begin(), end(), [eps](doub x) { return abs(x) <= eps ; }) ;
     }
 
@@ -235,7 +235,7 @@ ostream& operator<< (ostream& stream, const Rep& rep)	// Print Rep
 
 void Rep::repinit()					// Define symmetry projectors
     {
-    double	sq3  { sqrt(3) } ;
+    doub	sq3  { sqrt(3) } ;
     auto&	proj { Proj::list } ;
     SymmTerm	(*s)(const string&&) = Symm::known ;
 

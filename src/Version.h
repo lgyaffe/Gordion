@@ -9,27 +9,35 @@ Version history:
     initial release
 
 1.1 Feb 20, 2026
-    added version numbers to save file headers,
+    added version numbers to save file headers.
     added VEV32 preprocessor symbol & real typedef
-    for selecting 32 bit vev's and poly coeffs.
+	for selecting 32 bit vev's and poly coeffs.
 
 1.2 Apr 11, 2026
-    fixed Version::arith and added Version::rsize,
-    removed installation of even-length fermion generators in Gen::geninit,
+    fixed Version::arith and added Version::rsize.
+    removed installation of even-length fermion generators in Gen::geninit.
     changed autoEgens to autoToddgens, and added Op::flipT to auto-create
-    T-odd fermion generators from T-even generator definitions,
+	T-odd fermion generators from T-even generator definitions.
     added Numerics::tikhanov to allow adjustment of Lagrange matrix regularization.
+
+1.3 May 24, 2026
+    fixed bogus Gauss law use in 1D Efermion canonicalizations.
+    changed spectrum eigensystem to use smaller second order form.
+    removed Numerics::tikhanov shift as not useful.
+    added 'active' boolean to Gen's.
+    added generator add, suspend & activate commands.
+    deprecated previous "add generator" command.
 */
 
 class Version					// Program version
     {
     static constexpr uchar	majornum = 1 ;
-    static constexpr uchar	minornum = 2 ;
+    static constexpr uchar	minornum = 3 ;
 
     static constexpr bool	r_is_f { sizeof (real) == sizeof (float) } ;
     static constexpr ushort	mkversion { (majornum << 4) | (minornum << 1) | r_is_f } ;
 
-    ushort	rsize () const { return r_is_f ? sizeof (float) : sizeof (double) ; } ;
+    ushort	rsize () const { return r_is_f ? sizeof (float) : sizeof (doub) ; } ;
     ushort	major () const { return (version >> 4) ; }
     ushort	minor () const { return (version >> 1) & 7 ; }
     bool	arith () const { return (version &  1) ; }

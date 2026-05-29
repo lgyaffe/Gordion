@@ -297,6 +297,7 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
 
 uint ObsList::store (const Obs& o)			// Store Obs in ObsList
     {
+    uint blab { Blab::blablevel[BLAB::OBS] } ;
     if (classify)
 	{
 	if (o.corder < 0)
@@ -313,6 +314,7 @@ uint ObsList::store (const Obs& o)			// Store Obs in ObsList
 		o.print(), o.corder, o.xorder, name)) ;
 	    }
 	}
+    if (blab > 1) cout << "Storing in " << name << ": " << o << "\n" ;
     auto [iter, isnew] { map.try_emplace (o, (*this).size()) } ;
     uint indx { iter->second } ;
     if (isnew) push_back (&(iter->first)) ;
@@ -440,13 +442,14 @@ void ObsList::do_fermi_init ()			// Initialize fermion -> loop map
 
 ostream& ObsList::print (ostream& stream, uint indx) const	// Print indexed Obs
     {
-    bool	addvev	{ !neq(ObsList::obs) } ;
+    bool	addvev	 { !neq(ObsList::obs) } ;
+    auto	prevprec { stream.precision(12) } ;
     const Obs&	obs	{ *at(indx) } ;
-    stream << name << " Obs #" << indx << ": " ;
+    stream << name << " Obs #" << indx << ": " << std::setprecision(12) ;
     stream << obs ;
     if (addvev && indx < numerics.vev.size())
 	stream << " = " << numerics.vev[indx] ;
-    stream << "\n" ;
+    stream << "\n" << std::setprecision (prevprec) ;
     return stream ;
     }
 
@@ -455,7 +458,6 @@ ostream& operator<< (ostream& stream, const Obs& obs)		// Print Obs -> stream
     if (Blab::blablevel[BLAB::OBS])
 	{
 	stream  << "(" << obs.corder << "," << obs.xorder ;
-	//if (obs.midE >= 0) stream << "," << obs.midE ;
 	stream << "," << Obs::type_name [(int)obs.type] ;
 	stream << ") " ;
 	}
@@ -466,8 +468,9 @@ ostream& operator<< (ostream& stream, const Obs& obs)		// Print Obs -> stream
 
 ostream& ObsList::print (ostream& stream) const			// Print ObsList -> stream
     {
-    bool addvev { !neq(ObsList::obs) } ;
-    cout << name << " observables:\n" ;
+    bool	addvev   { !neq(ObsList::obs) } ;
+    auto	prevprec { stream.precision(12) } ;
+    stream << name << " observables:\n" << std::setprecision(12) ;
     for (int indx(0) ; indx < size() ; ++indx)
 	{
 	stream << " #" << indx << ": " << *at(indx) ;
@@ -475,6 +478,7 @@ ostream& ObsList::print (ostream& stream) const			// Print ObsList -> stream
 	    stream << " = " << numerics.vev[indx] ;
 	stream << "\n" ;
 	}
+    stream << std::setprecision (prevprec) ;
     return stream ;
     }
 

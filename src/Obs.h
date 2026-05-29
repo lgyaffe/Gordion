@@ -105,22 +105,10 @@ class Obs : public SymbStr			// Obs = SymbStr + meta-info
 				|| is_Efermion()
 				|| isEE_F(front())
 				|| front() == EntrF ; }
-/*
-    bool is_coord() const { return is_Loop()
-				|| is_EEloop()
-				|| is_Efermion() && oddlen() ^ !staggered()
-				|| is_Fermion() &&
-				    (theory.euclid && !staggered() ||
-				    !theory.euclid && staggered() ^ oddlen()) ; }
-    bool is_coord() const { return is_Loop()
-				||  theory.euclid && is_Fermion() && !staggered()
-				|| !theory.euclid && (is_EEloop() ||
-				    is_Fermion() && staggered() ^ oddlen()) ; }
-*/
     bool is_coord() const { return theory.euclid
 				    ? is_Loop() || is_Fermion() && !staggered()
 				    : is_Loop() || is_EEloop() ||
-				      is_Fermion() && staggered() ^ oddlen() ||
+				      is_Fermion()  && staggered() ^  oddlen() ||
 				      is_Efermion() && staggered() ^ !oddlen() ; }
 
     bool oddlen() const					// Odd length bilinear?

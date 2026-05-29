@@ -7,13 +7,20 @@
 TARGET   = gordion
 CXX      = c++
 
+
+ifdef EIGEN
+CXXFLAGS = -DEIGEN
+else
+CXXFLAGS = -DARMA
+LDFLAGS  = -larmadillo
+endif
+
 # Run "make DBG=1 ..." for compilation with -g:
 ifdef DBG
-CXXFLAGS = -O0 -g
-LDFLAGS  = -larmadillo
+CXXFLAGS += -O0 -g
 else
-CXXFLAGS = -O3 -DPARALLEL
-LDFLAGS  = -ltbb -larmadillo
+CXXFLAGS += -O3 -DPARALLEL
+LDFLAGS  += -ltbb
 endif
 CXXFLAGS += -std=c++20 -I.
 # add -DMASSSCALE=<numeric_value> to CXXFLAGS if desired

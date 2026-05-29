@@ -1,12 +1,11 @@
 #ifndef ODE_H
 #define ODE_H
-#define ARMA_WARN_LEVEL 1
-#include <armadillo>
+#include "Gordion.h"
+#include "Linalg.h"
 #include "RK.h"
 
-using Numvec  = arma::vec ;
-using OdeRhs  = void   (*)(double, const Numvec&, Numvec&) ;
-using OdeNorm = double (*)(const Numvec&, const Numvec&) ;
+using OdeRhs  = void (*)(doub, const Dvec&, Dvec&) ;
+using OdeNorm = doub (*)(const Dvec&, const Dvec&) ;
 
 class Ode : public RKdef			// Runge-Kutta ODE integrator
     {
@@ -14,17 +13,17 @@ class Ode : public RKdef			// Runge-Kutta ODE integrator
     OdeNorm		norm ;			// error norm function
 
     public:
-    double		tolerance ;			// Error tolerance
-    double		minstepsize  = 0.0 ;		// Minimum step size
-    double		maxstepsize  = 0.0 ;		// Maximum step size
-    double		initstepsize = 0.0 ;		// Initial step size
+    doub		tolerance ;			// Error tolerance
+    doub		minstepsize  = 0.0 ;		// Minimum step size
+    doub		maxstepsize  = 0.0 ;		// Maximum step size
+    doub		initstepsize = 0.0 ;		// Initial step size
     uint		steps        = 0 ;		// # steps taken
     uint		rejects      = 0 ;		// # rejceted steps
     uint		maxstep ;			// Max # steps
 
-    bool		integrate (double&, double, Numvec&) ;	// Integrator
+    bool		integrate (doub&, doub, Dvec&) ;	// Integrator
 
-    Ode (OdeRhs rhsfunc, OdeNorm normfunc, double& tol, const RKdef& rk, uint max=dfltmax)
+    Ode (OdeRhs rhsfunc, OdeNorm normfunc, doub& tol, const RKdef& rk, uint max=dfltmax)
 	: rhs(rhsfunc), norm(normfunc), tolerance(tol), RKdef(rk), maxstep(max) {} ;
 
     struct Stats

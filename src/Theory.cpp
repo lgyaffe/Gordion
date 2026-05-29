@@ -41,7 +41,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 	{
 	global.info().Hterms.clear() ;
 
-	if (!theory.euclid)
+	if (!theory.euclid)			// Hamiltonian gauge kinetic
 	    {
 	    ObsPoly	kinetic  { baslist } ;
 	    ObsPoly	ckinetic { obslist } ;
@@ -57,7 +57,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 	    ckinetic.push_map (map) ;
 	    global.info().Hterms.emplace_back (lamcoeff, kinetic, ckinetic) ;
 	    }
-	else
+	else					// Euclidean gauge entropy
 	    {
 	    ObsPoly gauge_ent  (baslist) ;
 	    ObsPoly cgauge_ent (obslist) ;
@@ -72,7 +72,7 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 
 	ObsPoly plaquette  (baslist) ;
 	ObsPoly cplaquette (obslist) ;
-	if (theory.dim == 1 && theory.box.comp[0])
+	if (theory.dim == 1 && theory.box.comp[0])	// Polyakov loop
 	    {
 	    plaquette.push_back  (PolyTerm(0, 2)) ;
 	    cplaquette.push_back (PolyTerm(0, 2)) ;
@@ -87,10 +87,13 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 	    map.add (PolyTerm (obslist.catalog (baslist(indx)), -1.0)) ;
 	    map.add (PolyTerm (obslist.catalog (baslist(Indx)), -1.0)) ;
 	    }
-	else
+	else						// Plaquette terms
 	    {
-	    plaquette.push_back  (PolyTerm(0, theory.dim * (theory.dim-1))) ;
-	    cplaquette.push_back (PolyTerm(0, theory.dim * (theory.dim-1))) ;
+	    if (theory.dim * (theory.dim-1))
+		{
+		plaquette.push_back  (PolyTerm(0, theory.dim * (theory.dim-1))) ;
+		cplaquette.push_back (PolyTerm(0, theory.dim * (theory.dim-1))) ;
+		}
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
 		for (int j(i) ; ++j < theory.dim ;)
@@ -109,7 +112,8 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 		}
 	    }
 	cplaquette.push_map (map) ;
-	global.info().Hterms.emplace_back (laminvcoeff, plaquette, cplaquette) ;
+	if (plaquette.size())
+	    global.info().Hterms.emplace_back (laminvcoeff, plaquette, cplaquette) ;
 	}
     else if (theory.nf)
 	{

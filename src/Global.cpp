@@ -84,7 +84,7 @@ uint3 Global::bckt_pos (uint i)			// Return stage/bucket/indx
 	    }
 	else fatal ("Invalid observable number!") ;
 	}
-    else gripe ("Make observables first!") ;
+    else gripe (format ("Make stage {} observables first!", stage)) ;
     }
 
 string Global::dfltfilename (const string&& ext)  // Make default file name
@@ -93,10 +93,7 @@ string Global::dfltfilename (const string&& ext)  // Make default file name
     int		approx { global.approx } ;
     int		obsord { global.info().maxord } ;
     int		maxgen { global.info().maxgen } ;
-    int		minlim { numerics.minlim } ;
-    int		minord { minlim ? std::min (minlim,maxgen) : maxgen } ;
-    int		genord { ext == "sys" ? maxgen : minord } ;
 
     return format ("{}{}{}{}a{}.{}",
-		name, genord, global.fg(), obsord, approx, ext) ;
+		name, maxgen, global.fg(), obsord, approx, ext) ;
     }

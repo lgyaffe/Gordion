@@ -215,7 +215,7 @@ void Symm::symminit()				// Initialize symmetry group data
 		    CRname += "C" ;
 		    trans.sgn.set(Cbit) ;
 		    }
-		if (R)					// Compose transfmation name
+		if (R)					// Compose transformation name
 		    {
 		    CRname += "R" ;
 		    for (int a(0) ; a < dim ; ++a)

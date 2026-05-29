@@ -1,6 +1,7 @@
 #ifndef GORDION_H
 #define GORDION_H
 #include <cstdint>
+#include <cmath>
 #include <array>
 #include <vector>
 #include <set>
@@ -33,14 +34,17 @@ using std::unordered_map ;
 using std::unordered_set ;
 using std::exception ;
 
+#ifdef EIGEN
+using doub   = long double ;		// Spectral matrices, etc.
+#else
+using doub   = double ;			// Spectral matrices, etc.
+#endif
 #ifdef VEV32
 using real   = float ;			// Poly coeffs & vev's
 #else
-using real   = double ;			// Poly coeffs & vev's
+using real   = doub ;			// Poly coeffs & vev's
 #endif
-
-using cmplx  = complex<double> ;	// Complex eigenvalues
-using doub   = double ;			// Spectral matrices, etc.
+using cmplx  = complex<doub> ;		// Complex eigenvalues
 using symb   = char ;			// Basic symbol type
 using uchar  = uint8_t ;		// Hterm #
 using ushort = uint16_t ;		// Gen #, Obs/Poly length

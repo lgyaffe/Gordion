@@ -21,9 +21,11 @@ int Symb::to_symb(char c) noexcept		// Map character -> symb
 
 SymbStr Symb::to_symb(const string& s)		// Map printables -> SymbStr
     {
-    SymbStr a ; a.resize (s.size()) ;
+    auto it { std::find (symbname.begin(), symbname.end(), s) } ;
+    if (it != symbname.end()) return SymbStr (it-symbname.begin()) ;
 
-    auto p { a.begin() } ;
+    SymbStr	a ; a.resize (s.size()) ;
+    auto	p { a.begin() } ;
     for (char c : s)
 	{
 	int x { to_symb(c) } ;

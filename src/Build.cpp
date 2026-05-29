@@ -246,7 +246,7 @@ void Build::mk_Efermions ()			// Build Efermion's
     auto&	obslist	{ ObsList::obs } ;
     uint	numobs	{ obslist.nobs() } ;
 
-    for (cord = maxord/2 ; cord <= maxord - 2 ; ++cord)
+    for (cord = maxord/2 ; cord <= maxord - 1 ; ++cord)
 	{
 	if (blab > 2) cout << "mk_Efermions: maxord " << maxord
 			   << " cord " << cord << "\n" << flush ;
@@ -394,15 +394,14 @@ void Build::mk_lagr (int repnum)			// Build Lagrange bracket
     lagr.clear();
     for (ushort j(0) ; j < ngens ; ++j)
 	{
+	if (gens[j].T_odd) continue ;
 	for (ushort k(0) ; k < ngens ; ++k)
 	    {
-	    if (gens[j].T_odd != gens[k].T_odd)
-		{
-		Gen newgen ;
-		Commute::commute_gen (gens[j], gens[k], newgen) ;
-		if (!ans.add_gen (newgen))
-		    trunc = std::min(trunc, newgen.order) ;
-		}
+	    if (!gens[k].T_odd) continue ;
+	    Gen newgen ;
+	    Commute::commute_gen (gens[j], gens[k], newgen) ;
+	    if (!ans.add_gen (newgen))
+		trunc = std::min(trunc, newgen.order) ;
 	    lagr.add (Poly {LagrHdr {k,j}}, ans) ;
 	    ans.clear() ;
 	    }
@@ -652,7 +651,10 @@ void Build::do_Fermion_bckt (const uint3& bckt)		// Do Fermion build bckt
 	    if (ord < maxord - 2 * op.order)	continue ;
 	    if (blab > 3)
 		{
-		cout << "do_Fermion_bckt " << bcktnum << " [" << op << "," << a
+		cout << "do_Fermion_bckt " << bcktnum
+		     << " maxord " << maxord
+		     << " cord " << cord 
+		     << " [" << op << "," << a
 		     << "] (" << op.order << "+" << a.corder << ")\n" << flush ;
 		}
 	    Commute::do_commute (op, a, zero, obslist, tmp) ;

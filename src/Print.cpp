@@ -160,9 +160,9 @@ void Print::print_gen (uint i, bool full)	// Print specified Gen
 	{
 	const Gen& gen { gens[i] } ;
 
-	cout << Rep::list[global.repnum].name << " generator "
-	     << global.fg() << i << (gen.T_odd ? "*" : "")
-	     << " (" << gen.order << ") = " ;
+	cout << " " << Rep::list[global.repnum].name
+	     << " generator " << global.fg() << i
+	     << (gen.T_odd ? "*" : "") << " (" << gen.order << ") = " ;
 	if (full) cout << gen ;
 	else	  gen.print (cout) ;
 	cout << "\n" ;
@@ -173,8 +173,20 @@ void Print::print_gen (uint i, bool full)	// Print specified Gen
 void Print::print_gen (bool full)		// Print all Gens
     {
     const auto&	gens { global.info().gens[global.repnum] } ;
+    int		live (0) ;
 
-    for (int i(0) ; i < gens.size() ; ++i) print_gen (i,full) ;
+    for (int i(0) ; i < gens.size() ; ++i)
+	{
+	if (!gens[i].active) continue ;
+	if (!live++) cout << "Active generators:\n" ;
+	print_gen (i,full) ;
+	}
+    if (live == gens.size()) return ;
+    cout << "Inactive generators:\n" ;
+    for (int i(0) ; i < gens.size() ; ++i)
+	{
+	if (!gens[i].active) print_gen (i,full) ;
+	}
     }
 
 void Print::print_rep (const string& word)	// Print Rep(s)
@@ -429,7 +441,7 @@ void Print::print_mode (uint i)
     const auto& repnam { Rep::list[numerics.lastrep].name } ;
     const auto& modes  { numerics.modes } ;
 
-    if (i < numerics.modes.n_cols)
+    if (i < ncol(numerics.modes))
 	{
 	cout << repnam << " mode " << i << " =\n" << modes.col(i) ;
 	}
@@ -437,7 +449,7 @@ void Print::print_mode (uint i)
 
 void Print::print_mode ()
     {
-    for (int i(0) ; i < numerics.modes.n_cols ; ++i) print_mode (i) ;
+    for (int i(0) ; i < ncol(numerics.modes) ; ++i) print_mode (i) ;
     }
 
 void Print::print_spectrum ()
@@ -445,7 +457,7 @@ void Print::print_spectrum ()
     const auto& repnam   { Rep::list[numerics.lastrep].name } ;
     auto	prevprec { cout.precision(12) } ;
     cout << repnam << " spectrum =\n" ;
-    numerics.spectrum.raw_print (cout) ;
+    raw_print (numerics.spectrum, cout) ;
     cout << std::setprecision (prevprec) ;
     }
 
@@ -637,23 +649,20 @@ void Print::print_state ()			// Print global state variables
     cout << " Max gen order:      " << global.maxgen()   << "\n" ;
     cout << " Obs approx:         " << global.approx     << "\n" ;
     cout << " Max threads:        " << global.maxthread  << "\n" ;
+    cout << " Geo swap:           " << global.geoswap    << "\n" ;
     cout << " Auto save:          " << global.autosave   << "\n" ;
     cout << " Neg curvature ok:   " << global.oknegeig   << "\n" ;
     cout << " Symmetrize curv:    " << global.symcurv    << "\n" ;
     cout << " Auto T-odd gens:    " << Gen::autoToddgens << "\n" ;
     cout << " Check obs:          " << Obs::check        << "\n" ;
     cout << " Dot obs:            " << SymbStr::dots     << "\n" ;
-    cout << " Geo swap:           " << global.geoswap    << "\n" ;
     cout << " Normalize gens:     " << Gen::gennorm      << "\n" ;
     cout << " Max Newton iters:   " << numerics.minmax   << "\n" ;
     cout << " Max ODE steps:      " << numerics.odemax   << "\n" ;
-    cout << " Minimize gen limit: " << numerics.minlim   << "\n" ;
     cout << " Minimize tolerance: " << numerics.mintol   << "\n" ;
     cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
-    cout << " Svd truncation:     " << numerics.svdlim   << "\n" ;
-    cout << " Spectrum gen limit: " << numerics.speclim  << "\n" ;
-    cout << " Tikhonov shift:     " << numerics.tikhonov << "\n" ;
+    cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
     cout << " Save directory:     " << global.savedir    << "\n" ;
     cout << " Sys info file:      " << global.sysfilename() << "\n" ;
     cout << " Vev data file:      " << global.vevfilename() << "\n" ;

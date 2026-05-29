@@ -55,6 +55,8 @@ class PolyTerm : public Term<real,Polyindx>		// Polynomial term
     void	print (ostream&, const ObsList&) const ;
     } ;
 
+using Polyvec = vector<PolyTerm> ;
+
 struct Polyhash						// Polyindx hash function
     {
     std::size_t operator() (const Polyindx&) const noexcept ;
@@ -68,7 +70,7 @@ class PolyMap : public hash<Polyindx,doub,Polyhash>	// PolyTerm hash table
     PolyMap (ObsList& l) : list(l) {}			// Constructor
 
     ObsList& obslist() const { return list ; }		// Underlying ObsList
-    
+
     void add (Polyindx t, doub d)			// Add term to PolyMap
 	{
 	auto [iter, isnew] { try_emplace (t, d) } ;
@@ -93,7 +95,7 @@ class PolyMap : public hash<Polyindx,doub,Polyhash>	// PolyTerm hash table
     friend ostream& operator<< (ostream&, const PolyMap&) ;
     } ;
 
-class ObsPoly : public vector<PolyTerm>			// Cubic polynomial of Obs
+class ObsPoly : public Polyvec			// Cubic polynomial of Obs
     {
     public:
     std::reference_wrapper<ObsList> list ;		// Observable list
@@ -105,11 +107,11 @@ class ObsPoly : public vector<PolyTerm>			// Cubic polynomial of Obs
     ObsPoly&	negate() { return scale(-1.0) ; }	// Negate poly
     ObsList&	obslist() const { return list ; }	// Underlying ObsList
 
-    ObsPoly (const Gen&, ObsList&) ;			// Constructor
-    ObsPoly (Obs&, ObsList&) ;				// Constructor
     ObsPoly (ObsList& l) : list(l) {}			// Constructor
-    ObsPoly (uint indx, ObsList& l) : list(l),		// Constructor
-		vector<PolyTerm>(1, PolyTerm(indx)) {}
+    ObsPoly (Obs&, ObsList&) ;				// Constructor
+    ObsPoly (const Gen&, ObsList&) ;			// Constructor
+    ObsPoly (uint indx, ObsList& l)			// Constructor
+	    : list(l), Polyvec(1, PolyTerm(indx)) {}
 
     friend ostream& operator<< (ostream&, const ObsPoly&) ;
     } ;

@@ -5,6 +5,7 @@
 #include "Gripe.h"
 #include "Numerics.h"
 #include "Blab.h"
+#include "Linalg.h"
 
 Gen::Gen (const Op& op)				// Construct w/o projection
     :						// (only for Test::jacobi)
@@ -203,7 +204,7 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
 	if (maxop < 0 || s.item > maxop) return true ;
 	}
 
-    Nummtx genmtx (maxop-start+1, ngen+1) ;
+    Dmtx genmtx (maxop-start+1, ngen+1) ;
 
     for (int i(0) ; i < ngen ; ++i)
 	{
@@ -211,7 +212,7 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
 	}
     for (const auto& s : b) genmtx(s.item - start,ngen) = s.coeff ;
 
-    return arma::rank (genmtx) == genmtx.n_cols ;
+    return rank (genmtx) == ncol(genmtx) ;
     }
 
 bool Gen::allzero () const				// Vanishing Gen?
@@ -280,6 +281,60 @@ void Gen::normalize ()					// Generator normalization
 
 	for (auto& gen : gens) gen.normalize (repnum) ;
 	}
+    }
+
+void Gen::suspend_group (uint ord)			// Suspend generator group
+    {
+    bool found { false } ;
+    for (int repnum(0) ; repnum < Rep::list.size() ; ++repnum)
+	{
+	for (auto& gen : global.info().gens[repnum])
+	    {
+	    if (gen.order == ord)
+		{
+		found	   = true ;
+		gen.active = false ;
+		}
+	    }
+	}
+    if (!found) gripe (format("Invalid generator order {}",ord)) ;
+    }
+
+void Gen::activate_group (uint ord)			// Activate generator group
+    {
+    bool found { false } ;
+    for (int repnum(0) ; repnum < Rep::list.size() ; ++repnum)
+	{
+	for (auto& gen : global.info().gens[repnum])
+	    {
+	    if (gen.order == ord)
+		{
+		found	   = true ;
+		gen.active = true ;
+		}
+	    }
+	}
+    if (!found) gripe (format("Invalid generator order {}",ord)) ;
+    }
+
+void Gen::suspend_gen (uint i)				// Suspend generator
+    {
+    auto& gens { global.info().gens[global.repnum] } ;
+    if (i < gens.size()) gens[i].active = false ;
+    else gripe (format("Invalid generator number {}", i)) ;
+    }
+
+void Gen::activate_gen (uint i)				// Activate generator
+    {
+    auto& gens { global.info().gens[global.repnum] } ;
+    if (i < gens.size()) gens[i].active = true ;
+    else gripe (format("Invalid generator number {}", i)) ;
+    }
+
+void Gen::activate_gen ()				// Activate generators
+    {
+    auto& gens { global.info().gens[global.repnum] } ;
+    for (auto& gen : gens) gen.active = true ;
     }
 
 void Gen::inner_commute ()			 	// Generator reduction
@@ -442,39 +497,6 @@ void Gen::geninit ()				// Generator initialization
 		Op Fxf { string {F[k],l[i],f[k]}, ferm, 1 } ;
 		project (Fxf) ;
 		}
-
-/*
-	for (int k(0) ; k < theory.nf ; k += 2)		// Ff, Gf
-	    {
-	    if (!isham)
-		{
-		Op Gf { string {F[k+1],f[k]}, ferm, 0 } ;
-		project (Gf) ;
-		}
-	    }
-
-	for (int k(0) ; k < theory.nf ; k += 2)		// Fxyf, Gxyf
-	    for (int i(0) ; i < theory.dim ; ++i)
-		for (int j(0) ;  j < theory.dim ; ++j)
-		    {
-		    Op Gxyf { string {F[k+1],l[i],l[j],f[k]}, ferm, 2 } ;
-		    project (Gxyf) ;
-		    if (!isham) continue ;
-		    Op Fxyf { string {F[k],l[i],l[j],f[k]}, ferm, 2 } ;
-		    project (Fxyf) ;
-		    }
-	
-	for (int k(0) ; k < theory.nf ; k += 2)		// FxyXYf, GxyXYf
-	    for (int i(0) ; i < theory.dim ; ++i)
-		for (int j(i) ; ++j < theory.dim ;)
-		    {
-		    Op Gplaqf { string {F[k+1],l[i],l[j],L[i],L[j],f[k]}, ferm, 4 } ;
-		    project (Gplaqf) ;
-		    if (!isham) continue ;
-		    Op Fplaqf { string {F[k],l[i],l[j],L[i],L[j],f[k]}, ferm, 4 } ;
-		    project (Fplaqf) ;
-		    }
-*/
 	}
     }
 

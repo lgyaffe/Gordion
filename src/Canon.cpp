@@ -203,7 +203,7 @@ int Obs::canon()				// Canonicalize observable
 	    back()  = stag (back()) ;
 	    if (oddlen()) sgn0 *= -1 ;
 	    }
-	if (theory.dim == 1 && mid)			// use 1D Gauss to move E
+	if (theory.dim == 1 && mid && !isFf)		// use 1D Gauss to move E
 	    {
 	    auto p { begin() + mid } ;
 	    if (blab > 1) cout << "Converting " << *this ;

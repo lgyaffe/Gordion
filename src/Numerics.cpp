@@ -41,7 +41,7 @@ void Numerics::do_flow (int indx, doub v0, doub v1, doub inc)	// Flow coupling
 
 void Numerics::do_minimize ()				// Do minimization
     {
-    int  delta ;
+    int  delta_s ;
     doub tol   (0) ;
     uint iters (0) ;
     uint steps (0) ;
@@ -50,10 +50,10 @@ void Numerics::do_minimize ()				// Do minimization
 
     do  {
 	if (global.interrupt || ++iters > minmax) break ;
-	delta = do_step (tol) ;
-	steps += abs(delta) ;
+	delta_s = do_step (tol) ;
+	steps += abs(delta_s) ;
 	tol = mintol ;
-	} while (delta > 0) ;
+	} while (delta_s > 0) ;
 
     status_rpt (iters,steps) ;
     if (iters > minmax)
@@ -61,7 +61,7 @@ void Numerics::do_minimize ()				// Do minimization
 	++stats.fails ;
 	abort ("Minimization failed, max iterations exceeded") ;
 	}
-    else if (delta < 0)
+    else if (delta_s < 0)
 	{
 	++stats.fails ;
 	abort ("ODE integration failed!") ;
@@ -76,19 +76,19 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
     uint	nvev  { global.info().nobs } ;
     uint	blab  { Blab::blablevel[BLAB::NUMERICS] } ;
     Ode		ode   { do_dvev, err_norm, odetol, rk, odemax } ;
+    doub	dnorm { eval_delta() } ;
     doub	s (0) ;
     bool	ok ;
 
-    eval_delta() ;
-    if (blab > 1) cout << "  |delta| = " << arma::norm (delta,2) << ", " ;
+    if (blab > 1) cout << "  |delta| = " << dnorm << ", " ;
     if (blab > 2) cout << "\n   delta = \n" << delta << flush ;
 
-    if (tol && arma::norm (delta,2) <= tol) return 0 ; // converged?
+    if (tol && dnorm <= tol) return 0 ;			// converged?
 
-    if (global.info().nobs != global.nobs())		// integrate vev subvec
+    if (nvev != global.nobs())				// integrate vev subvec
 	{
 	real*	vevptr { &vev [global.stage ? global.nobsG() : 0] } ; 
-	Numvec	subvev { vevptr, nvev, false, true } ;
+	Rvec	subvev { aliasvec (vevptr, nvev) } ;
 	ok = ode.integrate (s, 1.0, subvev) ;
 	}
     else ok = ode.integrate (s, 1.0, vev) ;
@@ -99,75 +99,66 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
     return ok ? ode.steps : -ode.steps ;
     }
 
-Numvec& Numerics::eval_delta (bool print)		// Evaluate delta vector
+const Uvec& Numerics::eval_inuse (uint repnum, bool T_odd)
     {
-    auto	opts { arma::solve_opts::refine + arma::solve_opts::equilibrate } ;
-    Numvec&	grad { eval_grad() } ;
-    Nummtx&	curv { eval_curv(0, false) } ;
+    auto&	inuse	{ T_odd ? Todds : Tevens } ;
+    const auto& gens	{ global.info().gens[repnum] } ;
+    int		neven	{ global.info().neven[repnum] } ;
+    int		ngen	( gens.size() ) ;
+    int		beg	{ T_odd ? neven : 0 } ;
+    int		end	{ T_odd ? ngen : neven } ;
+    int		n(0) ;
 
-    if (minlim && minlim < global.info().maxgen)
+    set_size (inuse, end-beg) ;
+    for (int i(beg) ; i < end ; ++i)
 	{
-	const auto&	gens { global.info().gens.front() } ;
-	uvec		use  ( curv.n_rows ) ;
-	int		n(0) ;
-
-	for (int i(0) ; i < curv.n_rows && i < gens.size() ; ++i)
-	    {
-	    if (gens[i].order <= minlim) use(n++) = i ;
-	    }
-	use.resize (n) ;
-	check_curv (curv(use,use)) ;
-	Numvec del ;
-
-	if (svdlim)	del = -arma::pinv  (curv(use,use), svdlim) * grad(use) ;
-	else		del = -arma::solve (curv(use,use), grad(use), opts) ;
-	delta.zeros (curv.n_rows) ;
-	delta(use) = del ;
+	if (gens[i].active) inuse (n++) = i - beg ;
 	}
-    else
-	{
-	check_curv (curv) ;
-	if (svdlim)	delta = -arma::pinv  (curv, svdlim) * grad ;
-	else		delta = -arma::solve (curv, grad, opts) ;
-	}
-    if (print) cout << "Delta = \n" << delta ;
-    return delta ;
+    inuse.resize(n) ;
+    return inuse ;
     }
 
-Numvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
+const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
     {
     const auto& coup	{ Coupling::list } ;
+    const auto&	use	{ eval_inuse (0, false) } ;
     const auto& grad	{ global.data().grad } ;
     const auto& Hterms	{ global.info().Hterms } ;
-    int		ngens	{ global.info().neven.front() } ;
+    const auto& gens	{ global.info().gens[0] } ;
+    int		ngens	{ global.info().neven[0] } ;
     int		nterms	( Hterms.size() ) ;
     int		Hterm   { -1 } ;
 
     if (grad.entry().ncol != nterms ||
 	grad.entry().nrow != ngens) gripe ("Need to (re)build gradient!") ;
 
-    gradient.zeros (ngens) ;
+    set_zero (gradient, ngens) ;
     for (const auto& poly : grad)
 	{
 	const GradHdr&	info ( poly ) ;
-	doub		val  ( 0.0 ) ;
-	for (const auto& term : poly) val += termvalue (term) ;
-	if (Hterm != info.Hterm)
-	    Hterm  = info.Hterm ;
-	gradient [info.gen] += Hterms[Hterm].coeff() * val ;
+	if (gens[info.gen].active)
+	    {
+	    doub		val  ( 0.0 ) ;
+	    for (const auto& term : poly) val += termvalue (term) ;
+	    if (Hterm != info.Hterm)
+		Hterm  = info.Hterm ;
+	    gradient [info.gen] += Hterms[Hterm].coeff() * val ;
+	    }
 	}
+    gradient = gradient (use) ;
     if (print) cout << "Gradient = \n" << gradient ;
     return gradient ;
     }
 
-Nummtx& Numerics::eval_curv (int repnum, bool all, int print)	// Evaluate curvature
+const Dmtx& Numerics::eval_curv (int repnum, int print)	// Evaluate T-even curvature
     {
     const auto& coup	{ Coupling::list } ;
+    const auto&	use	{ eval_inuse (repnum, false) } ;
     const auto& curv	{ global.data().curv[repnum] } ;
     const auto& Hterms	{ global.info().Hterms } ;
+    const auto& gens	{ global.info().gens[repnum] } ;
     int		ngen	( global.info().gens[repnum].size() ) ;
     int		neven	{ global.info().neven[repnum] } ;
-    int		nuse	( all ? ngen : neven ) ;
     int		nterms	( Hterms.size() ) ;
     int		Hterm   { -1 } ;
     doub	coeff ;
@@ -176,11 +167,12 @@ Nummtx& Numerics::eval_curv (int repnum, bool all, int print)	// Evaluate curvat
 	curv.entry().ncol != ngen  ||
 	curv.entry().nrow != ngen) gripe ("Need to (re)build curvature!") ;
 
-    curvature.zeros (nuse,nuse) ;
+    set_zero (curvature, neven, neven) ;
     for (const auto& poly : curv)
 	{
 	const CurvHdr&	info ( poly ) ;
-	if (info.gen1 < nuse && info.gen2 < nuse)
+	if (info.gen1 < neven && gens[info.gen1].active &&
+	    info.gen2 < neven && gens[info.gen2].active)
 	    {
 	    doub val  ( 0.0 ) ;
 	    for (const auto& term : poly) val += termvalue (term) ;
@@ -189,37 +181,97 @@ Nummtx& Numerics::eval_curv (int repnum, bool all, int print)	// Evaluate curvat
 	    curvature (info.gen1,info.gen2) += Hterms[Hterm].coeff() * val ;
 	    }
 	}
+    curvature = curvature (use,use) ;
     if (print > 1)
 	{
-	cout << Rep::list[repnum].name << " Curvature = \n" << curvature ;
+	cout << Rep::list[repnum].name << " T-even curvature = \n" ;
+	raw_print (curvature, cout) ;
 	}
     if (print)
 	{
-	cout << Rep::list[repnum].name << " Curvature eigenvalues = \n"
-	     << arma::sort (arma::eig_gen(curvature.submat(0,0,neven-1,neven-1))) ;
-	if (ngen > neven)
-	     cout << arma::sort (arma::eig_gen(curvature.submat(neven,neven,ngen-1,ngen-1))) ;
+	cout << Rep::list[repnum].name << " T-even curvature eigenvalues = \n"
+	     << sort (eig_gen (curvature)) ;
 	}
     return curvature ;
     }
 
-Nummtx& Numerics::eval_lagr (int repnum, bool print)	// Evaluate Lagrange bracket matrix
+const Dmtx& Numerics::eval_metr (int repnum, int print)	// Evaluate T-odd curvature
     {
+    const auto& coup	{ Coupling::list } ;
+    const auto&	use	{ eval_inuse (repnum, true) } ;
+    const auto& curv	{ global.data().curv[repnum] } ;
+    const auto& Hterms	{ global.info().Hterms } ;
+    const auto& gens	{ global.info().gens[repnum] } ;
+    int		ngen	( global.info().gens[repnum].size() ) ;
+    int		neven	{ global.info().neven[repnum] } ;
+    int		nodd	{ ngen - neven } ;
+    int		nterms	( Hterms.size() ) ;
+    int		Hterm   { -1 } ;
+    doub	coeff ;
+
+    if (curv.entry().nslice != nterms ||
+	curv.entry().ncol != ngen  ||
+	curv.entry().nrow != ngen) gripe ("Need to (re)build curvature!") ;
+
+    set_zero (metric, nodd, nodd) ;
+    for (const auto& poly : curv)
+	{
+	const CurvHdr&	info ( poly ) ;
+	if (info.gen1 < ngen && info.gen1 >= neven && gens[info.gen1].active &&
+	    info.gen2 < ngen && info.gen2 >= neven && gens[info.gen2].active)
+	    {
+	    doub val  ( 0.0 ) ;
+	    for (const auto& term : poly) val += termvalue (term) ;
+	    if (Hterm != info.Hterm)
+		Hterm  = info.Hterm ;
+	    metric (info.gen1-neven,info.gen2-neven) += Hterms[Hterm].coeff() * val ;
+	    }
+	}
+    metric = metric (use,use) ;
+    if (print > 1)
+	{
+	cout << Rep::list[repnum].name << " T-odd curvature = \n" << metric ;
+	}
+    if (print)
+	{
+	cout << Rep::list[repnum].name << " T-odd curvature eigenvalues = \n"
+	     << sort (eig_gen (metric)) ;
+	}
+    return metric ;
+    }
+
+const Dmtx& Numerics::eval_lagr (uint repnum, bool print)	// Evaluate Lagrange bracket matrix
+    {
+    const auto&	evens	{ eval_inuse (repnum, false) } ;
+    const auto&	odds	{ eval_inuse (repnum, true)  } ;
     const auto& lagr	{ global.data().lagr[repnum] } ;
-    int		ngens	( global.info().gens[repnum].size() ) ;
+    const auto& gens	{ global.info().gens[repnum] } ;
+    int		ngen	( global.info().gens[repnum].size() ) ;
+    int		neven	{ global.info().neven[repnum] } ;
+    int		nodd	{ ngen - neven } ;
 
-    if (lagr.entry().ncol != ngens ||
-	lagr.entry().nrow != ngens) gripe ("Need to build Lagrange matrix!") ;
+    if (lagr.entry().ncol != ngen ||
+	lagr.entry().nrow != ngen) gripe ("Need to build Lagrange matrix!") ;
 
-    lagrange.zeros (ngens,ngens) ;
+    set_zero (lagrange, neven, nodd) ;
     for (const auto& poly : lagr)
 	{
 	const LagrHdr&	info ( poly ) ;
-	doub		val  ( 0.0 ) ;
-	for (const auto& term : poly) val += termvalue (term) ;
-	lagrange (info.gen1,info.gen2) = val ;
+	if (info.gen1 < neven && gens[info.gen1].active &&
+	    info.gen2 < ngen  && gens[info.gen2].active && info.gen2 >= neven)
+	    {
+	    doub	val  ( 0.0 ) ;
+	    for (const auto& term : poly) val += termvalue (term) ;
+	    lagrange (info.gen1,info.gen2-neven) = val ;
+	    }
 	}
-    if (print) cout << Rep::list[repnum].name << " Lagrange bracket = \n" << lagrange ;
+    lagrange = lagrange(evens,odds) ;
+    if (print)
+	{
+	cout << Rep::list[repnum].name << " Lagrange bracket = \n" << lagrange ;
+	cout << Rep::list[repnum].name << " Lagrange bracket singular values = \n"
+	     << svd (lagrange) ;
+	}
     return lagrange ;
     }
 
@@ -244,74 +296,48 @@ doub Numerics::eval_H (bool print)			// Evaluate Hamiltonian/free energy
     return H ;
     }
 
-Cmplxv& Numerics::eval_spectra (int repnum, bool print)	// Evaluate particle spectrum
+doub Numerics::eval_delta (bool print)		// Evaluate delta vector
     {
-    std::complex i	{ 0.0, 1.0 } ;
-    Nummtx	 curv	{ eval_curv (repnum, true) } ;
-    Nummtx&	 lagr	{ eval_lagr (repnum) } ;
-    uvec	 use	( curv.n_rows ) ;
+    const auto&	use   { eval_inuse (0, false) } ;
+    const auto&	grad  { eval_grad () } ;
+    const auto&	curv  { eval_curv (0,0) } ;
+    int		ngens { global.info().neven.front() } ;
+    Dvec	del ;
 
-    if (global.symcurv)
-	{
-	curv += arma::trans(curv) ;
-	curv /= 2.0 ;
-	}
-    constexpr doub gunk { 1.e-10 } ;
-    constexpr doub huge { 1.e80 } ;
-    doub tikh { numerics.tikhonov } ;
-    if (tikh) lagr.diag() += tikh ;
+    check_curv (curv) ;
+    if (svdcut)	del = -pinv (curv,svdcut) * grad ;
+    else	del = -linsolve (curv, grad) ;
+
+    set_zero (delta, ngens) ;
+    delta(use) = del ;
+    if (print) cout << "Delta = \n" << delta ;
+    return infnorm (delta) ;
+    }
+
+const Cvec& Numerics::eval_spectra (string word, bool print) // Evaluate particle spectrum
+    {
+    try { return eval_spectra (Rep::known (word), print) ; }
+    catch (const exception& e) { gripe ("Unknown representation " + word) ; }
+    }
+
+const Cvec& Numerics::eval_spectra (int repnum, bool print)	// Evaluate particle spectrum
+    {
+    auto&	metr	{ eval_metr  (repnum) } ;
+    auto&	lagr	{ eval_lagr  (repnum) } ;
+    Dmtx	curv	{ eval_curv  (repnum) } ;
+    Dmtx	inertia { lagr * inv(metr) * transpose(lagr) } ;
+
     status.reset() ;
+    if (global.symcurv) curv = (curv + transpose(curv)) / 2.0 ;
+    check_curv (curv) ;
 
-    if (speclim && speclim < global.info().maxgen)
-	{
-	const auto&	gens { global.info().gens[repnum] } ;
-	auto		ptr  { use.begin() } ;
-
-	for (int i(0) ; i < curv.n_rows && i < gens.size() ; ++i)
-	    {
-	    if (gens[i].order <= speclim) *ptr++ = i ;
-	    }
-	use.resize (ptr - use.begin()) ;
-	check_curv (curv(use,use)) ;
-	if (!arma::eig_pair (spectrum,modes,curv(use,use),lagr(use,use)))
-	    {
-	    abort ("Cannot solve generalized eigensystem") ;
-	    }
-	}
-    else
-	{
-	check_curv (curv) ;
-	if (!arma::eig_pair (spectrum,modes,curv,lagr))
-	    {
-	    abort ("Cannot solve generalized eigensystem") ;
-	    }
-	}
+    if (!eig_pair (spectrum, modes, curv, inertia))
+	abort ("Cannot solve generalized eigensystem") ;
     if (curv_rpt (repnum)) cout << "\n" ;
 
-    spectrum *= -i ;
-    if (spectrum.n_elem) spectrum.clean (10 * arma::datum::eps * abs(spectrum.max())) ;
-
-    use.resize (spectrum.n_elem) ;
-    auto ptr { use.begin() } ;
-    for (int i(0) ; i < spectrum.n_elem ; ++i)
-	{
-	auto eig { spectrum[i] } ;
-	if (eig.real() < 0 || (eig.real() == 0 && eig.imag() < -gunk)) continue ;
-	if (std::isfinite(abs(eig)) && abs(eig) < huge) *ptr++ = i ;
-	}
-    use.resize (ptr - use.begin()) ;
-    spectrum = spectrum(use) ;
-    modes    = modes.cols(use) ;
+    spectrum = sqrt (spectrum) ;
+    if (!has_nan (spectrum)) spectrum = sort (spectrum) ;
     lastrep  = repnum ;
-
-    std::sort (spectrum.begin(), spectrum.end(), [](const cmplx& a, const cmplx& b)
-	{
-	if (abs(a.imag()) < gunk && abs(b.imag()) < gunk) return a.real() < b.real() ;
-	else if (a.imag() < gunk)			  return true ;
-	else if (b.imag() < gunk)			  return false ;
-	else return abs(a.imag()) < abs(b.imag()) ;
-	}) ;
-
     if (print) Print::print_spectrum() ;
     return spectrum ;
     }
@@ -331,7 +357,7 @@ void Numerics::eval_geos (int printlim)			// Evaluate observable derivatives
     cout << "\n" ;
     }
 
-void Numerics::do_dvev (doub s, const Numvec& v, Numvec& dv)	// Evaluate vev derivs
+void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     {
     uint	blab	{ Blab::blablevel[BLAB::NUMERICS] } ;
     uint	offset	{ global.stage ? global.nobsG() : 0 } ;
@@ -344,20 +370,20 @@ void Numerics::do_dvev (doub s, const Numvec& v, Numvec& dv)	// Evaluate vev der
 //	{ return geos[a[0]].entry().filepos < geos[b[0]].entry().filepos ; }) ;
 
     if (global.interrupt) return ;
-    if (numerics.delta.n_elem != ngens) gripe ("\nNeed to (re)evaluate delta!"); 
-    if (blab > 2) cout << format("do_dvev: s = {:.6f}, ", s) ;
+    if (ncol(numerics.delta) != ngens) gripe ("\nNeed to (re)evaluate delta!"); 
+    if (blab > 2) cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,ncol(v)) ;
 
-    dv.zeros (nobs) ;
-    numerics.dvev_buf = dv.memptr() ;
+    set_zero (dv, nobs) ;
+    numerics.dvev_buf = memptr(dv) ;
 
-    if (v.memptr() != &numerics.vev[offset])
+    if (memptr(v) != &numerics.vev[offset])
 	{
 	numerics.vev_tmp = numerics.vev ;
-	if (global.stage)	numerics.vev_tmp.tail (v.n_elem) = v ;
-	else			numerics.vev_tmp.head (v.n_elem) = v ;
-	numerics.vev_buf = numerics.vev_tmp.memptr() ;
+	if (global.stage)	numerics.vev_tmp.tail (ncol(v)) = v ;
+	else			numerics.vev_tmp.head (ncol(v)) = v ;
+	numerics.vev_buf = memptr(numerics.vev_tmp) ;
 	}
-    else numerics.vev_buf = numerics.vev.memptr() ;
+    else numerics.vev_buf = memptr(numerics.vev) ;
 
     TASK_ARENA (global.maxthread, bckt,
 	FOR_EACH (bckt.begin(), bckt.end(), do_dvev_bckt)) ;
@@ -368,7 +394,7 @@ void Numerics::do_dvev (doub s, const Numvec& v, Numvec& dv)	// Evaluate vev der
 	doub	maxdv (0.0) ;
 	uint	maxi  (0) ;
 	uint	maxdi (0) ;
-	auto	nvev { numerics.vev.size() } ;
+	auto	nvev { ncol(v) } ;
 
 	for (int indx(global.stage ? 0 : 1) ; indx < nvev ; ++indx)
 	    {
@@ -383,8 +409,8 @@ void Numerics::do_dvev (doub s, const Numvec& v, Numvec& dv)	// Evaluate vev der
 		maxdi = indx ;
 		}
 	    }
-	cout << format("maxv #{}={:.2g}, ", maxi,  maxv)  ;
-	cout << format("maxdv #{}={:.2g}\n", maxdi, maxdv) << flush ;
+	cout << format("maxv #{}={:.5g}, ", maxi,  maxv)  ;
+	cout << format("maxdv #{}={:.5g}\n", maxdi, maxdv) << flush ;
 	}
     }
 
@@ -396,8 +422,8 @@ void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
     uint	first	{ bucket[1] } ;
     uint	last	{ bucket[2] } ;
     uint	offset	{ global.stage ? global.nobsG() : 0 } ;
-    auto&	geos	{ global.data().geos[bcktnum] } ;
-    auto&	delta	{ numerics.delta } ;
+    const auto&	delta	{ numerics.delta } ;
+    const auto&	geos	{ global.data().geos[bcktnum] } ;
     real*	dv 	{ numerics.dvev_buf } ;
     const real*	v	{ numerics.vev_buf } ;
     int		ngens	( delta.size() ) ;
@@ -416,19 +442,23 @@ void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
 	{
 	const GeoHdr&	info ( poly ) ;
 	real		val  ( 0.0 ) ;
+	doub		coef { delta[info.gen] } ;
 
 	if (info.indx < first || info.indx > last)
 	    fatal (format ("Inconsistent geo record: bucket {} indx {} first {} last {}!",
 		    bcktnum, info.indx, first, last)) ; 
 
 	if (global.interrupt) break ;
-	for (const auto& term : poly) val += termvalue (term,v) ;
-	dv [info.indx - offset] += delta[info.gen] * val ;
+	if (coef)
+	    {
+	    for (const auto& term : poly) val += termvalue (term,v) ;
+	    dv [info.indx - offset] += coef * val ;
+	    }
 	}
     if (global.geoswap) Save::read_geo_bckt (-bcktnum-1) ;
     }
 
-doub Numerics::err_norm (const Numvec& err, const Numvec& y)	// ODE error vector norm
+doub Numerics::err_norm (const Rvec& err, const Rvec& y)	// ODE error vector norm
     //
     //	Evaluate ODE error norm
     //
@@ -436,7 +466,11 @@ doub Numerics::err_norm (const Numvec& err, const Numvec& y)	// ODE error vector
     if (global.interrupt) return 0 ;
 
     uint	blab { Blab::blablevel[BLAB::NUMERICS] } ;
-    doub	norm { arma::norm (err,2) / sqrt (err.n_elem) } ;
+    auto&	eps  { numerics.odetol } ;
+    ulong	maxi { index_max (abs (err)) } ;
+    //doub	norm { l2norm  (err) / sqrt (ncol(err)) } ;
+    //doub	norm { infnorm (err / (abs (err) + eps)) } ;
+    doub	norm { infnorm (err) } ;
     if (blab > 2) cout << "err_norm: " << norm << "\n" << flush ;
     return norm ;
     }
@@ -478,7 +512,7 @@ bool Numerics::curv_rpt (int repnum)
 
 void Numerics::status_rpt (uint iters, uint steps)
     {
-    auto&	svdlim	{ numerics.svdlim } ;
+    auto&	svdcut	{ numerics.svdcut } ;
     auto&	okneg	{ global.oknegeig } ;
     auto&	maxi	{ status.maxloopi  } ;
     auto&	maxv	{ status.maxloopv  } ;
@@ -490,7 +524,7 @@ void Numerics::status_rpt (uint iters, uint steps)
     else if (unphys) cout << format(" unphys (#{}={:3.1f})", maxi, maxv) ;
     cout << " " << iters << "/" << steps << " iters/steps\n" << flush ;
 
-    if (!euclidF && !okneg && mostneg < -svdlim) abort ("Negative curvature eigenvalues") ;
+    if (!euclidF && !okneg && mostneg < -svdcut) abort ("Negative curvature eigenvalues") ;
     }
 
 void Numerics::write_data (doub value)				// Write data to MMAfile
@@ -549,13 +583,13 @@ void Numerics::write_data (doub value)				// Write data to MMAfile
     out << flush ;
     }
 
-bool Numerics::check_curv (const Nummtx& curv)				// OK curvature eigs?
+bool Numerics::check_curv (const Dmtx& curv)				// OK curvature eigs?
     {
-    if (curv.n_rows) 
+    if (nrow(curv)) 
 	{
-	Cmplxv	eigs  { arma::eig_gen(curv) } ;
-	uvec	reals { arma::sort_index (arma::real (eigs)) } ;
-	uvec	imags { arma::sort_index (arma::imag (eigs),"descend") } ;
+	Cvec	eigs  { eig_gen(curv) } ;
+	Uvec	reals { sort_index (realpart (eigs)) } ;
+	Uvec	imags { sort_index (imagpart (eigs), false) } ;
 	bool	negok { theory.euclid && global.stage } ;
 	uint	minr  ( reals[0] ) ;
 	uint	maxi  ( imags[0] ) ;
@@ -623,7 +657,7 @@ void Numerics::data_write (ofstream& out, const string s, doub c, doub v)		// Sa
     out << s << "[" << c << "] = " << MMAform(v) << " ;\n" ;
     }
 
-void Numerics::data_write (ofstream& out, const string s, doub c, const Numvec& vec)	// Save data vector
+void Numerics::data_write (ofstream& out, const string s, doub c, const Rvec& vec)	// Save data vector
     {
     if (vec.size())
 	{
@@ -638,7 +672,7 @@ void Numerics::data_write (ofstream& out, const string s, doub c, const Numvec& 
 	}
     }
 
-void Numerics::data_write (ofstream& out, const string s, doub c, const Cmplxv& vec)	// Save data vector
+void Numerics::data_write (ofstream& out, const string s, doub c, const Cvec& vec)	// Save data vector
     {
     if (vec.size())
 	{
@@ -667,10 +701,9 @@ string Numerics::MMAform (doub x)				// Convert to MMA input form
 void Numerics::numericsinit ()					// Initialize expectation values
     {
     numerics.vev.resize (global.nobs()) ;
-
     if (global.stage == Global::Gauge)
 	{
-	numerics.vev.zeros() ;
+	set_zero (numerics.vev) ;
 	numerics.vev[0] = 1.0 ;
 	}
     else // global.stage == Global::Fermi
@@ -680,7 +713,7 @@ void Numerics::numericsinit ()					// Initialize expectation values
 	doub	condensate ;
 	if (theory.euclid)	condensate = -1.0 / m ;
 	else			condensate = m > 0 ? -0.5 : 0.5 ;
-	numerics.vev.tail(global.nobsF()).zeros() ;
+	set_zero (numerics.vev.tail (global.nobsF())) ;
 	for (const auto& [indx_f,indx_g] : ObsList::obs.fermiinit)
 	    {
 	    numerics.vev[indx_f] = numerics.vev[indx_g] * condensate ;

@@ -115,11 +115,11 @@ void Commute::do_commute (const Op& a, const Obs& b, PolyTerm factor, ObsList& l
     {
     if (b.is_Entropy()) return ;
 
-    if (a.is_Eloop())				// a's E differentiates
+    if (a.is_Eloop())				// a's Eloop differentiates
 	{
 	do_commuteA (a, b, factor, list, ans) ;
 	}
-    if (b.is_Eloop())				// b's E differentiates
+    if (b.is_Eloop())				// b's Eloop differentiates
 	{
 	do_commuteB (a, b, factor, list, ans) ;
 	}
@@ -356,23 +356,20 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     short midE { b.middleE() } ;
     if (!midE) return ;
 
-    uint	blab { Blab::blablevel[BLAB::COMMUTE] } ;
-    symb	x { b.front() } ;
-    int		dir { axis(x) } ;
-    int		tnRb { tnR(x) } ;
-    int		asize ( a.size() ) ;
-    int		bsize ( b.size() ) ;
-    short	corder { cordsum (a,b) } ;
+    uint	blab	{ Blab::blablevel[BLAB::COMMUTE] } ;
+    int		asize	( a.size() ) ;
+    int		bsize	( b.size() ) ;
+    short	corder	{ cordsum (a,b) } ;
+    symb	x	{ b[midE] } ;
+    int		dir	{ axis(x) } ;
+    int		tnRb	{ tnR(x)  } ;
+    bool	flipa	{ a.is_Fermion()  && isstag (a.back()) } ;
+    bool	flipb	{ b.is_Efermion() && isstag (b.back()) } ;
 
     if (blab > 1) cout << "do_commuteD " << a << ", " << b << "\n" ;
 
-    SymbStr buf ;
+    SymbStr	buf ;
     buf.reserve (asize + bsize + 1) ;
-    
-    x    = b[midE] ;
-    dir  = axis(x) ;
-    tnRb = tnR(x) ;
-    
     for (int i(0) ; i < asize ; ++i)
 	{
 	symb y = a[i] ;
@@ -400,7 +397,7 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 		    if (x1 >= 0)		buf.join((x1 << 2) | dir) ;
 		    if (bsize > midE+1)		buf.join(b.cbegin() + midE+1, b.cend()) ;
 		    }
-		else					// a[0] at front
+		else					// a[0] = Fermion at front
 		    {
 		    if (i)		len  += buf.join(a.cbegin(), a.cbegin()+i) ;
 		    if (x1 >= 0)   	len  += buf.join((x1 << 2) | dir) ;
@@ -416,52 +413,63 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 		    {
 		    bool  astag	( isstag (a.front()) ^ isstag (a.back()) ) ;
 		    bool  bstag	( isstag (b.front()) ^ isstag (b.back()) ) ;
-		    Obs   oa	{ buf.begin(), buf.begin()+len, ObsType::Fermion, -1, -1 } ;
-		    Obs   ob	{ buf.begin()+len, buf.end(),   ObsType::Fermion, -1, -1 } ;
+		    Obs   oc	{ buf.begin(), buf.begin()+len, ObsType::Fermion, -1, -1 } ;
+		    Obs   od	{ buf.begin()+len, buf.end(),   ObsType::Fermion, -1, -1 } ;
+		    int   sgn0  { b.Esublat() ^ !(i % 2) ^ isL(y) ? -1 : 1 } ;
+		    int   sgn1  { -1 } ;
 
-		    if (oa.isclosed() && ob.isclosed() && astag == bstag)
+		    if (flipa)
 			{
-			int sgn2 { 1 } ;
-			if (isstag (a.back())  && (a.size() % 2)) sgn2 *= -1 ;
-			if (isstag (b.front()) && (a.size() % 2)) sgn2 *= -1 ;
-
-			auto p	{ buf.begin() + 1 } ;
-			auto q	{ buf.begin() + len + 1 } ;
-			int  l1	{ buf.joinends (p, q-2) } ;
-			int  l2	{ buf.joinends (q, buf.end()-1) } ;
-			Obs  oc	{ p, p+l1, ObsType::Loop } ;
-			Obs  od	{ q, q+l2, ObsType::Loop } ;
+			oc.front() = stag(oc.front()) ;
+			od.back()  = stag(od.back())  ;
+			if (a.oddlen()) sgn1 *= -1 ;
+			}
+		    if (flipb)
+			{
+			oc.back()  = stag(oc.back())  ;
+			od.front() = stag(od.front()) ;
+			if (b.oddlen()) sgn1 *= -1 ;
+			}
+		    if (flav (a.front()) == flav (b.back()) && oc.isclosed() &&
+			flav (b.front()) == flav (a.back()) && od.isclosed() &&
+			astag == bstag)
+			{
+			int	sgn2	{ sgn1 * (astag ? sgn0 : 1) } ;
+			auto	p	{ buf.begin() + 1 } ;
+			auto	q	{ buf.begin() + len + 1 } ;
+			int	l1	{ buf.joinends (p, q-2) } ;
+			int	l2	{ buf.joinends (q, buf.end()-1) } ;
+			Obs	oc	{ p, p+l1, ObsType::Loop } ;
+			Obs	od	{ q, q+l2, ObsType::Loop } ;
 			if (blab > 1) cout << "commute D3 -> " << coef/4 * sgn2 << " "
 					   << oc << " " << od << "\n" ;
+
 			PolyTerm terms3 { list.assess(oc) * list.assess(od) } ;
 			if (factor.coeff && terms3.coeff)
 			    {
-			    ans.add (terms3 * factor * coef * sgn2 * 0.25) ;
+			    ans.add (terms3 * factor * coef * sgn2 * -0.25) ;
 			    }
 			}
-		    int   sgn1	{ -1 } ;
-		    if (!list.canonicalize || oa.is_coord() && ob.is_coord())
+		    if (!list.canonicalize || oc.is_coord() && od.is_coord())
 			{
 			if (blab > 1) cout << "commute D2 -> " << coef << " "
-					   << oa << " " << ob << "\n" ;
-			PolyTerm terms1 { list.assess(oa) * list.assess(ob) } ;
+					   << oc << " " << od << "\n" ;
+			PolyTerm terms1 { list.assess(oc) * list.assess(od) } ;
 			if (factor.coeff && terms1.coeff)
 			    {
 			    ans.add (terms1 * factor * sgn1 * coef) ;
 			    }
 			}
-		    ob.front() = stag (ob.front()) ;
-		    oa.front() = stag (oa.front()) ;
-		    if (b.Esublat() ^ !(i % 2) ^ isL(y)) sgn1 *= -1 ;
-		     
-		    if (!list.canonicalize || oa.is_coord() && ob.is_coord())
+		    od.front() = stag(od.front()) ;
+		    oc.front() = stag(oc.front()) ;
+		    if (!list.canonicalize || oc.is_coord() && od.is_coord())
 			{
 			if (blab > 1) cout << "commute D2 -> " << coef << " "
-					   << oa << " " << ob << "\n" ;
-			PolyTerm terms2 { list.assess(oa) * list.assess(ob) } ;
+					   << oc << " " << od << "\n" ;
+			PolyTerm terms2 { list.assess(oc) * list.assess(od) } ;
 			if (factor.coeff && terms2.coeff)
 			    {
-			    ans.add (terms2 * factor * sgn1 * coef) ;
+			    ans.add (terms2 * factor * sgn0 * sgn1 * coef) ;
 			    }
 			}
 		    }

@@ -110,6 +110,7 @@ void Parse::parse_cmd (const string& buf)		// Parse command
     else if (isword(cmd,"call"))	valid = parse_call  (line) ;
     else if (isword(cmd,"add"))		valid = parse_add   (line) ;
     else if (isword(cmd,"build"))	valid = parse_build (line) ;
+    else if (isword(cmd,"generator"))	valid = parse_gen   (line) ;
     else if (isword(cmd,"evaluate"))	valid = parse_eval  (line) ;
     else if (isword(cmd,"do"))		valid = parse_do    (line) ;
     else if (isword(cmd,"test"))	valid = parse_test  (line) ;
@@ -274,10 +275,6 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    global.maxthread = i ;
 	    }
-	else if (isword(word,"minlim") && parse_args (line,i))
-	    {
-	    numerics.minlim = i ;
-	    }
 	else if (isword(word,"minmax") && parse_args (line,i))
 	    {
 	    numerics.minmax = i ;
@@ -317,13 +314,9 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    global.sysstream.close() ;
 	    global.vevstream.close() ;
 	    }
-	else if (isword(word,"speclim") && parse_args (line,i))
+	else if (isword(word,"svdcutoff") && parse_args (line,value))
 	    {
-	    numerics.speclim = i ;
-	    }
-	else if (isword(word,"svdlim") && parse_args (line,value))
-	    {
-	    numerics.svdlim = value ;
+	    numerics.svdcut = value ;
 	    }
 	else if (isword(word,"sysfile") && parse_args (line,word))
 	    {
@@ -335,10 +328,6 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		}
 	    else global.sysfile = word ;
 	    global.sysstream.close() ;
-	    }
-	else if (isword(word,"tikhonov") && parse_args (line,value))
-	    {
-	    numerics.tikhonov = value ;
 	    }
 	else if (isword(word,"timing") && parse_args (line,flag))
 	    {
@@ -408,8 +397,10 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		    char8 mass	{ "mass" } ;
 		    int   mindx	{ Coupling::indx (mass) } ;
 		    if (indx == mindx && global.massreinit)
+			{
 			cout << "Reinitializing fermion vev's\n" ;
 			Numerics::numericsinit() ;
+			}
 		    }
 		}
 	    else valid = false ;
@@ -432,7 +423,7 @@ bool Parse::parse_reset (istringstream& line)		// Parse "reset" commands
 	else if (isword(word,"blab"))		Blab::resetblab () ;
 	else if (isword(word,"mintol"))		numerics.mintol = numerics.dflttol ;
 	else if (isword(word,"odetol"))		numerics.odetol = numerics.dflttol ;
-	else if (isword(word,"svdlim"))		numerics.svdlim = numerics.dfltlim ;
+	else if (isword(word,"svdcutoff"))	numerics.svdcut = 0 ;
 	else if (isword(word,"rkmethod"))	numerics.rk = RKdef::list.back() ;
 	else if (isword(word,"numerics"))	Numerics::numericsinit() ;
 	else if (isword(word,"sysfile"))
@@ -526,12 +517,105 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
     return valid ;
     }
 
+bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
+    {
+    std::regex	pattern { "(\\d+)\\)" } ;
+    std::smatch match ;
+    bool	valid { true } ;
+    short	order  (0) ;
+    int		action (0) ;
+    doub	coef   (0) ;
+    string	word ;
+    OpSum	sum ;
+    int		i ;
+    if (line >> word)
+	{
+	if      (isword(word,"add"))		action = 1 ;
+	else if (isword(word,"suspend"))	action = 2 ;
+	else if (isword(word,"activate"))	action = 3 ;
+	if (action)
+	    {
+	    char c ;
+	    if (line >> c && c == '(')
+		{
+		line >> word ;
+		if (std::regex_match (word, match, pattern))
+		    {
+		    order = stoi (match[1].str()) ;
+		    if (order <= 0) action = 0 ;
+		    }
+		else action = 0 ;
+		}
+	    else line.putback (c) ;
+
+	    switch (action)
+		{
+		case 1:				// Add generator
+		    do  {
+			if (!(line >> coef))
+			    {
+			    line.clear() ;
+			    coef = 1.0 ;
+			    }
+			if (line >> word)
+			    {
+			    try {
+				Obs o { word } ; o.canon() ;
+				uint indx { ObsList::obs.find (o) } ;
+				if (indx != UINT_MAX && order <= 0)
+				    order = ObsList::obs(indx).corder ;
+				}
+			    catch (const BadInput&) {}
+			    if (order)
+				{
+				Op op { word, order } ;
+				sum.emplace_back (Op::store(op), coef) ;
+				}
+			    else gripe ("unknown order for " + word) ;
+			    }
+			} while (!eos(line)) ;
+
+		    if (sum.size())
+			{
+			int n { Gen::addgen (std::move(sum)) } ;
+			if (n)	cout << "  " << n ;
+			else	cout << "  No" ;
+			cout << " generators added\n" ;
+			}
+		    else valid = false ;
+		    break ;
+
+		case 2:				// Suspend generator(s)
+		    if (!order && eos(line))	valid = false ;
+		    else if (order)		Gen::suspend_group (order) ;
+		    else while (line >> i)	Gen::suspend_gen (i) ;
+		    break ;
+
+		case 3:				// Activate generator(s)
+		    if (!order && eos(line))	valid = false ;
+		    else if (order)		Gen::activate_group (order) ;
+		    else if (isstar (line))	Gen::activate_gen ()  ;
+		    else while (line >> i)	Gen::activate_gen (i) ;
+		    break ;
+
+		default:
+		    valid = false ;
+		}
+	    if (!eos(line)) valid = false ;
+	    }
+	else valid = false ;
+	}
+    else valid = false ;
+    return valid ;
+    }
+
 bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
     {
     int		i ;
     bool	valid { true } ;
     bool	isH   { !theory.euclid } ;
     auto&	rep   { global.repnum } ;
+    auto	nrep  { Rep::list.size() } ;
     string	word ;
     if (line >> word)
 	{
@@ -550,8 +634,14 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
 		}
 	    else if (isword(word,"curvature"))
 		{
-		if (eos(line))		numerics.eval_curv (rep, true, 1) ;
-		else if (isstar (line))	numerics.eval_curv (rep, true, 2) ;
+		if (eos(line))		numerics.eval_curv (rep, 1) ;
+		else if (isstar (line))	numerics.eval_curv (rep, 2) ;
+		else valid = false ;
+		}
+	    else if (isword(word,"metric"))
+		{
+		if (eos(line))		numerics.eval_metr (rep, 1) ;
+		else if (isstar (line))	numerics.eval_metr (rep, 2) ;
 		else valid = false ;
 		}
 	    else if (isword(word,"lagrange")    && eos(line) && isH)
@@ -568,23 +658,8 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
 		}
 	    else if (isword(word,"spectrum") && parse_args(line,word) && isH)
 		{
-		if (isword(word,"all"))	
-		    {
-		    for (int j(0) ; j < Rep::list.size() ; ++j)
-			{
-			numerics.eval_spectra (j, true) ;
-			}
-		    }
-		else
-		    {
-		    try {
-			numerics.eval_spectra (rep = Rep::known (word), true) ;
-			}
-		    catch (const exception& e)
-			{
-			gripe ("Unknown representation " + word) ;
-			}
-		    }
+		if (!isword(word,"all"))		numerics.eval_spectra (word, true) ;
+		else for (int j(0) ; j < nrep ; ++j)	numerics.eval_spectra (j,    true) ;
 		}
 	    else if (isword(word,"geodesics"))
 		{
@@ -734,12 +809,11 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    else if (isstar (line))		print_obs () ;
 	    else if (parse_args (line,i))	print_obs (i) ;
 	    else if (parse_args (line,i,j))	print_obs (i,j) ;
-	    else if (parse_args (line,word))
+	    else for (valid = false ; line >> word ; valid = true)
 		{
 		if (word[0] == '(')		print_obs_select (word) ;
 		else				print_obs (word) ;
 		}
-	    else valid = false ;
 	    }
 	else if (isword(word,"operator"))
 	    {
@@ -993,7 +1067,7 @@ void Parse::print_help ()					// Print command help
     {
     cout << "Usage: " << program << cmdargs << "\n" ;
     cout << R"(Commands:
-add		generator	[(order)] [<coeff>] <op> [...]
+add		generator	[(<order>)] [<coeff>] <op> [...] (deprecated)
 
 build		observables	<maxorder>
 		geodesics
@@ -1018,11 +1092,18 @@ evaluate	hamiltonian (+)
 		freeenergy (++)
 		gradient
 		curvature	[*]
+		metric		[*]
 		delta
 		lagrange (+)
 		spectrum (+)	[all | <repname>]
 		geodesics	* | <print_limit>
 		geostats
+
+generator	add		[(<order>)] [<coeff>] <op> [...]
+		suspend		(<order>)
+		activate	(<order>)
+		suspend		<gen_#> [<gen_#> ...]
+		activage	* | <gen_#> [<gen_#> ...]
 
 load		<sys_infofile>
 		[<vev_set_#>] <vev_datafile>	
@@ -1044,7 +1125,7 @@ print		baseobs
 		lagrange (+)	* | <gen_#> [<gen_#>]
 		mode (+)	* | <mode_#>
 		observable	(<corder>,<xorder>)
-		observable	* | <obs_#> [<obs_#>] | <obs>
+		observable	* | <obs_#> [<obs_#>] | <obs> [<obs>]
 		obsstats
 		operator	* | <op_#>  [<op_#>]
 		primary
@@ -1066,7 +1147,7 @@ reset		blab
 		representation
 		rkmethod
 		stage
-		svdlim
+		svdcutoff
 		sysfile
 		vevfile
 		MMAfile
@@ -1089,7 +1170,6 @@ set		stage		gauge | fermi
 		symcurv		true | false
 		massreinit	true | false
 		maxthread	<integer>
-		minlim		<integer>
 		minmax		<integer>
 		odemax		<integer>
 		mintol		<value>
@@ -1097,11 +1177,9 @@ set		stage		gauge | fermi
 		representation  <repname>
 		rkmethod	<rkname>
 		savedir		<directory>
-		speclim		<integer>
-		svdlim		<value>
+		svdcutof	fvalue>
 		sysfile		<filename>
 		timing		true | false
-		tikhonov	<value>
 		vevfile		<filename>
 		MMAappend	true | false
 		MMAdir		<directory>

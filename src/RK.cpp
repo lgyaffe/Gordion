@@ -2,14 +2,14 @@
 
 namespace RK				// Runge-Kutta method definitions
     {
-    using dvec = const double[] ;
+    using dvec = const doub[] ;
 
-    double constexpr do_sqrt (double x, double curr, double prev)
+    doub constexpr do_sqrt (doub x, doub curr, doub prev)
 	{ return curr == prev ? curr : do_sqrt (x, 0.5 * (curr + x/curr), curr) ; }
 
-    double constexpr mysqrt (double x)			// constexpr sqrt function
-	{ return x >= 0 && x < std::numeric_limits<double>::infinity()
-	     ? do_sqrt(x,x,0) : std::numeric_limits<double>::quiet_NaN() ; }
+    doub constexpr mysqrt (doub x)			// constexpr sqrt function
+	{ return x >= 0 && x < std::numeric_limits<doub>::infinity()
+	     ? do_sqrt(x,x,0) : std::numeric_limits<doub>::quiet_NaN() ; }
 
     //
     // Bogacki & Shampine 3(2) method, "A 3(2) pair of Runge-Kutta formulas"
@@ -24,7 +24,7 @@ namespace RK				// Runge-Kutta method definitions
     static constexpr dvec bs32_b  { 2./9,   1./3,   4./9,  0. } ;
     static constexpr dvec bs32_bh { 7./24,  1./4,   1./3,  1./8 } ;
     static constexpr dvec bs32_db { 5./72, -1./12, -1./9,  1./8 } ;
-    static constexpr const double* const bs32_a[] { bs32_a2, bs32_a3, bs32_a4 } ;
+    static constexpr const doub* const bs32_a[] { bs32_a2, bs32_a3, bs32_a4 } ;
 
     //
     // Sofroniou & Spaletta 3(2) method
@@ -43,7 +43,7 @@ namespace RK				// Runge-Kutta method definitions
 				   ( -4+mysqrt(82.))/144,( 16-mysqrt(82.))/48 } ;
     static constexpr dvec ss32_db { ( 10-mysqrt(82.))/72, (-10+mysqrt(82.))/36,
 				   (-28+mysqrt(82.))/144,( 16-mysqrt(82.))/48 } ;
-    static constexpr const double* const ss32_a[] { ss32_a2, ss32_a3, ss32_a4 } ;
+    static constexpr const doub* const ss32_a[] { ss32_a2, ss32_a3, ss32_a4 } ;
 
     //
     // Sofroniou & Spaletta 4(3) method
@@ -63,7 +63,7 @@ namespace RK				// Runge-Kutta method definitions
 				   2519695./8970912,   61105./8970912, 119041./747576 } ;
     static constexpr dvec ss43_db { -119041./8970912,  595205./8970912,
 				   -595205./8970912, -1309451./8970912, 119041./747576 } ;
-    static constexpr const double* const ss43_a[] { ss43_a2, ss43_a3, ss43_a4, ss43_a5 } ;
+    static constexpr const doub* const ss43_a[] { ss43_a2, ss43_a3, ss43_a4, ss43_a5 } ;
 
     //
     // Dormand & Prince RK5(4)7M, "A family of embedded Runge-Kutta formulae"
@@ -83,7 +83,7 @@ namespace RK				// Runge-Kutta method definitions
     static constexpr dvec dp54_b  {    35./384,   0.,  500./1113,   125./192,  -2187./6784,    11./84,  0. };
     static constexpr dvec dp54_bh {  5179./57600, 0., 7571./16695 , 393./640, -92097./339200, 187./2100, 1./40 } ;
     static constexpr dvec dp54_db {   -71./57600, 0.,   71./16695 , -71./1920, 17253./339200, -22./525,  1./40 } ;
-    static constexpr const double* const dp54_a[] { dp54_a2, dp54_a3, dp54_a4, dp54_a5, dp54_a6, dp54_a7 } ;
+    static constexpr const doub* const dp54_a[] { dp54_a2, dp54_a3, dp54_a4, dp54_a5, dp54_a6, dp54_a7 } ;
 
     //
     // J. Butcher, 5(4) method, Numerical methods for ordinary differential equations 
@@ -100,7 +100,7 @@ namespace RK				// Runge-Kutta method definitions
     static constexpr dvec jb54_b  {  19./200,   0.,      3./5,    -243./400,    33./40,     7./80,    0. } ;
     static constexpr dvec jb54_bh { 431./5000,  0.,    333./500, -7857./10000, 957./1000, 193./2000, -1./50 } ;
     static constexpr dvec jb54_db { -11./1250,  0.,     33./500,  -891./5000,   33./250,    9./1000, -1./50 } ;
-    static constexpr const double* const jb54_a[] { jb54_a2, jb54_a3, jb54_a4, jb54_a5, jb54_a6, jb54_a7 } ;
+    static constexpr const doub* const jb54_a[] { jb54_a2, jb54_a3, jb54_a4, jb54_a5, jb54_a6, jb54_a7 } ;
 
     //
     // Bogacki & Shampine 5(4) method
@@ -127,7 +127,7 @@ namespace RK				// Runge-Kutta method definitions
 				       43./1440,         2272./6561,    79937./1113912, 3293./556956 } ;
     static constexpr dvec bs54_db  { -3817./1959552, 0., 140181./15491840, -4224731./272937600,
 				      8557./403200,  -57928./4363065,  -23930231./4366535040, 3293./556956  } ;
-    static constexpr const double* const bs54_a[] { bs54_a2, bs54_a3, bs54_a4, bs54_a5, bs54_a6, bs54_a7, bs54_a8 } ;
+    static constexpr const doub* const bs54_a[] { bs54_a2, bs54_a3, bs54_a4, bs54_a5, bs54_a6, bs54_a7, bs54_a8 } ;
 
     //
     // J. Verner RK6(5) IIIX-65 method, "Numerically optimal RungeKutta pairs with interpolants"
@@ -243,7 +243,7 @@ namespace RK				// Runge-Kutta method definitions
 	/* bh[ 8] = */ -172.9712528905928690091695534177158630437488 ,
 	/* bh[ 9] = */  .5686113944047569241147603178766138153594e-1
 	} ;
-    static constexpr const double* const jv65_a[] { jv65_a2, jv65_a3, jv65_a4, jv65_a5, jv65_a6, jv65_a7, jv65_a8, jv65_a9 } ;
+    static constexpr const doub* const jv65_a[] { jv65_a2, jv65_a3, jv65_a4, jv65_a5, jv65_a6, jv65_a7, jv65_a8, jv65_a9 } ;
     } ;
 
 const std::array<RKdef,7> RKdef::list
