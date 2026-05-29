@@ -2,11 +2,16 @@
 # Makefile for multiple gordion-* executables with common code base.
 # Somewhat based on https://spin.atomicobject.com/makefile-c-projects/
 #
-# LGY 4/2025
+# Include on command line:
+#   DBG=1 for debugging compilation with -g
+#   EIGEN=1 for compilation with Eigen library instead of Armadillo
+#   MASSSCALE=<exponent> to scale fermion masses with a power of gauge coupling
+#
+# LGY 5/2026
 
 TARGET   = gordion
 CXX      = c++
-
+CXXFLAGS = -std=c++20 -I.
 
 ifdef EIGEN
 CXXFLAGS = -DEIGEN
@@ -15,15 +20,16 @@ CXXFLAGS = -DARMA
 LDFLAGS  = -larmadillo
 endif
 
-# Run "make DBG=1 ..." for compilation with -g:
 ifdef DBG
 CXXFLAGS += -O0 -g
 else
 CXXFLAGS += -O3 -DPARALLEL
 LDFLAGS  += -ltbb
 endif
-CXXFLAGS += -std=c++20 -I.
-# add -DMASSSCALE=<numeric_value> to CXXFLAGS if desired
+
+ifdef MASSSCALE
+CXXFLAGS += -DMASSSCALE=$(MASSSCALE)
+endif
 
 # Extract previous theory target:
 PREVTHY := $(shell test -h $(TARGET) && readlink $(TARGET) | sed 's/$(TARGET)-//')
