@@ -3,7 +3,6 @@
 #include <complex>
 #include <numeric>
 #include <iostream>
-using std::ostream ;
 
 #ifdef VEV32
 using real  = float ;			// Poly coeffs & vev's
@@ -11,7 +10,7 @@ using real  = float ;			// Poly coeffs & vev's
 using real  = doub ;			// Poly coeffs & vev's
 #endif
 
-#ifdef ARMA
+#ifdef ARMA				// Use Armadillo linear algrbra library
 #define ARMA_WARN_LEVEL 1
 #include <armadillo>
 
@@ -49,16 +48,21 @@ inline Uvec sort_index	(const Dvec& v, bool up=true)
     else	return arma::sort_index (v,"descend") ;
     }
 
-template <typename T> uint ncol     (T x)		{ return x.n_cols ; }
-template <typename T> uint nrow     (T x)		{ return x.n_rows ; }
-template <typename T> auto memptr   (T x)		{ return x.memptr() ; }
-template <typename T> void set_zero (T x)		{ x.zeros() ; }
-template <typename T> void set_zero (T x, int n)	{ x.zeros(n) ; }
-template <typename T> void set_zero (T x, int n, int m)	{ x.zeros(n,m) ; }
-template <typename T> void set_size (T x, int n)	{ x.set_size(n) ; }
-template <typename T> void raw_print (T x, ostream& o)	{ x.raw_print (o) ; }
+template <typename T> uint ncol      (T& x)		{ return x.n_cols ; }
+template <typename T> uint nrow      (T& x)		{ return x.n_rows ; }
+template <typename T> uint nelem     (T& x)		{ return x.n_elem ; }
+template <typename T> auto memptr    (T& x)		{ return x.memptr() ; }
+template <typename T> void set_zero  (T&  x)		{ x.zeros() ; }
+template <typename T> void set_zero  (T&& x)		{ x.zeros() ; }
+template <typename T> void set_zero  (T&  x,int n)	{ x.zeros(n) ; }
+template <typename T> void set_zero  (T&& x,int n)	{ x.zeros(n) ; }
+template <typename T> void set_zero  (T& x,int n,int m)	{ x.zeros(n,m) ; }
+template <typename T> void set_size  (T& x,int n)	{ x.set_size(n) ; }
+template <typename T> void resize    (T& x,int n)	{ x.resize(n) ; }
+template <typename T> void raw_print (T&  x,string s)	{ x.raw_print (s) ; }
+template <typename T> void raw_print (T&& x,string s)	{ x.raw_print (s) ; }
 
-#elif EIGEN
+#elif EIGEN				// Use Eigen linear algebra library
 #include <Eigen/Eigenvalues>
 #include <Eigen/Dense>
 #include <Eigen/SVD>
@@ -81,24 +85,32 @@ inline Dvec abs		(const Dvec& v) { return v.cwiseAbs() ; }
 inline bool has_nan	(const Cvec& v) { return v.hasNaN() ; }
 inline Dmtx inv		(const Dmtx& m) { return m.inverse() ; }
 inline Dmtx transpose	(const Dmtx& m) { return m.transpose() ; }
-inline Rvec aliasvec	(doub* mem, uint n) { return Eigen::Map<Rvec> (mem,n) ; }
+inline Rvec aliasvec	(doub* mem, uint n) { return Rvec {Eigen::Map<Rvec> (mem,n)} ; }
 
-template <typename T> auto ncol      (T x)		{ return x.cols() ; }
-template <typename T> auto nrow      (T x)		{ return x.rows() ; }
-template <typename T> auto memptr    (T x)		{ return x.data() ; }
-template <typename T> void set_zero  (T x)		{ x.setZero() ; }
-template <typename T> void set_zero  (T x, int n)	{ x.setZero(n) ; }
-template <typename T> void set_zero  (T x, int n,int m)	{ x.setZero(n,m) ; }
-template <typename T> void set_size  (T x, int n)	{ x.resize(n) ; }
-template <typename T> void raw_print (T x, ostream& o)	{ o << x ; }
+template <typename T> auto ncol      (T& x)		{ return x.cols() ; }
+template <typename T> auto nrow      (T& x)		{ return x.rows() ; }
+template <typename T> auto nelem     (T& x)		{ return x.size() ; }
+template <typename T> auto memptr    (T& x)		{ return x.data() ; }
+template <typename T> void set_zero  (T&  x)		{ x.setZero() ; }
+template <typename T> void set_zero  (T&& x)		{ x.setZero() ; }
+template <typename T> void set_zero  (T&  x,int n)	{ x.setZero(n) ; }
+template <typename T> void set_zero  (T&& x,int n)	{ x.setZero(n) ; }
+template <typename T> void set_zero  (T& x,int n,int m)	{ x.setZero(n,m) ; }
+template <typename T> void set_size  (T& x,int n)	{ x.resize(n) ; }
+template <typename T> void resize    (T& x,int n)	{ x.conservativeResize(n) ; }
+template <typename T> void raw_print (T&  x,string s)	{ std::cout<< s<< "\n"<< x<< "\n";}
+template <typename T> void raw_print (T&& x,string s)	{ std::cout<< s<< "\n"<< x<< "\n";}
 
-inline Cvec sort	(Cvec&& v)
+inline Cvec sort	(const Cvec& v)
     {
     Cvec w { v } ;
-    std::sort (w.begin(), w.end(), [](cmplx a,cmplx b) { return std::abs(a)<std::abs(b); }) ;
+    std::sort (w.begin(),w.end(), [](cmplx a,cmplx b){ return std::abs(a) < std::abs(b);});
     return w ;
     }
-inline Cvec sort	(Cvec& v) { return sort (v) ; }
+inline Cvec sort	(const Cvec&& v)
+    {
+    return sort (v) ;
+    }
 inline Uvec sort_index	(const Dvec& v, bool up=true)
     {
     Uvec i	(v.size()) ; std::iota (i.begin(), i.end(), 0) ;
@@ -127,7 +139,7 @@ inline Dmtx pinv	(const Dmtx& m, doub cut)
     Eigen::BDCSVD<Dmtx, Eigen::ComputeFullU | Eigen::ComputeFullV> dcomp(m) ;
     Dvec sv = dcomp.singularValues() ;
     Dvec inv (sv.size()) ;
-    for (int i = 0; i < sv.size(); ++i) inv(i) = sv(i) > cut ? inv(i) = 1.0 / sv(i) : 0.0 ;
+    for (int i = 0; i < sv.size(); ++i) inv(i) = (sv(i) > cut ? 1.0 / sv(i) : 0.0) ;
     return dcomp.matrixV() * inv.asDiagonal() * dcomp.matrixU().transpose() ;
     }
 inline Cvec eig_gen	(const Dmtx& m)

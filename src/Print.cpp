@@ -454,10 +454,9 @@ void Print::print_mode ()
 
 void Print::print_spectrum ()
     {
-    const auto& repnam   { Rep::list[numerics.lastrep].name } ;
-    auto	prevprec { cout.precision(12) } ;
-    cout << repnam << " spectrum =\n" ;
-    raw_print (numerics.spectrum, cout) ;
+    auto prevprec { cout.precision(12) } ;
+    cout << Rep::list[numerics.lastrep].name ;
+    raw_print (numerics.spectrum," spectrum =") ;
     cout << std::setprecision (prevprec) ;
     }
 

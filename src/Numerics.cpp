@@ -81,7 +81,7 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
     bool	ok ;
 
     if (blab > 1) cout << "  |delta| = " << dnorm << ", " ;
-    if (blab > 2) cout << "\n   delta = \n" << delta << flush ;
+    if (blab > 2) raw_print (delta, "\n   delta =") ;
 
     if (tol && dnorm <= tol) return 0 ;			// converged?
 
@@ -90,6 +90,11 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
 	real*	vevptr { &vev [global.stage ? global.nobsG() : 0] } ; 
 	Rvec	subvev { aliasvec (vevptr, nvev) } ;
 	ok = ode.integrate (s, 1.0, subvev) ;
+	if (memptr (subvev) != vevptr)			// just for Eigen (sigh)
+	    {
+	    if (global.stage)	vev.tail (nvev) = subvev ;
+	    else		vev.head (nvev) = subvev ;
+	    }
 	}
     else ok = ode.integrate (s, 1.0, vev) ;
 
@@ -114,7 +119,7 @@ const Uvec& Numerics::eval_inuse (uint repnum, bool T_odd)
 	{
 	if (gens[i].active) inuse (n++) = i - beg ;
 	}
-    inuse.resize(n) ;
+    resize (inuse,n) ;
     return inuse ;
     }
 
@@ -146,7 +151,7 @@ const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
 	    }
 	}
     gradient = gradient (use) ;
-    if (print) cout << "Gradient = \n" << gradient ;
+    if (print) raw_print (gradient,"Gradient =") ;
     return gradient ;
     }
 
@@ -184,13 +189,13 @@ const Dmtx& Numerics::eval_curv (int repnum, int print)	// Evaluate T-even curva
     curvature = curvature (use,use) ;
     if (print > 1)
 	{
-	cout << Rep::list[repnum].name << " T-even curvature = \n" ;
-	raw_print (curvature, cout) ;
+	cout << Rep::list[repnum].name ;
+	raw_print (curvature," T-even curvature =") ;
 	}
     if (print)
 	{
-	cout << Rep::list[repnum].name << " T-even curvature eigenvalues = \n"
-	     << sort (eig_gen (curvature)) ;
+	cout << Rep::list[repnum].name ;
+	raw_print (sort (eig_gen (curvature))," T-even curvature eigenvalues =") ;
 	}
     return curvature ;
     }
@@ -230,12 +235,13 @@ const Dmtx& Numerics::eval_metr (int repnum, int print)	// Evaluate T-odd curvat
     metric = metric (use,use) ;
     if (print > 1)
 	{
-	cout << Rep::list[repnum].name << " T-odd curvature = \n" << metric ;
+	cout << Rep::list[repnum].name ;
+	raw_print (metric," T-odd curvature =") ;
 	}
     if (print)
 	{
-	cout << Rep::list[repnum].name << " T-odd curvature eigenvalues = \n"
-	     << sort (eig_gen (metric)) ;
+	cout << Rep::list[repnum].name ;
+	raw_print (sort (eig_gen (metric))," T-odd curvature eigenvalues =") ;
 	}
     return metric ;
     }
@@ -268,9 +274,10 @@ const Dmtx& Numerics::eval_lagr (uint repnum, bool print)	// Evaluate Lagrange b
     lagrange = lagrange(evens,odds) ;
     if (print)
 	{
-	cout << Rep::list[repnum].name << " Lagrange bracket = \n" << lagrange ;
-	cout << Rep::list[repnum].name << " Lagrange bracket singular values = \n"
-	     << svd (lagrange) ;
+	cout << Rep::list[repnum].name ;
+	raw_print (lagrange," Lagrange bracket =") ;
+	cout << Rep::list[repnum].name ;
+	raw_print (svd(lagrange)," Lagrange bracket singular values =") ;
 	}
     return lagrange ;
     }
@@ -310,7 +317,7 @@ doub Numerics::eval_delta (bool print)		// Evaluate delta vector
 
     set_zero (delta, ngens) ;
     delta(use) = del ;
-    if (print) cout << "Delta = \n" << delta ;
+    if (print) raw_print (delta, "Delta =") ;
     return infnorm (delta) ;
     }
 
@@ -370,8 +377,8 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 //	{ return geos[a[0]].entry().filepos < geos[b[0]].entry().filepos ; }) ;
 
     if (global.interrupt) return ;
-    if (ncol(numerics.delta) != ngens) gripe ("\nNeed to (re)evaluate delta!"); 
-    if (blab > 2) cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,ncol(v)) ;
+    if (nelem(numerics.delta) != ngens) gripe ("\nNeed to (re)evaluate delta!"); 
+    if (blab > 2) cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,nelem(v)) ;
 
     set_zero (dv, nobs) ;
     numerics.dvev_buf = memptr(dv) ;
@@ -379,8 +386,8 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     if (memptr(v) != &numerics.vev[offset])
 	{
 	numerics.vev_tmp = numerics.vev ;
-	if (global.stage)	numerics.vev_tmp.tail (ncol(v)) = v ;
-	else			numerics.vev_tmp.head (ncol(v)) = v ;
+	if (global.stage)	numerics.vev_tmp.tail (nelem(v)) = v ;
+	else			numerics.vev_tmp.head (nelem(v)) = v ;
 	numerics.vev_buf = memptr(numerics.vev_tmp) ;
 	}
     else numerics.vev_buf = memptr(numerics.vev) ;
@@ -394,7 +401,7 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 	doub	maxdv (0.0) ;
 	uint	maxi  (0) ;
 	uint	maxdi (0) ;
-	auto	nvev { ncol(v) } ;
+	auto	nvev { nelem(v) } ;
 
 	for (int indx(global.stage ? 0 : 1) ; indx < nvev ; ++indx)
 	    {
@@ -468,7 +475,7 @@ doub Numerics::err_norm (const Rvec& err, const Rvec& y)	// ODE error vector nor
     uint	blab { Blab::blablevel[BLAB::NUMERICS] } ;
     auto&	eps  { numerics.odetol } ;
     ulong	maxi { index_max (abs (err)) } ;
-    //doub	norm { l2norm  (err) / sqrt (ncol(err)) } ;
+    //doub	norm { l2norm  (err) / sqrt (nelem(err)) } ;
     //doub	norm { infnorm (err / (abs (err) + eps)) } ;
     doub	norm { infnorm (err) } ;
     if (blab > 2) cout << "err_norm: " << norm << "\n" << flush ;
@@ -700,7 +707,7 @@ string Numerics::MMAform (doub x)				// Convert to MMA input form
 
 void Numerics::numericsinit ()					// Initialize expectation values
     {
-    numerics.vev.resize (global.nobs()) ;
+    resize (numerics.vev, global.nobs()) ;
     if (global.stage == Global::Gauge)
 	{
 	set_zero (numerics.vev) ;

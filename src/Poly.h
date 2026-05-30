@@ -6,7 +6,6 @@
 #include "Theory.h"
 #include "Gripe.h"
 #include <functional>
-#include <cstdlib>
 
 class Gen ;
 class Obs ;

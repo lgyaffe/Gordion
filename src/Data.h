@@ -71,8 +71,15 @@ struct GeoHdr					// Geodesic record poly header
 
 struct RecHdr				// Data record header
     {
-    ushort	info[3] ;			// type-specific info
-    ushort	len ;				// subsequent # data elements
+    union
+	{
+	struct
+	    {
+	    ushort	info[3] ;	// type-specific info
+	    ushort	len ;		// subsequent # data elements
+	    } ;
+	real		coef ;		// for alignment
+	} ;
 
     operator const ObsHdr&  () const { return *cast_to<const ObsHdr*>(this)  ; }
     operator const OpHdr&   () const { return *cast_to<const OpHdr*>(this)   ; }
@@ -101,7 +108,7 @@ struct RecHdr				// Data record header
     RecHdr (GeoHdr&&  h) { data() = h.data() ; }
     } ;
 
-static_assert (sizeof (RecHdr) == sizeof (doub)) ;
+static_assert (sizeof (RecHdr) >= sizeof (real)) ;
 
 enum class RecordID : char			// Data record type
     {

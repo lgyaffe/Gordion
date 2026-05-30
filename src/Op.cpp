@@ -208,7 +208,7 @@ int OpSum::collect (bool divgcd)		// Collect terms, optionally
 	if (b > a) *a = *b ;
 	while (++b < end() && b->item == a->item) a->coeff += b->coeff ;
 	}
-    resize(distance(begin(),a)) ;
+    resize (distance(begin(),a)) ;
 
     if (divgcd)
 	{

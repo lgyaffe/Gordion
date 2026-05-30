@@ -402,7 +402,7 @@ void Save::write_coup ()				// Write Coupling's
 void Save::write_vev ()					// Write Vev's
     {
     auto&	stream	{ global.vevstream } ;
-    uint	nvev	( ncol(numerics.vev) ) ;
+    uint	nvev	( nelem(numerics.vev) ) ;
     auto	ptr	{ memptr(numerics.vev) } ;
 
     stream.seekp (0, ios::end) ;
@@ -494,7 +494,7 @@ bool Save::read_header (fstream& stream, bool write)	// Read save file header
 	return !write && ( hdr.nvev == global.nobs()	// parent thy vev file
 			|| hdr.nvev == global.nobsG() )
 		      && hdr.ncoup <= ncoup 
-		      && hdr.nvev  <= ncol(numerics.vev) ;
+		      && hdr.nvev  <= nelem(numerics.vev) ;
 	}
     else gripe (format("Inconsistent save file theory {}", hdr.name.data())) ;
     }
