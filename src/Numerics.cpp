@@ -73,10 +73,11 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
     {
     if (global.interrupt) return 0 ;
 
-    uint	nvev  { global.info().nobs } ;
-    uint	blab  { Blab::blablevel[BLAB::NUMERICS] } ;
-    Ode		ode   { do_dvev, err_norm, odetol, rk, odemax } ;
-    doub	dnorm { eval_delta() } ;
+    auto&	obslist	{ ObsList::obs } ;
+    uint	nvev	{ global.nobs() } ;
+    uint	blab	{ Blab::blablevel[BLAB::NUMERICS] } ;
+    Ode		ode	{ do_dvev, err_norm, odetol, rk, odemax } ;
+    doub	dnorm	{ eval_delta() } ;
     doub	s (0) ;
     bool	ok ;
 
@@ -85,9 +86,9 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
 
     if (tol && dnorm <= tol) return 0 ;			// converged?
 
-    if (nvev != global.nobs())				// integrate vev subvec
+    if (nvev != obslist.size())				// integrate vev subvec
 	{
-	real*	vevptr { &vev [global.stage ? global.nobsG() : 0] } ; 
+	real*	vevptr { &vev [global.stage ? obslist.nobsG : 0] } ; 
 	Rvec	subvev { aliasvec (vevptr, nvev) } ;
 	ok = ode.integrate (s, 1.0, subvev) ;
 	if (memptr (subvev) != vevptr)			// just for Eigen (sigh)
@@ -151,11 +152,16 @@ const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
 	    }
 	}
     gradient = gradient (use) ;
-    if (print) raw_print (gradient,"Gradient =") ;
+    if (print)
+	{
+	auto prevprec { cout.precision(12) } ;
+	raw_print (gradient,"Gradient =") ;
+	cout << std::setprecision (prevprec) ;
+	}
     return gradient ;
     }
 
-const Dmtx& Numerics::eval_curv (int repnum, int print)	// Evaluate T-even curvature
+const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curvature
     {
     const auto& coup	{ Coupling::list } ;
     const auto&	use	{ eval_inuse (repnum, false) } ;
@@ -187,20 +193,22 @@ const Dmtx& Numerics::eval_curv (int repnum, int print)	// Evaluate T-even curva
 	    }
 	}
     curvature = curvature (use,use) ;
-    if (print > 1)
-	{
-	cout << Rep::list[repnum].name ;
-	raw_print (curvature," T-even curvature =") ;
-	}
     if (print)
 	{
+	auto prevprec { cout.precision(12) } ;
+	if (print > 1)
+	    {
+	    cout << Rep::list[repnum].name ;
+	    raw_print (curvature," T-even curvature =") ;
+	    }
 	cout << Rep::list[repnum].name ;
 	raw_print (sort (eig_gen (curvature))," T-even curvature eigenvalues =") ;
+	cout << std::setprecision (prevprec) ;
 	}
     return curvature ;
     }
 
-const Dmtx& Numerics::eval_metr (int repnum, int print)	// Evaluate T-odd curvature
+const Dmtx& Numerics::eval_metr (uint repnum, int print)	// Evaluate T-odd curvature
     {
     const auto& coup	{ Coupling::list } ;
     const auto&	use	{ eval_inuse (repnum, true) } ;
@@ -233,20 +241,22 @@ const Dmtx& Numerics::eval_metr (int repnum, int print)	// Evaluate T-odd curvat
 	    }
 	}
     metric = metric (use,use) ;
-    if (print > 1)
-	{
-	cout << Rep::list[repnum].name ;
-	raw_print (metric," T-odd curvature =") ;
-	}
     if (print)
 	{
+	auto prevprec { cout.precision(12) } ;
+	if (print > 1)
+	    {
+	    cout << Rep::list[repnum].name ;
+	    raw_print (metric," T-odd curvature =") ;
+	    }
 	cout << Rep::list[repnum].name ;
 	raw_print (sort (eig_gen (metric))," T-odd curvature eigenvalues =") ;
+	cout << std::setprecision (prevprec) ;
 	}
     return metric ;
     }
 
-const Dmtx& Numerics::eval_lagr (uint repnum, bool print)	// Evaluate Lagrange bracket matrix
+const Dmtx& Numerics::eval_lagr (uint repnum, int print)	// Evaluate Lagrange bracket matrix
     {
     const auto&	evens	{ eval_inuse (repnum, false) } ;
     const auto&	odds	{ eval_inuse (repnum, true)  } ;
@@ -274,10 +284,15 @@ const Dmtx& Numerics::eval_lagr (uint repnum, bool print)	// Evaluate Lagrange b
     lagrange = lagrange(evens,odds) ;
     if (print)
 	{
-	cout << Rep::list[repnum].name ;
-	raw_print (lagrange," Lagrange bracket =") ;
+	auto prevprec { cout.precision(12) } ;
+	if (print > 1)
+	    {
+	    cout << Rep::list[repnum].name ;
+	    raw_print (lagrange," Lagrange bracket =") ;
+	    }
 	cout << Rep::list[repnum].name ;
 	raw_print (svd(lagrange)," Lagrange bracket singular values =") ;
+	cout << std::setprecision (prevprec) ;
 	}
     return lagrange ;
     }
@@ -297,8 +312,9 @@ doub Numerics::eval_H (bool print)			// Evaluate Hamiltonian/free energy
 	}
     if (print)
 	{
-	auto	prev { cout.precision(12) } ;
-	cout << label << " = " << H << std::setprecision (prev) << "\n" ;
+	auto prevprec { cout.precision(12) } ;
+	cout << label << " = " << H << "\n" ;
+	cout << std::setprecision (prevprec) ;
 	}
     return H ;
     }
@@ -317,7 +333,12 @@ doub Numerics::eval_delta (bool print)		// Evaluate delta vector
 
     set_zero (delta, ngens) ;
     delta(use) = del ;
-    if (print) raw_print (delta, "Delta =") ;
+    if (print)
+	{
+	auto prevprec { cout.precision(12) } ;
+	raw_print (delta, "Delta =") ;
+	cout << std::setprecision (prevprec) ;
+	}
     return infnorm (delta) ;
     }
 
@@ -327,7 +348,7 @@ const Cvec& Numerics::eval_spectra (string word, bool print) // Evaluate particl
     catch (const exception& e) { gripe ("Unknown representation " + word) ; }
     }
 
-const Cvec& Numerics::eval_spectra (int repnum, bool print)	// Evaluate particle spectrum
+const Cvec& Numerics::eval_spectra (uint repnum, bool print)	// Evaluate particle spectrum
     {
     auto&	metr	{ eval_metr  (repnum) } ;
     auto&	lagr	{ eval_lagr  (repnum) } ;
@@ -367,10 +388,10 @@ void Numerics::eval_geos (int printlim)			// Evaluate observable derivatives
 void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     {
     uint	blab	{ Blab::blablevel[BLAB::NUMERICS] } ;
-    uint	offset	{ global.stage ? global.nobsG() : 0 } ;
+    uint	offset	{ global.stage ? ObsList::obs.nobsG : 0 } ;
     const auto&	geos	{ global.data().geos } ;
     const auto&	bckt	{ global.info().bckt } ;
-    uint	nobs	{ global.info().nobs } ;
+    uint	nobs	{ global.nobs() } ;
     int		ngens	{ global.info().neven.front() } ;
 
 //    std::sort (bckt.begin(), bckt.end(), [geos](const uint3& a, const uint3& b)
@@ -428,7 +449,7 @@ void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
     uint	bcktnum	{ bucket[0] } ;
     uint	first	{ bucket[1] } ;
     uint	last	{ bucket[2] } ;
-    uint	offset	{ global.stage ? global.nobsG() : 0 } ;
+    uint	offset	{ global.stage ? ObsList::obs.nobsG : 0 } ;
     const auto&	delta	{ numerics.delta } ;
     const auto&	geos	{ global.data().geos[bcktnum] } ;
     real*	dv 	{ numerics.dvev_buf } ;
@@ -539,7 +560,7 @@ void Numerics::write_data (doub value)				// Write data to MMAfile
     ofstream& out { global.MMAstream } ;
 
     if (!global.MMAfile.size())
-	 global.MMAfile = Global::dfltfilename("m") ;
+	 global.MMAfile = global.dfltfilename("m") ;
     if (!out.is_open())
 	{
 	auto	mode	{ std::ios::out } ;
@@ -562,10 +583,10 @@ void Numerics::write_data (doub value)				// Write data to MMAfile
 
     data_write (out, theory.euclid ? "F" : "H", value, eval_H()) ;
 
-    uint beg { global.stage ? global.nobsG() : 1 } ;
+    uint beg { global.stage ? ObsList::obs.nobsG : 1 } ;
     uint end { global.info().MMAlimit + (global.stage ? beg : 1) } ;
-    if  (end > global.nobs())
-	 end = global.nobs() ;
+    if  (end > ObsList::obs.size())
+	 end = ObsList::obs.size() ;
 
     for (uint i(beg) ; i < end ; ++i)
 	{
@@ -705,26 +726,25 @@ string Numerics::MMAform (doub x)				// Convert to MMA input form
     return s ;
     }
 
-void Numerics::numericsinit ()					// Initialize expectation values
+void Numerics::numericsinit (int stage)			// Initialize expectation values
     {
-    resize (numerics.vev, global.nobs()) ;
-    if (global.stage == Global::Gauge)
+    resize (numerics.vev, ObsList::obs.size()) ;
+    if (stage == 0)					// gauge vev's
 	{
 	set_zero (numerics.vev) ;
 	numerics.vev[0] = 1.0 ;
 	}
-    else // global.stage == Global::Fermi
+    else						// fermion vev's
 	{
 	char8	mass { "mass" } ;
 	auto	m    { Coupling::list[Coupling::indx (mass)].value } ;
 	doub	condensate ;
 	if (theory.euclid)	condensate = -1.0 / m ;
 	else			condensate = m > 0 ? -0.5 : 0.5 ;
-	set_zero (numerics.vev.tail (global.nobsF())) ;
+
+	set_zero (numerics.vev.tail (ObsList::obs.nobsF)) ;
 	for (const auto& [indx_f,indx_g] : ObsList::obs.fermiinit)
-	    {
 	    numerics.vev[indx_f] = numerics.vev[indx_g] * condensate ;
-	    }
 	}
     if (!numerics.rk.nstage)
 	 numerics.rk = RKdef::list.back() ;

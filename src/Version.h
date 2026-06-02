@@ -27,7 +27,11 @@ Version history:
     added 'active' boolean to Gen's.
     added generator add, suspend & activate commands.
     deprecated previous "add generator" command.
-    support use for Eigen library instead of Armadillo for linear algebra
+    support use for Eigen library instead of Armadillo for linear algebra.
+    fixed Global::stageinit and related routines so that existing observable lists
+    and polynomials scripts are not cleared upon a change of stage from gauge to fermi
+    or back.  Polynomial scripts are only cleared if additional generators are defined.
+    Fermion observables are only cleared if additional gauge observables are to be built.
 */
 
 class Version					// Program version

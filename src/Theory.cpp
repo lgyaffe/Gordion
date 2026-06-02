@@ -204,6 +204,6 @@ void Theory::theorydefn ()			// Define hamiltonian or action
 	    }
 	}
     ObsList::freeze = true ;
-    global.info().MMAlimit = global.info().nobs ;
+    global.info().MMAlimit = global.nobs() ;
     global.info().MMAlist.clear() ;
     }

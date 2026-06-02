@@ -96,9 +96,8 @@ void Op::findstart()				// Rotate to preferred start
     if (a) rotate (begin(), begin() + a, end()) ;
     }
 
-void Op::setprimary ()				// Determine Op primacy
+void Op::setprimary (int stage)			// Determine Op primacy
     {
-    int  stage	{ global.stage } ;
     auto maxgen { global.info().maxgen } ;
     int	 opnum	( list.size() ) ;
 
@@ -109,12 +108,12 @@ void Op::setprimary ()				// Determine Op primacy
 	}
     for (int i(0) ; i < opnum ; ++i)
 	{
-	Op op1 { list[i] } ;		// N.B. non-ref 'cuz list may grow
+	Op& op1 { list[i] } ;
 	if (!op1.order || op1.is_Fermion() != stage) continue ;
 
 	for (int j(0) ; j < i ; ++j)
 	    {
-	    Op op2 { list[j] } ;	// N.B. non-ref 'cuz list may grow
+	    Op& op2 { list[j] } ;
 
 	    if (!op2.order || op2.is_Fermion() != stage)	continue ;
 	    if (op1.order + op2.order > maxgen)			continue ;
@@ -122,7 +121,7 @@ void Op::setprimary ()				// Determine Op primacy
 	    Gen ans1 ;
 	    Commute::op_commute (1.0, op1, op2, ans1) ;
 
-	    for (auto& term : ans1)
+	    for (auto& term : ans1.collect())
 		{
 		const Op& new1 { list[term.item] } ;
 
@@ -227,14 +226,14 @@ int OpSum::collect (bool divgcd)		// Collect terms, optionally
 
 uint Op::store (const Op& op)				// Store Op in list
     {
-    uint	nop  ( list.size() ) ;
+    uint	len  ( list.size() ) ;
     uint	indx { list.store (op) } ;
 
-    if (list.size() > nop)		// Op added
+    if (list.size() > len)		// Op added
 	{
-	++global.info (op.is_Fermion()).nop ;
-	if (global.nopF() && !op.is_Fermion())
+	if (Op::nopF && !op.is_Fermion())
 	    gripe ("Can't add gauge Op after fermion Op's") ;
+	++Op::nops (op.is_Fermion()) ;
 	}
     if (indx >= list.size()) fatal ("Op::store: bad store! ") ;
     return indx ;

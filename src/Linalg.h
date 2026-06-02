@@ -33,7 +33,7 @@ using arma::sqrt ;
 using arma::svd ;
 
 inline auto opts	{ arma::solve_opts::refine + arma::solve_opts::equilibrate } ;
-inline Dvec linsolve	(const Dmtx& a, const Dvec& x) { return arma::solve(a,x,opts) ; }
+inline Dvec linsolve	(const Dmtx& a, const Dvec& x) { return arma::solve(a,x) ; }
 inline doub infnorm	(const Dvec& v) { return arma::norm(v,"inf") ; }
 inline doub l2norm	(const Dvec& v) { return arma::norm(v,2) ; }
 inline Dvec realpart	(const Cvec& v) { return arma::real(v) ; }

@@ -706,9 +706,9 @@ Gen& Commute::commute_gen (const Gen& gen1, const Gen& gen2, Gen& ans)
     return ans ;
     }
 
-void Commute::op_commute (doub coeff, const Op& a, const Op& b, Gen& ans)
+void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
     //
-    // Evaluate coeff * [Op, Op] -> Gen
+    // Evaluate coeff * [Op, Op] -> Gen,  N.B.: non-ref args as list may grow
     //
     {
     if (!coeff) return ;

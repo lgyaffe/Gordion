@@ -27,5 +27,5 @@ void initialize ()
     Rep::repinit() ;
     Canon::looptblinit() ;
     Canon::spectblinit() ;
-    Global::stageinit() ;
+    global.stageinit() ;
     }

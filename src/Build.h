@@ -25,7 +25,9 @@ namespace Build
     void do_Fermion_bckt  (const uint3&) ;
     void do_Efermion_bckt (const uint3&) ;
     void do_geostat_bckt  (const uint3&) ;
-    void check_xorder (uint, const Gen&, const PolyMap&) ;
+    void check_xorder	  (uint, const Gen&, const PolyMap&) ;
+    void clearobs	  (int) ;
+    void clearpolys	  () ;
     } ;
 
 #endif

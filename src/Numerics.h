@@ -59,11 +59,11 @@ class Numerics
     void	eval_geos	(int=0) ;		// Evaluate Obs derivs
     doub	eval_delta	(bool=false) ;		// Predict minimum
     const Dvec&	eval_grad	(bool=false) ;		// Evaluate dH
-    const Dmtx&	eval_curv	(int,int=0) ;		// Evaluate T-even ddH
-    const Dmtx&	eval_metr	(int,int=0) ;		// Evaluate T-odd ddH
-    const Dmtx&	eval_lagr	(uint,bool=false) ;	// Evaluate Lagrange brkt
+    const Dmtx&	eval_curv	(uint,int=0) ;		// Evaluate T-even ddH
+    const Dmtx&	eval_metr	(uint,int=0) ;		// Evaluate T-odd ddH
+    const Dmtx&	eval_lagr	(uint,int=0) ;		// Evaluate Lagrange brkt
     const Uvec&	eval_inuse	(uint,bool=false) ;	// Active generator list
-    const Cvec&	eval_spectra	(int,bool=false) ;	// Evaluate spectrum
+    const Cvec&	eval_spectra	(uint,bool=false) ;	// Evaluate spectrum
     const Cvec&	eval_spectra	(string,bool=false) ;	// Evaluate spectrum
     void	write_data	(doub) ;		// Write to datafile
 
@@ -88,7 +88,7 @@ class Numerics
 	}
 
     static bool check_loops  () ;				// Loop vevs < 1?
-    static void	numericsinit () ;				// Initialize
+    static void	numericsinit (int = global.stage) ;		// Initialize
     static bool	curv_rpt     (int = -1) ;			// Curvature probs?
     static void status_rpt   (uint,uint) ;			// Report status
     static void	do_dvev      (doub, const Rvec&, Rvec&) ;	// Do vev derivs

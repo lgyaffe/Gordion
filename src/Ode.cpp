@@ -12,7 +12,7 @@ bool Ode::integrate (doub& s, doub goal, Dvec& y)	//  Integrate dy/ds = rhs(y,s)
     for (auto& b : deriv)
 	if (b.size() != y.size()) set_size (b, y.size()) ;
 
-    if (!maxstepsize || maxstepsize > std::abs(goal - s)) maxstepsize = std::abs (goal - s) ;
+    if (!maxstepsize || maxstepsize > std::abs(goal - s)) maxstepsize = std::abs(goal - s) ;
 
     doub	stepsize { initstepsize ? initstepsize : maxstepsize } ;
     doub	errnorm   (0) ;
@@ -27,9 +27,9 @@ bool Ode::integrate (doub& s, doub goal, Dvec& y)	//  Integrate dy/ds = rhs(y,s)
 	if (errnorm)
 	    {
 	    double toe ( tolerance / errnorm ) ;
-	    stepsize *= (failures > 1) ? 0.5 : (errnorm > tolerance) ?
-			     std::max (0.9 * pow (toe, 1./order),     0.5) :
-			     std::min (0.9 * pow (toe, 1./(order-1)), 2.0) ;
+	    stepsize *= (failures > 1) ? 0.5L : (errnorm > tolerance) ?
+			     std::max (0.9L * pow (toe, 1./order),     0.5L) :
+			     std::min (0.9L * pow (toe, 1./(order-1)), 2.0L) ;
 	    }
 	if (minstepsize && stepsize < minstepsize) stepsize = minstepsize ;
 	if (maxstepsize && stepsize > maxstepsize) stepsize = maxstepsize ;

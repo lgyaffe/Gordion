@@ -9,8 +9,8 @@ namespace Commute
     void commute_poly (const Gen&, const PolyMap&, PolyMap&) ;		 // [Gen,Obs]
     void commute_term (const Gen&, const PolyTerm&, ObsList&, PolyMap&); // [Gen,Obs]
 
-    Gen& commute_gen (const Gen&, const Gen&,     Gen&) ;		 // [Gen,Gen]
-    void op_commute  (doub, const Op&, const Op&, Gen&) ;		 // [Op,Op]
+    Gen& commute_gen (const Gen&, const Gen&,   Gen&) ;	 		// [Gen,Gen]
+    void op_commute  (doub, const Op, const Op, Gen&) ;	 		// [Op,Op]
 
     void do_commute  (const Op&, const Obs&, PolyTerm, ObsList&, PolyMap&) ; // [Op,Obs]
     void do_commuteA (const Op&, const Obs&, PolyTerm, ObsList&, PolyMap&) ; // [Op,Obs]

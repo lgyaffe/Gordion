@@ -30,7 +30,7 @@ class Op : public SymbStr				// Op = generator term
     public:
     OpType		type { OpType::Invalid } ;	// Observable type
     mutable bool	primary { false } ;		// Primary Op?
-    short		order { -1 } ;			// Grading order
+    short		order   { -1 } ;		// Grading order
 
     Op () {}						// Default constructor
     explicit Op (const string&, short) ;		// Constructor
@@ -74,7 +74,7 @@ class Op : public SymbStr				// Op = generator term
 				(theory.euclid && !staggered() ||
 				!theory.euclid && staggered() ^ oddlen()) ; }
 
-    static void		setprimary () ;			// Identify primary Ops
+    static void		setprimary (int) ;		// Identify primary Ops
     static OpSum 	loop_dt (Op) ;			// Return [EE,loop]/2
     static OpSum 	loop_dt (OpSum) ;		// Return [EE,loops]/2
     static OpSum 	flipT (OpSum) ;			// Flip fermion staggering
@@ -82,16 +82,16 @@ class Op : public SymbStr				// Op = generator term
     static uint		store (const Op&) ;		// Store in list
     static void		purge (uint limit)		// Purge entries
 	    {
-	    auto& nopG { global.nopG() } ;
-	    auto k { std::erase_if (list.map, [limit,nopG](const auto& p)
-		{ return p.second >= limit && p.second >= nopG; }) } ;
-	    global.nopF() -= k ;
-	    auto l { std::erase_if (list.map, [limit,nopG](const auto& p)
-		{ return p.second >= limit && p.second < nopG; }) } ;
-	    global.nopG() -= l ;
+	    nopF -= std::erase_if (list.map, [&](const auto& p)
+			{ return p.second >= limit && p.second >= nopG; }) ;
+	    nopG -= std::erase_if (list.map, [&](const auto& p)
+			{ return p.second >= limit && p.second <  nopG; }) ;
 	    list.resize (limit) ;
 	    }
 
+    static inline uint	nopG ;				// # gauge Op's
+    static inline uint	nopF ;				// # fermi Op's
+    static uint&	nops (int stage) { return stage ? nopF : nopG ; }
     static inline bool	check { false } ;		// Do validity tests?
     static Index<Op>	list ;				// List of defined Ops
 

@@ -11,7 +11,7 @@
 
 void Print::print_obs (uint i, uint j)		// Print ObsList::obs range
     {
-    if (i < ObsList::obs.nobs() && j < ObsList::obs.nobs())
+    if (i < ObsList::obs.size() && j < ObsList::obs.size())
 	{
 	for (int k(i) ; k <= j ; ++k) ObsList::obs.print (cout, k) ;
 	}
@@ -20,7 +20,7 @@ void Print::print_obs (uint i, uint j)		// Print ObsList::obs range
 
 void Print::print_obs (uint i)			// Print indexed Obs
     {
-    if (i < ObsList::obs.nobs())
+    if (i < ObsList::obs.size())
 	{
 	ObsList::obs.print (cout, i) ;
 	}
@@ -60,7 +60,7 @@ void Print::print_obs_select (string word)	// Print order-selected Obs
 	if (ptr != Obs::obstypes.end())
 	    {
 	    ObsType type { ptr->second } ;
-	    for (int k(0) ; k < ObsList::obs.nobs() ; ++k)
+	    for (int k(0) ; k < ObsList::obs.size() ; ++k)
 		{
 		const Obs& obs { ObsList::obs(k) } ;
 		if (obs.corder == cord && obs.xorder == xord && obs.type == type)
@@ -75,7 +75,7 @@ void Print::print_obs_select (string word)	// Print order-selected Obs
 	{
 	int	cord { stoi (match[1].str()) } ;
 	int	xord { stoi (match[2].str()) } ;
-	for (int k(0) ; k < ObsList::obs.nobs() ; ++k)
+	for (int k(0) ; k < ObsList::obs.size() ; ++k)
 	    {
 	    const Obs& obs { ObsList::obs(k) } ;
 	    if (obs.corder == cord && obs.xorder == xord)
@@ -91,7 +91,7 @@ void Print::print_obs_select (string word)	// Print order-selected Obs
 	if (ptr != Obs::obstypes.end())
 	    {
 	    ObsType type { ptr->second } ;
-	    for (int k(0) ; k < ObsList::obs.nobs() ; ++k)
+	    for (int k(0) ; k < ObsList::obs.size() ; ++k)
 		{
 		const Obs& obs { ObsList::obs(k) } ;
 		if (obs.type == type)
@@ -464,7 +464,7 @@ void Print::print_geodesic (uint i, uint j)	// Print specified geodesic equation
     {
     const auto&	list  { ObsList::obs } ;
 
-    if (i < global.nobs())
+    if (i < list.size())
 	{
 	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
 	const auto& geos	{ global.data(stage).geos[bckt] } ;
@@ -488,7 +488,7 @@ void Print::print_geodesic (uint i, uint j)	// Print specified geodesic equation
 
 void Print::print_geodesic (uint i)		// Print geo eqns for specified Obs
     {
-    if (i < global.nobs())
+    if (i < ObsList::obs.size())
 	{
 	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
 	const auto& geos	{ global.data(stage).geos[bckt] } ;
@@ -600,8 +600,8 @@ void Print::print_stats ()			// Print global statistics
     {
     try { cout.imbue (std::locale("en_US.UTF-8")) ; }
     catch (const std::exception&) {}
-    cout << "  Canonical obs:        " << ObsList::obs.nobs()       << "\n" ;
-    cout << "  Basic obs:            " << ObsList::base.nobs()      << "\n" ;
+    cout << "  Canonical obs:        " << ObsList::obs.size()       << "\n" ;
+    cout << "  Basic obs:            " << ObsList::base.size()      << "\n" ;
     cout << "  Operator terms:       " << Op::list.size()           << "\n" ;
     cout << "  Ode integrations:     " << Ode::stats.integs         << "\n" ;
     cout << "      steps:            " << Ode::stats.steps          << "\n" ;

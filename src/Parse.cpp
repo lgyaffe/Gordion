@@ -221,8 +221,8 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"stage") && parse_args (line,word))
 	    {
-	    if      (isword(word,"gauge"))	Global::stageinit (0) ;
-	    else if (isword(word,"fermi"))	Global::stageinit (1) ;
+	    if      (isword(word,"gauge"))	global.stageinit (0) ;
+	    else if (isword(word,"fermi"))	global.stageinit (1) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"approx") && parse_args (line,flag))
@@ -263,7 +263,6 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		{
 		Gen::gennorm = flag ;
 		Gen::normalize () ;
-		Global::clearbuild (false) ;
 		}
 	    }
 	else if (isword(word,"geoswap") && parse_args (line,flag))
@@ -399,7 +398,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		    if (indx == mindx && global.massreinit)
 			{
 			cout << "Reinitializing fermion vev's\n" ;
-			Numerics::numericsinit() ;
+			Numerics::numericsinit(1) ;
 			}
 		    }
 		}
@@ -419,7 +418,7 @@ bool Parse::parse_reset (istringstream& line)		// Parse "reset" commands
 	if (isword(word,"representation"))	global.repnum = 0 ;
 	else if (isword(word,"maxthread"))	global.maxthread = 0 ;
 	else if (isword(word,"MMAlist"))	global.info().MMAlist.clear() ;
-	else if (isword(word,"stage"))		Global::stageinit (0) ;
+	else if (isword(word,"stage"))		global.stageinit (0) ;
 	else if (isword(word,"blab"))		Blab::resetblab () ;
 	else if (isword(word,"mintol"))		numerics.mintol = numerics.dflttol ;
 	else if (isword(word,"odetol"))		numerics.odetol = numerics.dflttol ;
@@ -458,12 +457,10 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
 	{
 	if (isword(word,"observable") && parse_args (line,i))
 	    {
-	    if (i < global.maxord()) Global::clearbuild (true) ;
 	    Build::mk_obs (i) ;
 	    }
 	else if (isword(word,"all") && parse_args (line,i))
 	    {
-	    if (i < global.maxord()) Global::clearbuild (true) ;
 	    Build::mk_obs (i) ;
 	    Build::mk_grad () ;
 	    for (int j(0) ; j < Rep::list.size() ; ++j)
@@ -522,7 +519,7 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
     std::regex	pattern { "(\\d+)\\)" } ;
     std::smatch match ;
     bool	valid { true } ;
-    short	order  (0) ;
+    short	order  (-1) ;
     int		action (0) ;
     doub	coef   (0) ;
     string	word ;
@@ -542,7 +539,7 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 		if (std::regex_match (word, match, pattern))
 		    {
 		    order = stoi (match[1].str()) ;
-		    if (order <= 0) action = 0 ;
+		    if (order < 0) action = 0 ;
 		    }
 		else action = 0 ;
 		}
@@ -562,11 +559,11 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 			    try {
 				Obs o { word } ; o.canon() ;
 				uint indx { ObsList::obs.find (o) } ;
-				if (indx != UINT_MAX && order <= 0)
+				if (indx != UINT_MAX && order < 0)
 				    order = ObsList::obs(indx).corder ;
 				}
 			    catch (const BadInput&) {}
-			    if (order)
+			    if (order >= 0)
 				{
 				Op op { word, order } ;
 				sum.emplace_back (Op::store(op), coef) ;
@@ -644,9 +641,11 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
 		else if (isstar (line))	numerics.eval_metr (rep, 2) ;
 		else valid = false ;
 		}
-	    else if (isword(word,"lagrange")    && eos(line) && isH)
+	    else if (isword(word,"lagrange")    && isH)
 		{
-		numerics.eval_lagr (rep, true) ;
+		if (eos(line))		numerics.eval_lagr (rep, 1) ;
+		else if (isstar (line))	numerics.eval_lagr (rep, 2) ;
+		else valid = false ;
 		}
 	    else if (isword(word,"delta")       && eos(line))
 		{
@@ -722,7 +721,7 @@ bool Parse::parse_add (istringstream& line)		// Parse "add" command
 	if (isword(word,"generator"))
 	    {
 	    doub	coef  (0) ;
-	    short	order (0) ;
+	    short	order (-1) ;
 	    bool	gotcoef { line >> coef } ;
 	    bool	gotword { false } ;
 
@@ -762,13 +761,13 @@ bool Parse::parse_add (istringstream& line)		// Parse "add" command
 			if (indx != UINT_MAX)
 			    {
 			    short cord { ObsList::obs(indx).corder } ;
-			    if (!order) order = cord ;
+			    if (order < 0) order = cord ;
 			    else if (order != cord)
 				gripe ("Invalid generator: inconsistent orders") ;
 			    }
 			}
 		    catch (const BadInput&) {}
-		    if (order)
+		    if (order >= 0)
 			{
 			Op op { word, order } ;
 			sum.emplace_back (Op::store(op), coef) ;
@@ -910,7 +909,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 bool Parse::parse_test (istringstream& line)		// Parse "test" commands
     {
     uint	i(0) ;
-    uint	nobs  { ObsList::obs.nobs() } ;
+    auto	nobs  { ObsList::obs.size() } ;
     bool	valid { true } ;
     string	word, word2 ;
     if (line >> word)

@@ -4,56 +4,34 @@
 #include "Numerics.h"
 #include "Gripe.h"
 
-void Global::stageinit (uint stage)		// Stage initialization
+void Global::stageinit (uint i)		// Stage initialization
     {
-    if (stage == Global::Fermi && !theory.nf) gripe ("No fermions!!!") ;
-    global.stage = stage ? Global::Fermi : Global::Gauge ;
-    Global::clearbuild     (true) ;
-    ObsList::base.obsinit  () ;
-    Gen::geninit	   () ;
-    Op::setprimary	   () ;
-    Theory::theorydefn	   () ;
-    Numerics::numericsinit () ;
+    if (i == Global::Fermi && !theory.nf) gripe ("No fermions!!!") ;
+    stage = i ? Global::Fermi : Global::Gauge ;
+    if (!ObsList::base.nobs(stage))	ObsList::base.obsinit () ;
+    if (!ObsList::obs.nobs(stage))	ObsList::obs.obsinit  () ;
+    if (!info().gens[0].size())		Gen::geninit () ;
+    if (!info().Hterms.size())		Theory::theorydefn () ;
+    if (i || !numerics.vev.size())	Numerics::numericsinit () ;
     }
 
-void Global::clearbuild (bool zapobs)		// Clear prior build data
+string Global::dfltfilename (const string&& ext)  // Make default file name
     {
-    for (uint i (global.stage) ; i < 2 ; ++i)
-	{
-	global.data(i).grad.clear() ;
-	for (auto& mtx  : global.data(i).geos) mtx.clear() ;
-	for (auto& mtx  : global.data(i).lagr) mtx.clear() ;
-	for (auto& cube : global.data(i).curv) cube.clear() ;
-	}
-    if (zapobs) clearobs () ;
-    }
+    const char*	name   { theory.name.data() } ;
+    int		approx { approx } ;
+    int		obsord { info().maxord } ;
+    int		maxgen { info().maxgen } ;
 
-void Global::clearobs ()			// Clear observables
-    {
-    if (global.stage == 0)
-	{
-	Canon::cache.clear() ;
-	global.info(0).nobs = 1 ;
-	global.info(1).nobs = 0 ;
-	global.info(0).maxord = 2 ;
-	global.info(1).maxord = 2 ;
-	}
-    else
-	{
-	Canon::cache.purge (global.nobsG()) ;
-	global.info(1).nobs = 0 ;
-	global.info(1).maxord = 2 ;
-	}
-    ObsList::obs.purge (global.nobsG()) ;
-    ObsList::obs.obsinit () ;
+    return format ("{}{}{}{}a{}.{}",
+		name, maxgen, global.fg(), obsord, approx, ext) ;
     }
 
 void Global::mk_bcktlist (uint stage)		// Make Obs bucket list
     {
     auto&	info  { global.info(stage) } ;
     auto&	bckt  { info.bckt } ;
-    uint	count { info.nobs } ;
-    uint	start { stage ? global.nobsG() : 0 } ;
+    uint	count { ObsList::obs.nobs(stage) } ;
+    uint	start { stage ? ObsList::obs.nobsG : 0 } ;
     uint	end   { start + count } ;
     uint	chunk ( 1024 ) ;
 
@@ -69,8 +47,8 @@ void Global::mk_bcktlist (uint stage)		// Make Obs bucket list
 
 uint3 Global::bckt_pos (uint i)			// Return stage/bucket/indx
     {
-    uint	stage { i >= global.nobsG() } ;
-    uint	start { stage ? global.nobsG() : 0 } ;
+    uint	stage { i >= ObsList::obs.nobsG } ;
+    uint	start { stage ? ObsList::obs.nobsG : 0 } ;
     const auto& bckt  { global.info(stage).bckt } ;
 
     if (bckt.size())
@@ -85,15 +63,4 @@ uint3 Global::bckt_pos (uint i)			// Return stage/bucket/indx
 	else fatal ("Invalid observable number!") ;
 	}
     else gripe (format ("Make stage {} observables first!", stage)) ;
-    }
-
-string Global::dfltfilename (const string&& ext)  // Make default file name
-    {
-    const char*	name   { theory.name.data() } ;
-    int		approx { global.approx } ;
-    int		obsord { global.info().maxord } ;
-    int		maxgen { global.info().maxgen } ;
-
-    return format ("{}{}{}{}a{}.{}",
-		name, maxgen, global.fg(), obsord, approx, ext) ;
     }

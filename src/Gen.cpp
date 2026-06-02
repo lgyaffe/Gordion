@@ -1,5 +1,6 @@
 #include "Gen.h"
 #include "Rep.h"
+#include "Build.h"
 #include "Global.h"
 #include "Commute.h"
 #include "Gripe.h"
@@ -192,7 +193,7 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
     bool	stage { b.is_Fermion() } ;
     const auto& gens  { global.info(stage).gens[repnum] } ;
     uint	ngen  ( gens.size() ) ;
-    uint	start { stage ? global.nopG() : 0 } ;
+    uint	start { stage ? Op::nopG : 0 } ;
     int		maxop (-1) ;
 
     for (const auto& a : gens)
@@ -271,6 +272,7 @@ void Gen::normalize (int repnum)			// Normalize generator
 	    cout << "Gen::normalize: method 2 for " << *this << "\n" ;
 	}
     coeff /= sqrt (normsq) ;
+    Build::clearpolys () ;
     }
 
 void Gen::normalize ()					// Generator normalization
@@ -377,8 +379,13 @@ void Gen::inner_commute ()			 	// Generator reduction
 
 int Gen::addgen (OpSum&& s)			// Add new generator
     {
-    int added(0) ;
-    switch (Op::list[s.front().item].type)
+    int	 added(0) ;
+    auto type { Op::list[s.front().item].type } ;
+
+    if (type == OpType::Fermion && !global.stage)
+	gripe ("Can't add fermion generator during gauge stage") ;
+
+    switch (type)
 	{
 	case OpType::Loop:
 	    if (autoToddgens)	added += project (Op::loop_dt(s)) ;
@@ -390,7 +397,11 @@ int Gen::addgen (OpSum&& s)			// Add new generator
 				added += project (std::move(s)) ; break ;
 	default:		break ;
 	}
-    if (added) Op::setprimary () ;
+    if (added)
+	{
+	Op::setprimary (type == OpType::Fermion) ;
+	Build::clearpolys () ;
+	}
     return added ;
     }
 
@@ -483,6 +494,7 @@ void Gen::geninit ()				// Generator initialization
 		    }
 		}
 	    }
+	Op::setprimary(0) ;
 	}
     else if (theory.nf > 0)
 	{
@@ -497,6 +509,7 @@ void Gen::geninit ()				// Generator initialization
 		Op Fxf { string {F[k],l[i],f[k]}, ferm, 1 } ;
 		project (Fxf) ;
 		}
+	Op::setprimary(1) ;
 	}
     }
 

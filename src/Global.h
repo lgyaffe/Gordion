@@ -23,8 +23,6 @@
 
 struct StageInfo				// Stage-specific info
     {
-    uint			nop ; 	 	// # Op's
-    uint			nobs ;	 	// # Obs
     short			maxgen { 0 } ;	// Max Gen order
     short			maxord { 2 } ;	// Max Obs sc order
     uint			MMAlimit ;	// initial # Obs for MMA file
@@ -86,15 +84,14 @@ class Global					// Global data
     auto&	data	(int i)	{ return stagedata[i] ; }
     auto&	info	()	{ return stageinfo[stage] ; }
     auto&	data	()	{ return stagedata[stage] ; }
-    auto&	nobsG	() 	{ return info(0).nobs  ; }
-    auto&	nobsF	() 	{ return info(1).nobs  ; }
-    auto&	nopG	() 	{ return info(0).nop   ; }
-    auto&	nopF	() 	{ return info(1).nop   ; }
     auto&	maxgen	()	{ return info().maxgen ; }
     auto&	maxord	()	{ return info().maxord ; }
     auto&	count	()	{ return info().count  ; }
-    uint	nobs	()	{ return nobsG() + nobsF() ; }
-    char	fg () const	{ return stage == Fermi ? 'f' : 'g' ; }
+    uint	nobs	()	{ return ObsList::obs.nobs (stage) ; }
+    char	fg	()const	{ return stage == Fermi ? 'f' : 'g' ; }
+
+    void	stageinit    (uint = 0) ;	// stage initialization
+    string	dfltfilename (const string&&);	// default file names
 
     string sysfilename ()			// Sys info file name
 	{
@@ -113,12 +110,8 @@ class Global					// Global data
     static inline tbb::task_scheduler_handle handle {tbb::attach{}} ;
 #endif
 
-    static void	  clearobs     () ;		// clear prior obs
-    static void	  clearbuild   (bool) ;		// clear prior build data
-    static void	  stageinit    (uint = 0) ;	// stage initialization
-    static void	  mk_bcktlist  (uint) ;		// make bucket list
-    static uint3  bckt_pos     (uint) ;		// Obs bucket position
-    static string dfltfilename (const string&&);// default file names
+    static void	 mk_bcktlist  (uint) ;		// make bucket list
+    static uint3 bckt_pos     (uint) ;		// Obs bucket position
     } ;
 
 extern Global global ;

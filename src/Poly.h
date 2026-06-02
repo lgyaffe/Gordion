@@ -103,7 +103,7 @@ class ObsPoly : public Polyvec			// Cubic polynomial of Obs
     void	sort() ;				// Sort terms
     bool	allzero() const ;			// Vanishnig poly?
     ObsPoly&	scale(doub) ;				// Scale poly
-    ObsPoly&	negate() { return scale(-1.0) ; }	// Negate poly
+    ObsPoly&	negate() { return scale(-1.0L) ; }	// Negate poly
     ObsList&	obslist() const { return list ; }	// Underlying ObsList
 
     ObsPoly (ObsList& l) : list(l) {}			// Constructor

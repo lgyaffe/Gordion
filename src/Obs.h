@@ -164,6 +164,8 @@ class ObsList: public vector<const Obs*>
     bool		canonicalize ;		// Canonicalize entries?
     bool		classify ;		// Classify entries?
     bool		approx {false} ;	// Approximate exclusions?
+    uint		nobsG ;			// # gauge entries
+    uint		nobsF ;			// # fermi entries
 
     ObsList (const string, bool=false, bool=false) ;
 
@@ -215,8 +217,8 @@ class ObsList: public vector<const Obs*>
 			}
 		    }
 
-    uint nobs ()	   	 const { return size() ; }
-    bool neq  (const ObsList& l) const { return this != &l ; }
+    uint& nobs (int stage)   	  	{ return stage ? nobsF : nobsG ; }
+    bool  neq  (const ObsList& l) const { return this != &l ; }
 
     void	obsinit  () ;			// Load basic Obs
     void	do_fermi_init() ;		// Fermion -> Loop map

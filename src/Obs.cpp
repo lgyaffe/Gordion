@@ -281,10 +281,17 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
     int	sgnb ( canonicalize ? b.canon() : b.findstart() ) ;
 
     if (Obs::check) { a.validate() ; b.validate() ; }
-    if (classify)
+    if (classify && !a.known_xord())
 	{
-	if (!a.known_xord()) a.classify (*this) ;
-	if (!b.known_xord()) b.classify (*this) ;
+	if (!a.classify (*this))
+	    fatal (format("Failed classify: {} ({},{}) in {}",
+		a.print(), a.corder, a.xorder, name)) ;
+	}
+    if (classify && !b.known_xord())
+	{
+	if (!b.classify (*this))
+	    fatal (format("Failed classify: {} ({},{}) in {}",
+		b.print(), b.corder, b.xorder, name)) ;
 	}
     PolyTerm ans (Polyindx(store(a), store(b)), sgna * sgnb) ;
     if (blab > 1)
@@ -366,7 +373,8 @@ void ObsList::obsinit ()			// Load basic Obs
 		catalog (Obs(Polyakov,ObsType::Loop,2,2)) ;
 		}
 	    }
-	if (!neq(ObsList::obs)) global.nobsG() = nobs() ;
+	// if (!neq(ObsList::obs)) global.nobsG() = nobs() ; !!!
+	nobsG = size() ;
 	}
     else if (theory.nf)
 	{
@@ -400,11 +408,8 @@ void ObsList::obsinit ()			// Load basic Obs
 		catalog (Obs(FXf,ObsType::Fermion,1,1)) ;
 		}
 	    }
-	if (!neq(ObsList::obs))
-	    {
-	    global.nobsF() = ObsList::obs.size() - global.nobsG() ;
-	    do_fermi_init() ;
-	    }
+	nobsF = size() - nobsG ;
+	if (!neq(ObsList::obs)) do_fermi_init() ;
 	}
     ObsList::freeze = true ;
     }
@@ -412,11 +417,11 @@ void ObsList::obsinit ()			// Load basic Obs
 void ObsList::do_fermi_init ()			// Initialize fermion -> loop map
     {
     uint	initfail  ( 0 ) ;
-    uint	beg	  { global.nobsG() } ;
+    uint	beg	  { nobsG } ;
     uint	blab	  { Blab::blablevel[BLAB::OBS] } ;
     if (blab > 3) cout << "do_fermi_init start\n" << flush ;
 
-    for (uint i(beg) ; i < nobs() ; ++i)
+    for (uint i(beg) ; i < size() ; ++i)
 	{
 	const Obs& a { (*this)(i) } ;
 	if (!a.is_Fermion() || !a.isclosed()) continue ;
@@ -424,7 +429,7 @@ void ObsList::do_fermi_init ()			// Initialize fermion -> loop map
 	Obs b (a.cbegin()+1, a.cend()-1, ObsType::Loop) ;
 	b.joinends() ;
 	if (blab > 3) cout << "fermion " << a << " loop partner " << b << "\n" ;
-	auto term { is_known (std::move(b)) } ;
+	PolyTerm term { is_known (std::move(b)) } ;
 	if (!term.coeff)
 	    {
 	    ++initfail ;
@@ -489,8 +494,7 @@ ObsStats::ObsStats (const ObsList& list)			 // Construct ObsStats
     ulong	lengthsum (0) ;
     auto&	vevs { numerics.vev } ;
     auto	nvev { vevs.size() } ;
-    auto	nobs { list.size() } ;
-    for (int indx(0) ; indx < nobs ; ++indx)
+    for (int indx(0) ; indx < list.size() ; ++indx)
 	{
 	auto	p { list.at(indx) } ;
 	int	t { (int) p->type } ;

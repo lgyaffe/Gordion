@@ -30,7 +30,7 @@ void Save::save_sys (string sysfile)			// Save sys info
 	    sysfile.erase (0, pos+1) ;
 	    }
 	}
-    else sysfile = Global::dfltfilename("sys") ;
+    else sysfile = global.dfltfilename("sys") ;
 
     string	path	{ global.savedir + "/" + sysfile } ;
     fstream	stream ;
@@ -77,7 +77,7 @@ void Save::save_vev (string vevfile)			// Save vev data
 	    }
 	global.vevstream.close() ;
 	}
-    else vevfile = Global::dfltfilename("vev") ;
+    else vevfile = global.dfltfilename("vev") ;
 
     if (!global.vevstream.is_open())
 	{
@@ -107,7 +107,7 @@ void Save::save_vev (string vevfile)			// Save vev data
 	    else
 		{
 		cout << "Writing vev data to " << path << "\n" ;
-		write_header (stream, Coupling::list.size(), global.nobs()) ;
+		write_header (stream, Coupling::list.size(), ObsList::obs.size()) ;
 		}
 	    global.vevfile   = vevfile ;
 	    global.vevstream = std::move (stream) ;
@@ -132,8 +132,8 @@ void Save::write_op (int stage)				// Write Op record
     {
     auto&	stream	{ global.sysstream } ;
     auto&	record	{ global.data(stage).op  } ;
-    uint	nelem	{ global.info(stage).nop } ;
-    uint	start	{ stage ? global.nopG() : 0 } ;
+    uint	nelem	{ Op::nops(stage) } ;
+    uint	start	{ stage ? Op::nopG : 0 } ;
 
     record.clear() ;
     for (int indx(start) ; indx < start + nelem ; ++indx)
@@ -170,8 +170,8 @@ void Save::write_obs (int stage)			// Write Obs record
     {
     auto&	stream	{ global.sysstream } ;
     auto&	record	{ global.data(stage).obs  } ;
-    uint	nelem	{ global.info(stage).nobs } ;
-    uint	start	{ stage ? global.nobsG() : 0 } ;
+    uint	nelem	{ ObsList::obs.nobs(stage) } ;
+    uint	start	{ stage ? ObsList::obs.nobsG : 0 } ;
 
     record.clear() ;
     for (uint indx(start) ; indx < start + nelem ; ++indx)
@@ -474,9 +474,10 @@ void Save::load_vev (int set)				// Load vev data set
 
 bool Save::read_header (fstream& stream, bool write)	// Read save file header
     {
-    auto& hdr	{ filehdr } ;
-    auto  nvev  { global.nobs() } ;
-    auto  ncoup { Coupling::list.size() } ;
+    auto& hdr	  { filehdr } ;
+    auto& obslist { ObsList::obs } ;
+    auto  nvev    { obslist.size() } ;
+    auto  ncoup   { Coupling::list.size() } ;
 
     stream.read (cast_to<char*>(&hdr), sizeof hdr) ;
     if (stream.fail()) ioerror ("read_header: I/O error!") ;
@@ -491,8 +492,8 @@ bool Save::read_header (fstream& stream, bool write)	// Read save file header
 	if (hdr.ncoup == 0 && hdr.nvev == 0)	    return true ; // sys file
 	if (hdr.ncoup == ncoup && hdr.nvev == nvev) return true ; // vev file
 
-	return !write && ( hdr.nvev == global.nobs()	// parent thy vev file
-			|| hdr.nvev == global.nobsG() )
+	return !write && ( hdr.nvev == obslist.size()	// parent thy vev file
+			|| hdr.nvev == obslist.nobsG )
 		      && hdr.ncoup <= ncoup 
 		      && hdr.nvev  <= nelem(numerics.vev) ;
 	}
@@ -522,7 +523,7 @@ void Save::read_op (int stage)				// Read Op record
     record.readrec (stream) ;
     if (stream.fail()) ioerror ("read_op: I/O error!") ;
 
-    uint	start	{ stage ? global.nopG() : 0 } ;
+    uint	start	{ stage ? Op::nopG : 0 } ;
     uint	indx	{ start } ;
     uint	nop	{ record.entry().nelem } ;
     RecHdr*	recptr	{ record.data() } ;
@@ -546,7 +547,7 @@ void Save::read_op (int stage)				// Read Op record
     if (indx - start != nop)
 	gripe ("read_op: Inconsistent save record!") ;
 
-    global.info(stage).nop = nop ;
+    Op::nops(stage) = nop ;
     if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Op\n" << flush ;
     }
 
@@ -561,7 +562,7 @@ void Save::read_obs (int stage)				// Read Obs record
     if (stream.fail())
 	ioerror ("read_obs: I/O error!") ;
 
-    uint	start	{ stage ? global.nobsG() : 0 } ;
+    uint	start	{ stage ? ObsList::obs.nobsG : 0 } ;
     uint	indx    { start } ;
     uint	nobs	{ record.entry().nelem } ;
     RecHdr*	recptr	{ record.data() } ;
@@ -589,7 +590,7 @@ void Save::read_obs (int stage)				// Read Obs record
     if (indx - start != nobs)
 	gripe ("read_obs: Inconsistent save record!") ;
 
-    global.info(stage).nobs = nobs ;
+    ObsList::obs.nobs (stage) = nobs ;
     Global::mk_bcktlist (stage) ;
     Numerics::numericsinit() ;
     Canon::cache.reload() ;
@@ -611,7 +612,7 @@ void Save::read_gen (int stage)				// Read Gen record
     RecHdr*	recptr	{ record.data() } ;
     RecHdr*	recend	{ recptr + record.size() } ;
     uint	nelem   ( 0 ) ;
-    uint	opstart	{ stage ? global.nopG() : 0 } ;
+    uint	opstart	{ stage ? Op::nopG : 0 } ;
 
     for (auto& gens : global.info(stage).gens)  gens.clear() ;
     for (auto& even : global.info(stage).neven) even = 0 ;
