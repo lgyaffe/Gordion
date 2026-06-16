@@ -42,6 +42,7 @@ void Commute::commute_term (const Gen& gen, const PolyTerm& term, ObsList& list,
     uint blab { Blab::blablevel[BLAB::COMMUTE] } ;
     if (blab) cout << "\n--- commute_term: gen " << gen << ", term " << term << "\n" ;
 
+    const auto&	oplist	{ gen.oplist() } ;
     ObsList&	anslist	{ ans.obslist() } ;
     bool	newlist	{ list.neq(anslist) } ;
     Polyindx	indx	{ term } ;
@@ -76,7 +77,7 @@ void Commute::commute_term (const Gen& gen, const PolyTerm& term, ObsList& list,
 		const Obs& ob { redulist(t[1]) } ;
 		if (blab > 2) cout << " oa " << oa.print()
 				   << " ob " << ob.print() << "\n" ;
-		PolyTerm result { anslist.catalog(oa,ob) } ;
+		PolyTerm result { anslist.catalog (oa,ob) } ;
 		if (result.coeff)
 		    ans.add (result * (gen.coeff * term.coeff * t.coeff)) ;
 		}
@@ -91,7 +92,7 @@ void Commute::commute_term (const Gen& gen, const PolyTerm& term, ObsList& list,
 		}
 	    for (auto opterm : gen)			// for each term of Gen
 		{
-		const Op& a { Op::list[opterm.item] } ;
+		const Op& a { oplist[opterm.item] } ;
 
 		factor.coeff  = gen.coeff * opterm.coeff * term.coeff ;
 		factor.coeff *= sgn[i] * sgnprod ;
@@ -131,7 +132,7 @@ void Commute::do_commute (const Op& a, const Obs& b, PolyTerm factor, ObsList& l
 	{
 	do_commuteD (a, b, factor, list, ans) ;
 	}
-    if (a.is_Fermion() && b.is_fermi())		// fermions anticommute
+    if (a.is_Fermion() && b.bilinear())		// fermions anticommute
 	{
 	do_commuteE (a, b, factor, list, ans) ;
 	}
@@ -357,18 +358,16 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     if (!midE) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::COMMUTE] } ;
-    int		asize	( a.size() ) ;
-    int		bsize	( b.size() ) ;
     short	corder	{ cordsum (a,b) } ;
     symb	x	{ b[midE] } ;
     int		dir	{ axis(x) } ;
     int		tnRb	{ tnR(x)  } ;
-    bool	flipa	{ a.is_Fermion()  && isstag (a.back()) } ;
-    bool	flipb	{ b.is_Efermion() && isstag (b.back()) } ;
+    int		asize	( a.size() ) ;
+    int		bsize	( b.size() ) ;
+    SymbStr	buf ;
 
     if (blab > 1) cout << "do_commuteD " << a << ", " << b << "\n" ;
 
-    SymbStr	buf ;
     buf.reserve (asize + bsize + 1) ;
     for (int i(0) ; i < asize ; ++i)
 	{
@@ -413,28 +412,15 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 		    {
 		    bool  astag	( isstag (a.front()) ^ isstag (a.back()) ) ;
 		    bool  bstag	( isstag (b.front()) ^ isstag (b.back()) ) ;
-		    Obs   oc	{ buf.begin(), buf.begin()+len, ObsType::Fermion, -1, -1 } ;
-		    Obs   od	{ buf.begin()+len, buf.end(),   ObsType::Fermion, -1, -1 } ;
-		    int   sgn0  { b.Esublat() ^ !(i % 2) ^ isL(y) ? -1 : 1 } ;
-		    int   sgn1  { -1 } ;
+		    Obs   oa	{ buf.begin(), buf.begin()+len, ObsType::Fermion, -1, -1 } ;
+		    Obs   ob	{ buf.begin()+len, buf.end(),   ObsType::Fermion, -1, -1 } ;
 
-		    if (flipa)
-			{
-			oc.front() = stag(oc.front()) ;
-			od.back()  = stag(od.back())  ;
-			if (a.oddlen()) sgn1 *= -1 ;
-			}
-		    if (flipb)
-			{
-			oc.back()  = stag(oc.back())  ;
-			od.front() = stag(od.front()) ;
-			if (b.oddlen()) sgn1 *= -1 ;
-			}
-		    if (flav (a.front()) == flav (b.back()) && oc.isclosed() &&
-			flav (b.front()) == flav (a.back()) && od.isclosed() &&
+		    if (flav (a.front()) == flav (b.back()) && oa.isclosed() &&
+			flav (b.front()) == flav (a.back()) && ob.isclosed() &&
 			astag == bstag)
 			{
-			int	sgn2	{ sgn1 * (astag ? sgn0 : 1) } ;
+			bool	flip	( isstag (a.back()) ^ isstag (b.front()) ) ;
+			int	sgn2	{ (a.size() % 2) && flip ? -1 : 1 } ;
 			auto	p	{ buf.begin() + 1 } ;
 			auto	q	{ buf.begin() + len + 1 } ;
 			int	l1	{ buf.joinends (p, q-2) } ;
@@ -447,29 +433,30 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 			PolyTerm terms3 { list.assess(oc) * list.assess(od) } ;
 			if (factor.coeff && terms3.coeff)
 			    {
-			    ans.add (terms3 * factor * coef * sgn2 * -0.25) ;
+			    ans.add (terms3 * factor * coef * sgn2 * 0.25) ;
 			    }
 			}
-		    if (!list.canonicalize || oc.is_coord() && od.is_coord())
+		    if (!list.canonicalize || oa.is_coord() && ob.is_coord())
 			{
 			if (blab > 1) cout << "commute D2 -> " << coef << " "
-					   << oc << " " << od << "\n" ;
-			PolyTerm terms1 { list.assess(oc) * list.assess(od) } ;
+					   << oa << " " << ob << "\n" ;
+			PolyTerm terms1 { list.assess(oa) * list.assess(ob) } ;
 			if (factor.coeff && terms1.coeff)
 			    {
-			    ans.add (terms1 * factor * sgn1 * coef) ;
+			    ans.add (terms1 * factor * -coef) ;
 			    }
 			}
-		    od.front() = stag(od.front()) ;
-		    oc.front() = stag(oc.front()) ;
-		    if (!list.canonicalize || oc.is_coord() && od.is_coord())
+		    oa.front() = stag (oa.front()) ;
+		    ob.front() = stag (ob.front()) ;
+		    if (!list.canonicalize || oa.is_coord() && ob.is_coord())
 			{
 			if (blab > 1) cout << "commute D2 -> " << coef << " "
-					   << oc << " " << od << "\n" ;
-			PolyTerm terms2 { list.assess(oc) * list.assess(od) } ;
+					   << oa << " " << ob << "\n" ;
+			PolyTerm terms2 { list.assess(oa) * list.assess(ob) } ;
 			if (factor.coeff && terms2.coeff)
 			    {
-			    ans.add (terms2 * factor * sgn0 * sgn1 * coef) ;
+			    int sgn1 { b.Esublat() ^ !(i%2) ^ isL(y) ? 1 : -1 } ;
+			    ans.add (terms2 * factor * sgn1 * coef) ;
 			    }
 			}
 		    }
@@ -571,7 +558,7 @@ void Commute::do_split (doub coeff, const ObsPoly& redu, const Obs& b, ObsList& 
 		PolyTerm  factor { t[1-k], t.coeff * coeff } ;
 
 		if (factor[0] && list.neq (redulist))
-		    factor[0] = list.catalog(redulist(factor[0]))[0] ;
+		    factor[0] = list.catalog (redulist(factor[0]))[0] ;
 
 		PolyMap tmpmap { tmplist } ;
 		do_commute (a, b, one, tmplist, tmpmap) ;
@@ -692,10 +679,10 @@ Gen& Commute::commute_gen (const Gen& gen1, const Gen& gen2, Gen& ans)
     doub scale { gen1.coeff * gen2.coeff / ans.coeff } ;
     for (auto t1 : gen1)
 	{
-	const Op a { Op::list[t1.item] } ;	// N.B. non-ref
+	const Op a { gen1.oplist()[t1.item] } ;		// N.B. non-ref
 	for (auto t2 : gen2)
 	    {
-	    const Op b { Op::list[t2.item] } ;	// N.B. non-ref
+	    const Op b { gen2.oplist()[t2.item] } ;	// N.B. non-ref
 	    op_commute (scale * t1.coeff * t2.coeff, a, b, ans) ;
 	    }
 	}
@@ -708,12 +695,13 @@ Gen& Commute::commute_gen (const Gen& gen1, const Gen& gen2, Gen& ans)
 
 void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
     //
-    // Evaluate coeff * [Op, Op] -> Gen,  N.B.: non-ref args as list may grow
+    // Evaluate coeff * [Op, Op] -> Gen,  N.B.: non-ref args as oplist may grow
     //
     {
     if (!coeff) return ;
 
-    uint blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    auto&	oplist	{ ans.oplist() } ;
+    uint	blab	{ Blab::blablevel[BLAB::COMMUTE] } ;
     if (blab) cout << "op_commute[Op,Op]: a " << a << " b " << b
 		   << " coeff " << coeff << "\n" ;
 
@@ -767,7 +755,7 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 			 << coeff << " * " << (int)sp[k].coeff << " " << buf << "\n" ;
 		    }
 		Op	op { buf.joinends(), b.type, (short)(a.order + b.order) } ;
-		uint	indx { Op::store (op) } ;
+		uint	indx { oplist.store (op) } ;
 		ans.settype (op) ;
 		ans.emplace_back ( OpTerm ( indx, coeff * sp[k].coeff ) ) ;
 		}
@@ -816,7 +804,7 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 			 << -coeff << " * " << (int)sp[k].coeff << " " << buf << "\n" ;
 		    }
 		Op	op { buf.joinends(), a.type, (short)(a.order + b.order) } ;
-		uint	indx { Op::store (op) } ;
+		uint	indx { oplist.store (op) } ;
 		ans.settype (op) ;
 		ans.emplace_back ( OpTerm ( indx, -coeff * sp[k].coeff ) ) ;
 		}
@@ -843,7 +831,7 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 		     << sgn * coeff << " " << buf << "\n" ;
 		}
 	    Op		op { buf, a.type, (short)(a.order + b.order) } ;
-	    uint	indx { Op::store (op) } ;
+	    uint	indx { oplist.store (op) } ;
 	    ans.settype (op) ;
 	    ans.emplace_back ( OpTerm ( indx, sgn * coeff ) ) ;
 	    }
@@ -866,7 +854,7 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 		     << sgn * coeff << " " << buf << "\n" ;
 		}
 	    Op		op { buf, b.type, (short)(a.order + b.order) } ;
-	    uint	indx { Op::store (op) } ;
+	    uint	indx { oplist.store (op) } ;
 	    ans.settype (op) ;
 	    ans.emplace_back ( OpTerm ( indx, sgn * coeff ) ) ;
 	    }

@@ -1,7 +1,4 @@
 #include "Build.h"
-#include "Theory.h"
-#include "Global.h"
-#include "Poly.h"
 #include "Canon.h"
 #include "Commute.h"
 #include "Numerics.h"
@@ -12,6 +9,7 @@
 
 static int		cord ;			// Current creation order
 static Obsset		newobs ;		// Newly generated Obs
+static vector<Op>	primepOps ;		// primary conj mom Ops
 static std::mutex	obsmutex ;		// newobs insertion lock
 constexpr int		single_thread = 1024 ;	// multi-threading threshold
 
@@ -19,78 +17,92 @@ void Build::clearobs (int stage)		// Clear prior observables
     {
     if (stage == 0)
 	{
-	Canon::cache.clear   () ;
-	ObsList::obs.clear   () ;
-	ObsList::obs.obsinit () ;
-	global.info(0).maxord = 2 ;
-	global.info(1).maxord = 1 ;
+	Canon::cache.clear () ;
+	ObsList::obs.empty () ;
+	global.clearpolys (0) ;
+	global.clearpolys (1) ;
 	}
-    else if (theory.nf)
+    else if (stage && ObsList::obs.nobsF)
 	{
-	Canon::cache.purge   (ObsList::obs.nobsG) ;
-	ObsList::obs.purge   (ObsList::obs.nobsG) ;
-	ObsList::obs.obsinit () ;
-	global.info(1).maxord = 1 ;
+	cout << "Purging fermion observables" ;
+	Canon::cache.purge (ObsList::obs.nobsG) ;
+	ObsList::obs.purge (ObsList::obs.nobsG) ;
+	global.clearpolys (1) ;
 	}
-    }
-
-void Build::clearpolys ()			// Clear prior build data
-    {
-    for (uint i (global.stage) ; i < 2 ; ++i)
-	{
-	global.data(i).grad.clear() ;
-	for (auto& mtx  : global.data(i).geos) mtx.clear() ;
-	for (auto& mtx  : global.data(i).lagr) mtx.clear() ;
-	for (auto& cube : global.data(i).curv) cube.clear() ;
-	}
+    global.okfermivev = false ;
     }
 
 void Build::mk_obs (int target)			// Build observables
     {
-    auto  stage	 { global.stage } ;
-    auto& maxord { global.maxord() } ;
+    auto& maxord  { global.maxord() } ;
+    auto& obslist { ObsList::obs } ;
+    uint  blab	  { Blab::blablevel[BLAB::BUILD] } ;
 
-    if (target < maxord) clearobs (stage) ;
-    else if (!stage)	 clearobs (1) ;
-
-    auto numobs	{ ObsList::obs.size() } ;
+    obslist.approx  = false ;
     ObsList::freeze = false ;
-    ObsList::obs.approx = false ;
     Canon::cache.freeze = false ;
     if (global.stage == Global::Gauge)
 	{
+	clearobs (1) ;
+	if (target < maxord) clearobs (0) ;
+	if (obslist.nobsG <= 1) obslist.obsinit (0) ;
+	auto numobs { obslist.size() } ;
 	while (maxord < target)
 	    {
 	    if (++maxord % 4) continue ;
 	    mk_loops () ;
 	    if (!theory.euclid) { mk_Eloops() ; mk_EEloops() ; }
 	    }
+	if (obslist.size() != numobs)
+	    {
+	    global.clearpolys   (0) ;
+	    global.mk_bcktlist  (0) ;
+	    numerics.initialize (0) ;
+	    }
 	}
-    else // global.stage == Global::Fermi
+    else if (theory.nf) // stage == Global::Fermi
 	{
+	if (target < maxord) clearobs (1) ;
+	if (!obslist.nobsF) obslist.obsinit (1) ;
+	auto& oplistG { global.info(0).ops } ;
+	auto& oplistF { global.info(1).ops } ;
+	auto  numobs  { obslist.size() } ;
+	auto  lambda  { [](const Op& o) { return o.primary && !o.is_coord(); } } ;
+
+	std::copy_if (oplistG.begin(), oplistG.end(),
+		      std::back_inserter (primepOps), lambda) ;
+	std::copy_if (oplistF.begin(), oplistF.end(),
+		      std::back_inserter (primepOps), lambda) ;
+
 	while (maxord < target)
 	    {
 	    if (++maxord % 2) continue ;
 	    mk_fermions () ;
 	    if (!theory.euclid) mk_Efermions() ;
 	    }
-	ObsList::obs.do_fermi_init () ;
+	vector<Op>().swap (primepOps) ;
+	int initfail { obslist.do_fermiinit () } ;
+	if (blab)
+	    {
+	    cout << "Fermion initializations: " << ObsList::fermiinit.size() ;
+	    if (initfail) cout << " + " << initfail << " missing loop partners" ;
+	    cout << "\n" ;
+	    }
+	if (obslist.size() != numobs)
+	    {
+	    global.clearpolys (1) ;
+	    global.mk_bcktlist (1) ;
+	    numerics.initialize (1) ;
+	    }
 	}
-    Obsset().swap(newobs) ;
-    Obsset().swap(ObsList::inbox) ;
-    ObsList::freeze = true ;
-    ObsList::obs.shrink_to_fit() ;
-    ObsList::obs.approx = global.approx ;
+    Obsset().swap (newobs) ;
+    Obsset().swap (ObsList::inbox) ;
     Canon::cache.freeze = true ;
-    Global::mk_bcktlist (global.stage) ;
-    if (ObsList::obs.size() != numobs)
-	{
-	clearpolys() ;
-	Numerics::numericsinit () ;
-	}
+    ObsList::freeze = true ;
+    obslist.approx = global.approx ;
+    obslist.shrink_to_fit() ;
 
-    if (Blab::blablevel[BLAB::BUILD])
-	cout << "Total # Obs:\t" << ObsList::obs.size() << "\n" << flush ;
+    if (blab) cout << "Total # Obs:\t" << ObsList::obs.size() << "\n" << flush ;
     }
 
 void Build::mk_loops ()				// Build Loop's
@@ -98,7 +110,7 @@ void Build::mk_loops ()				// Build Loop's
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
-    const auto&	bckt	{ global.info().bckt } ;
+    const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -110,8 +122,8 @@ void Build::mk_loops ()				// Build Loop's
 			   << " cord " << cord << "\n" << flush ;
 
 	int	delta_n	( -obslist.size() ) ;
-	Global::mk_bcktlist (Global::Gauge) ;
-	if (obslist.nobsG <= single_thread) global.maxthread = 1 ;
+	global.mk_bcktlist (0) ;
+	if (obslist.size() <= single_thread) global.maxthread = 1 ;
 	else Canon::cache.freeze = true ;
 	TASK_ARENA (global.maxthread, bckt,
 	    FOR_EACH (bckt.begin(), bckt.end(), do_Loop_bckt)) ;
@@ -123,19 +135,19 @@ void Build::mk_loops ()				// Build Loop's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    Obsset().swap(newobs) ;
+	    Obsset().swap	(newobs) ;
 	    }
 	if (blab > 1 && delta_n)
 	    cout << "\n" << std::left << std::setw(12) << "Loops"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "#obs = " << obslist.size() << "\n" << flush ;
+		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Loops     (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
-	     << obslist.size() - numobs << " added, #obs = "
-	     << obslist.size() << "\n" << flush ;
+	     << obslist.size() - numobs << " added, # gauge obs = "
+	     << obslist.nobsG << "\n" << flush ;
     }
 
 void Build::mk_Eloops ()			// Build Eloop's
@@ -143,12 +155,12 @@ void Build::mk_Eloops ()			// Build Eloop's
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
-    const auto&	bckt	{ global.info().bckt } ;
+    const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
     auto&	obslist	{ ObsList::obs } ;
     auto	numobs	{ obslist.size() } ;
-    int		maxcord	{ maxord > 4 ? maxord - 4 : 2 } ;
+    int		maxcord	{ maxord - (maxord > 4 ? 4 : 2) } ;
 
     for (cord = maxord/2 ; cord <= maxcord ; cord += 2)
 	{
@@ -156,8 +168,8 @@ void Build::mk_Eloops ()			// Build Eloop's
 			   << " cord " << cord << "\n" << flush ;
 
 	int	delta_n	( -obslist.size() ) ;
-	Global::mk_bcktlist (Global::Gauge) ;
-	if (obslist.nobsG <= single_thread) global.maxthread = 1 ;
+	global.mk_bcktlist (0) ;
+	if (obslist.size() <= single_thread) global.maxthread = 1 ;
 	else Canon::cache.freeze = true ;
 	TASK_ARENA (global.maxthread, bckt,
 	    FOR_EACH (bckt.begin(), bckt.end(), do_Eloop_bckt)) ;
@@ -169,19 +181,19 @@ void Build::mk_Eloops ()			// Build Eloop's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    Obsset().swap(newobs) ;
+	    Obsset().swap	(newobs) ;
 	    }
 	if (blab > 1 && delta_n)
 	    cout << "\n" << std::left << std::setw(12) << "Eloops"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "#obs = " << obslist.size() << "\n" << flush ;
+		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Eloops    (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
-	     << obslist.size() - numobs << " added, #obs = "
-	     << obslist.size() << "\n" << flush ;
+	     << obslist.size() - numobs << " added, # gauge obs = "
+	     << obslist.nobsG << "\n" << flush ;
     }
 
 void Build::mk_EEloops ()			// Build EEloop's
@@ -189,7 +201,7 @@ void Build::mk_EEloops ()			// Build EEloop's
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
-    const auto&	bckt	{ global.info().bckt } ;
+    const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -201,8 +213,8 @@ void Build::mk_EEloops ()			// Build EEloop's
 			   << " cord " << cord << "\n" << flush ;
 
 	int	delta_n	( -obslist.size() ) ;
-	Global::mk_bcktlist (Global::Gauge) ;
-	if (obslist.nobsG <= single_thread) global.maxthread = 1 ;
+	global.mk_bcktlist (0) ;
+	if (obslist.size() <= single_thread) global.maxthread = 1 ;
 	else Canon::cache.freeze = true ;
 	TASK_ARENA (global.maxthread, bckt,
 	    FOR_EACH (bckt.begin(), bckt.end(), do_EEloop_bckt)) ;
@@ -214,19 +226,19 @@ void Build::mk_EEloops ()			// Build EEloop's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    Obsset().swap(newobs) ;
+	    Obsset().swap	(newobs) ;
 	    }
 	if (blab > 1)
 	    cout << "\n" << std::left << std::setw(12) << "EEloops"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "#obs = " << obslist.size() << "\n" << flush ;
+		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "EEloops   (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
-	     << obslist.size() - numobs << " added, #obs = "
-	     << obslist.size() << "\n" << flush ;
+	     << obslist.size() - numobs << " added, # gauge obs = "
+	     << obslist.nobsG << "\n" << flush ;
     }
 
 void Build::mk_fermions ()			// Build Fermion's
@@ -234,7 +246,7 @@ void Build::mk_fermions ()			// Build Fermion's
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
-    const auto&	bckt	{ global.info().bckt } ;
+    const auto&	bckt	{ global.info(1).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -246,8 +258,8 @@ void Build::mk_fermions ()			// Build Fermion's
 			   << " cord " << cord << "\n" << flush ;
 
 	int	delta_n	( -obslist.size() ) ;
-	Global::mk_bcktlist (Global::Fermi) ;
-	if (obslist.nobsF <= single_thread) global.maxthread = 1 ;
+	global.mk_bcktlist (1) ;
+	if (obslist.size() <= single_thread) global.maxthread = 1 ;
 	else Canon::cache.freeze = true ;
 	TASK_ARENA (global.maxthread, bckt,
 	    FOR_EACH (bckt.begin(), bckt.end(), do_Fermion_bckt)) ;
@@ -259,19 +271,19 @@ void Build::mk_fermions ()			// Build Fermion's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    Obsset().swap(newobs) ;
+	    Obsset().swap	(newobs) ;
 	    }
 	if (blab > 1)
 	    cout << "\n" << std::left << std::setw(12) << "Fermions"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "#obs = " << obslist.size() << "\n" << flush ;
+		 << "# fermion obs = " << obslist.nobsF << "\n" << flush ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Fermions  (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
-	     << obslist.size() - numobs << " added, #obs = "
-	     << obslist.size() << "\n" << flush ;
+	     << obslist.size() - numobs << " added, # fermion obs = "
+	     << obslist.nobsF << "\n" << flush ;
     }
 
 void Build::mk_Efermions ()			// Build Efermion's
@@ -279,7 +291,7 @@ void Build::mk_Efermions ()			// Build Efermion's
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
-    const auto&	bckt	{ global.info().bckt } ;
+    const auto&	bckt	{ global.info(1).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -291,8 +303,8 @@ void Build::mk_Efermions ()			// Build Efermion's
 			   << " cord " << cord << "\n" << flush ;
 
 	int	delta_n	( -obslist.size() ) ;
-	Global::mk_bcktlist (Global::Fermi) ;
-	if (obslist.nobsF <= single_thread) global.maxthread = 1 ;
+	global.mk_bcktlist (1) ;
+	if (obslist.size() <= single_thread) global.maxthread = 1 ;
 	else Canon::cache.freeze = true ;
 	TASK_ARENA (global.maxthread, bckt,
 	    FOR_EACH (bckt.begin(), bckt.end(), do_Efermion_bckt)) ;
@@ -304,19 +316,19 @@ void Build::mk_Efermions ()			// Build Efermion's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    Obsset().swap(newobs) ;
+	    Obsset().swap	(newobs) ;
 	    }
 	if (blab > 1)
 	    cout << "\n" << std::left << std::setw(12) << "Efermions"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "#obs = " << obslist.size() << "\n" << flush ;
+		 << "# fermion obs = " << obslist.nobsF << "\n" << flush ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Efermions (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
-	     << obslist.size() - numobs << " added, #obs = "
-	     << obslist.size() << "\n" << flush ;
+	     << obslist.size() - numobs << " added, # fermion obs = "
+	     << obslist.nobsF << "\n" << flush ;
     }
 
 void Build::mk_grad()				// Build gradient
@@ -359,7 +371,13 @@ void Build::mk_grad()				// Build gradient
     if (blab) cout << "\t\tdone\n" << flush ;
     }
 
-void Build::mk_curv (int repnum)			// Build curvature
+void Build::mk_curv (string word)
+    {
+    try { mk_curv (Rep::known (word)) ; }
+    catch (const exception& e) { gripe ("Unknown representation " + word) ; }
+    }
+
+void Build::mk_curv (uint repnum)			// Build curvature
     {
     if (global.interrupt) return ;
 
@@ -371,7 +389,7 @@ void Build::mk_curv (int repnum)			// Build curvature
     ushort	nterms	( Hterms.size() ) ;
     ushort	ngens   ( gens.size() ) ;
     uint	blab    { Blab::blablevel[BLAB::BUILD] } ;
-    ObsList	tmplist { "CurvTemp" } ;
+    ObsList	tmplist { "CurvTemp", repnum == 0 } ;
     PolyMap	tmp	{ tmplist } ;
     PolyMap	ans	{ ObsList::obs } ;
 
@@ -414,14 +432,21 @@ void Build::mk_curv (int repnum)			// Build curvature
     if (blab && ngens && nterms) cout << "\tdone\n" << flush ;
     }
 
-void Build::mk_lagr (int repnum)			// Build Lagrange bracket
+void Build::mk_lagr (string word)
+    {
+    try { mk_lagr (Rep::known (word)) ; }
+    catch (const exception& e) { gripe ("Unknown representation " + word) ; }
+    }
+
+void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     {
     if (global.interrupt) return ;
 
+    const auto& repnam	{ Rep::list[repnum].name } ;
     const auto&	gens	{ global.info().gens[repnum] } ;
     auto&	lagr	{ global.data().lagr[repnum] } ;
-    const auto& repnam	{ Rep::list[repnum].name } ;
-    auto	opnum	{ Op::list.size() } ;
+    auto&	oplist	{ global.info().ops } ;
+    auto	opnum	{ oplist.size() } ;
     ushort	ngens	( gens.size() ) ;
     PolyMap	ans	{ ObsList::obs } ;
     short	trunc	{ SHRT_MAX } ;
@@ -438,7 +463,7 @@ void Build::mk_lagr (int repnum)			// Build Lagrange bracket
 	for (ushort k(0) ; k < ngens ; ++k)
 	    {
 	    if (!gens[k].T_odd) continue ;
-	    Gen newgen ;
+	    Gen newgen { oplist } ;
 	    Commute::commute_gen (gens[j], gens[k], newgen) ;
 	    if (!ans.add_gen (newgen))
 		trunc = std::min(trunc, newgen.order) ;
@@ -456,7 +481,7 @@ void Build::mk_lagr (int repnum)			// Build Lagrange bracket
 	if (trunc == SHRT_MAX) cout << "\tdone\n" ;
 	else cout << format("\ttruncation in order {} elements\n", trunc) ;
 	}
-    Op::purge (opnum) ;
+    oplist.purge (opnum) ;
     }
 
 void Build::mk_geos()				// Build geodesic equations
@@ -484,6 +509,7 @@ void Build::do_Loop_bckt (const uint3& bckt)		// Do loop build bucket
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -502,7 +528,7 @@ void Build::do_Loop_bckt (const uint3& bckt)		// Do loop build bucket
 
 	Obs a	{ obslist(i) } ;
 	int ord	{ a.order() } ;
-	for (const auto& op : Op::list)
+	for (const auto& op : oplist)
 	    {
 	    if (op.primary == false)		continue ;
 	    if (op.type != OpType::Eloop)	continue ;
@@ -535,6 +561,7 @@ void Build::do_Eloop_bckt (const uint3& bckt)		// Do Eloop build bucket
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -576,7 +603,7 @@ void Build::do_Eloop_bckt (const uint3& bckt)		// Do Eloop build bucket
 	    {
 	    Obs	a	{ obslist(i) } ;
 	    int	ord	{ a.order() } ;
-	    for (const auto& op : Op::list)
+	    for (const auto& op : oplist)
 		{
 		if (op.primary == false)		continue ;
 		if (op.type != OpType::Eloop)		continue ;
@@ -616,6 +643,7 @@ void Build::do_EEloop_bckt (const uint3& bckt)		// Do EEloop build bckt
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -630,11 +658,11 @@ void Build::do_EEloop_bckt (const uint3& bckt)		// Do EEloop build bckt
     for (uint i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
-	if (obslist(i).type != ObsType::EEloop) continue ;
+	if (obslist(i).is_fermi() || !obslist(i).is_EEloop()) continue ;
 
 	Obs a	{ obslist(i) } ;
 	int ord	{ a.order() } ;
-	for (const auto& op : Op::list)
+	for (const auto& op : oplist)
 	    {
 	    if (op.primary == false)		continue ;
 	    if (op.type != OpType::Eloop)	continue ;
@@ -685,9 +713,8 @@ void Build::do_Fermion_bckt (const uint3& bckt)		// Do Fermion build bckt
 
 	Obs a { obslist(i) } ;
 	int ord	{ a.order() } ;
-	for (const auto& op : Op::list)
+	for (const auto& op : primepOps)
 	    {
-	    if (op.is_coord() || !op.primary)	continue ;
 	    if (op.order + a.corder != cord)	continue ;
 	    if (ord < maxord - 2 * op.order)	continue ;
 	    if (blab > 3)
@@ -720,6 +747,7 @@ void Build::do_Efermion_bckt (const uint3& bckt)	// Do Efermion build bckt
     if (global.interrupt) return ;
 
     uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    const auto&	oplist	{ global.info(1).ops } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -755,9 +783,8 @@ void Build::do_Efermion_bckt (const uint3& bckt)	// Do Efermion build bckt
 	    {
 	    Obs a	{ obslist(i) } ;
 	    int ord	{ a.order() } ;
-	    for (const auto& op : Op::list)
+	    for (const auto& op : primepOps)
 		{
-		if (op.is_coord() || !op.primary)	continue ;
 		if (op.order + a.corder != cord)	continue ;
 		if (ord < maxord - 2 * op.order)	continue ;
 		if (blab > 3)

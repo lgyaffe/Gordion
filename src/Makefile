@@ -78,7 +78,6 @@ SRCS  += RK.cpp
 SRCS  += Save.cpp
 SRCS  += Symb.cpp
 SRCS  += Symm.cpp
-SRCS  += Term.cpp
 SRCS  += Test.cpp
 SRCS  += Theory.cpp
 SRCS  += Gordion.cpp 
@@ -89,7 +88,7 @@ DEPS   = $(SRCS:.cpp=.d)
 .PHONY: clean all relink oops
 
 $(TARGET)-$(THY): $(OOPS) $(CLEAN) $(OBJS) $(DEPS) $(RELINK)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(TARGET)-$(THY)
+	$(CXX) $(CXXFLAGS) $(OBJS) $(LDFLAGS) -o $(TARGET)-$(THY)
 #	codesign -s - -f --entitlements $(TARGET).entitlements $(TARGET)
 
 $(TARGET).eneitlements:

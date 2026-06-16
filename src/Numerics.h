@@ -3,7 +3,6 @@
 #include "Global.h"
 #include "Poly.h"
 #include "Ode.h"
-#include "Linalg.h"
 
 class Status
     {
@@ -42,9 +41,9 @@ class Numerics
     doub	dflttol = 1.e-10 ;	// Default tolerance
     doub	mintol  = dflttol ;	// Minimiization tolerance
     doub	odetol  = dflttol ;	// ODE integration tolerance
-    uint	odemax	= Ode::dfltmax ;// Max ODE integration steps
-    uint	minmax  = 500 ;		// Max Newton iterations
-    RKdef	rk {RKdef::list[0]} ;	// RK method
+    uint	maxode	= Ode::dfltmax ;// Max ODE integration steps
+    uint	maxnewt = 500 ;		// Max Newton iterations
+    RKdef	rk ;			// RK method
 
     struct
 	{
@@ -54,8 +53,8 @@ class Numerics
 
     void	do_minimize	() ;			// Do H minimization
     int		do_step		(doub=0) ;		// Do minimization step
-    void	do_flow		(int,doub,doub,doub) ;	// Do coupling flow
-    doub	eval_H		(bool=false) ;		// Evaluate H
+    void	do_flow		(uint,doub,doub,doub) ;	// Do coupling flow
+    doub	eval_ham	(bool=false) ;		// Evaluate H
     void	eval_geos	(int=0) ;		// Evaluate Obs derivs
     doub	eval_delta	(bool=false) ;		// Predict minimum
     const Dvec&	eval_grad	(bool=false) ;		// Evaluate dH
@@ -65,9 +64,10 @@ class Numerics
     const Uvec&	eval_inuse	(uint,bool=false) ;	// Active generator list
     const Cvec&	eval_spectra	(uint,bool=false) ;	// Evaluate spectrum
     const Cvec&	eval_spectra	(string,bool=false) ;	// Evaluate spectrum
+    void	initialize	(int = global.stage) ;	// Initialize
     void	write_data	(doub) ;		// Write to datafile
-
-    inline static Status status ;			// Status info
+    void	status_rpt	(uint,uint) ;		// Report status
+    bool	check_loops	() ;			// Loop vevs < 1?
 
     doub termvalue (const PolyTerm& t) const		// Evaluate PolyTerm
 	{
@@ -87,16 +87,16 @@ class Numerics
 	return z ;
 	}
 
-    static bool check_loops  () ;				// Loop vevs < 1?
-    static void	numericsinit (int = global.stage) ;		// Initialize
+    inline static Status status ;				// Status info
+
+    static bool check_curv   (const Dmtx&) ;			// Curvature OK?
     static bool	curv_rpt     (int = -1) ;			// Curvature probs?
-    static void status_rpt   (uint,uint) ;			// Report status
+    static bool built_rep    (uint) ;				// Is rep built?
+    static string MMAform    (doub) ;				// "E" -> "*^"
+
     static void	do_dvev      (doub, const Rvec&, Rvec&) ;	// Do vev derivs
     static void	do_dvev_bckt (const uint3&) ;			// Do dvev bucket
-    static bool check_curv   (const Dmtx&) ;			// Curvature OK?
     static doub	err_norm     (const Rvec&, const Rvec&) ;	// ODE error norm
-    static bool built_rep    (int) ;				// Is rep built?
-    static string MMAform    (doub) ;				// "E" -> "*^"
 
     static void	data_write   (ofstream&, const string, doub, doub) ;
     static void	data_write   (ofstream&, const string, doub, const Rvec&) ;

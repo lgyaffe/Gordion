@@ -16,7 +16,7 @@ class Gen : public OpSum		// Coherence algebra generator
     doub	coeff { 1 } ;			// Overall coefficient
     ObsPoly	reduction { ObsList::redu } ;	// "inner" commutator
 
-    Gen () : OpSum() {}				// Default constructor
+    Gen (OpList& l) : OpSum (l) {}		// Constructor
     Gen (const Op&) ;				// Constructor
     Gen (const Op&,    const Proj&) ;		// Constructor
     Gen (const OpSum&, const Proj&) ;		// Constructor
@@ -43,13 +43,13 @@ class Gen : public OpSum		// Coherence algebra generator
     static int	project		(Op&) ;		// Project Op onto reps
     static int	project		(OpSum&&) ;	// Project Op sum
     static int	addgen		(OpSum&&) ;	// Add generator
-    static void suspend_group	(uint) ;	// Suspend gen group
-    static void activate_group	(uint) ;	// Activate gen group
-    static void suspend_gen	(uint) ;	// Suspend generator
-    static void activate_gen	(uint) ;	// Activate generator
-    static void activate_gen	() ;		// Activate generators
+    static void	suspend_group	(uint) ;	// Suspend gen group
+    static void	activate_group	(uint) ;	// Activate gen group
+    static void	suspend_gen	(uint) ;	// Suspend generator
+    static void	activate_gen	(uint) ;	// Activate generator
+    static void	activate_gen	() ;		// Activate generators
     static void	normalize	() ;		// Normalize all Gen's
-    static void	geninit		() ;		// Initialization
+    static void	geninit		(int) ;		// Initialization
 
     friend ostream& operator<< (ostream&, const Gen&) ;
     } ;

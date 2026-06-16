@@ -1,7 +1,8 @@
 #include "Save.h"
-#include "Rep.h"
 #include "Canon.h"
+#include "Gen.h"
 #include "Numerics.h"
+#include "Rep.h"
 #include "Blab.h"
 #include "Gripe.h"
 #include <filesystem>
@@ -132,13 +133,13 @@ void Save::write_op (int stage)				// Write Op record
     {
     auto&	stream	{ global.sysstream } ;
     auto&	record	{ global.data(stage).op  } ;
-    uint	nelem	{ Op::nops(stage) } ;
-    uint	start	{ stage ? Op::nopG : 0 } ;
+    const auto&	oplist	( global.info(stage).ops ) ;
+    uint	nelem	( oplist.size() ) ;
 
     record.clear() ;
-    for (int indx(start) ; indx < start + nelem ; ++indx)
+    for (int indx(0) ; indx < nelem ; ++indx)
 	{
-	const Op& op	{ Op::list[indx] } ;
+	const Op& op	{ oplist[indx] } ;
 	OpHdr hdr {op.order, (char) op.type, op.primary, 0, (ushort) op.size()} ;
 
 	record.emplace_back (hdr) ;
@@ -523,31 +524,30 @@ void Save::read_op (int stage)				// Read Op record
     record.readrec (stream) ;
     if (stream.fail()) ioerror ("read_op: I/O error!") ;
 
-    uint	start	{ stage ? Op::nopG : 0 } ;
-    uint	indx	{ start } ;
+    uint	indx	{ 0 } ;
     uint	nop	{ record.entry().nelem } ;
     RecHdr*	recptr	{ record.data() } ;
     RecHdr*	recend	{ recptr + record.size() } ;
+    OpList&	oplist	{ global.info(stage).ops } ;
 
-    Op::purge (start) ;
-    Op::list.reserve (start + nop) ;
+    oplist.clear () ;
+    oplist.reserve (nop) ;
     while (recptr < recend)
 	{
 	OpHdr	hdr	( *recptr++ ) ;
 	symb*	ptr	{ cast_to<symb*> (recptr) } ;
 	SymbStr	s	{ ptr, ptr + hdr.len } ;
 	Op	o	{ s, hdr } ;
-	auto	k	{ Op::store(o) } ;
+	auto	k	{ oplist.store(o) } ;
 
-	if (k != indx++) gripe ("read_op: Inconsistent Op::list") ;
+	if (k != indx++) gripe ("read_op: Inconsistent OpList") ;
 
 	recptr += 1 + (hdr.len - 1) / sizeof (RecHdr) ;
 	}
     record.free() ;
-    if (indx - start != nop)
+    if (indx != nop)
 	gripe ("read_op: Inconsistent save record!") ;
 
-    Op::nops(stage) = nop ;
     if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Op\n" << flush ;
     }
 
@@ -568,7 +568,7 @@ void Save::read_obs (int stage)				// Read Obs record
     RecHdr*	recptr	{ record.data() } ;
     RecHdr*	recend	{ recptr + record.size() } ;
 
-    ObsList::obs.purge (indx) ;
+    ObsList::obs.purge (start) ;
     ObsList::obs.map.reserve (start + nobs) ;
     ObsList::obs.reserve     (start + nobs) ;
     while (recptr < recend)
@@ -591,8 +591,8 @@ void Save::read_obs (int stage)				// Read Obs record
 	gripe ("read_obs: Inconsistent save record!") ;
 
     ObsList::obs.nobs (stage) = nobs ;
-    Global::mk_bcktlist (stage) ;
-    Numerics::numericsinit() ;
+    global.mk_bcktlist (stage) ;
+    numerics.initialize (stage) ;
     Canon::cache.reload() ;
     if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Obs\n" << flush ;
     }
@@ -612,7 +612,6 @@ void Save::read_gen (int stage)				// Read Gen record
     RecHdr*	recptr	{ record.data() } ;
     RecHdr*	recend	{ recptr + record.size() } ;
     uint	nelem   ( 0 ) ;
-    uint	opstart	{ stage ? Op::nopG : 0 } ;
 
     for (auto& gens : global.info(stage).gens)  gens.clear() ;
     for (auto& even : global.info(stage).neven) even = 0 ;
@@ -622,7 +621,8 @@ void Save::read_gen (int stage)				// Read Gen record
 	GenHdr	hdr	( *recptr++ ) ;
 	doub	coeff	{ *cast_to<doub*> (recptr++) } ;
 	OpTerm*	ptr	{ cast_to<OpTerm*> (recptr) } ;
-	OpSum	s	( ptr, ptr + hdr.len ) ;
+	OpList& list	{ global.info(stage).ops } ;
+	OpSum	s	( ptr, ptr + hdr.len, list ) ;
 	Gen	gen	{ s, hdr, coeff } ;
 
 	global.info(stage).gens[hdr.rep].push_back (gen) ;
@@ -638,7 +638,6 @@ void Save::read_gen (int stage)				// Read Gen record
     if (nelem != record.entry().nelem)
 	gripe ("read_gen: Inconsistent save record!") ;
 
-    //Op::clean (opstart,global.info(stage).maxgen) ;
     if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Gen\n" << flush ;
     }
 
@@ -716,11 +715,11 @@ void Save::read_geos (int stage)			// Read Geo records
 
 void Save::read_geo_bckt (int bcktnum)			// Read Geo bucket
     {
-    alignas (PAGESIZE) thread_local char	mybuf [512*1024] ;
-    thread_local vector<RecHdr>		myvec ;
-    thread_local fstream		mystream ;
-    thread_local string			mypath { syspath } ;
-    thread_local bool			checkout { false } ;
+    alignas (PAGESIZE) thread_local char mybuf [512*1024] ;
+    thread_local vector<RecHdr>		 myvec ;
+    thread_local fstream		 mystream ;
+    thread_local string			 mypath { syspath } ;
+    thread_local bool			 checkout { false } ;
 
     if (bcktnum >= 0)
 	{

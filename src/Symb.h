@@ -1,7 +1,6 @@
 #ifndef SYMB_H
 #define SYMB_H
 #include "Gordion.h"
-#include "Theory.h"
 
 class SymbStr : public string				// Symbol string
     {

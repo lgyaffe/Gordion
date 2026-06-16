@@ -1,6 +1,6 @@
 #include "Test.h"
-#include "Global.h"
 #include "Commute.h"
+#include "Global.h"
 #include "Rep.h"
 #include "Gripe.h"
 
@@ -37,25 +37,27 @@ void Test::irreps ()					// Test irrep projector validity
     cout << "Sum of diagonal projectors " << (v.allzero() ? "is" : "is not") << " complete\n" ;
     }
 
-void Test::jacobi (string w1, string w2, uint obsindx)	 // Test specfic Jacobi identity
+void Test::jacobi (const string& w1, const string& w2, uint obsindx) // Test specific Jacobi identity
     {
-    ObsList	list  { "JacobiTemp" } ;
-    auto	opnum { Op::list.size() } ;
-    Obs		obs   { ObsList::obs(obsindx) } ;
-    ObsPoly	poly  { obs, list } ;
-    PolyMap	ans   { list } ;
-    PolyMap	tmp1  { list } ;
-    PolyMap	tmp2  { list } ;
-    Gen		g1    { Op {w1,-1} } ;
-    Gen		g2    { Op {w2,-1} } ;
-    Gen		g21 ;
+    ObsList	list	{ "JacobiTemp" } ;
+    ObsPoly	poly	{ obsindx, ObsList::obs } ;
+    Obs		obs	{ ObsList::obs(obsindx) } ;
+    PolyMap	ans	{ list } ;
+    PolyMap	tmp1	{ list } ;
+    PolyMap	tmp2	{ list } ;
+    Gen		g1	{ Op {w1,-1} } ;
+    Gen		g2	{ Op {w2,-1} } ;
+    bool	isF	( g1.is_Fermion() ^ g2.is_Fermion() ) ;
+    auto&	oplist	{ global.info(isF).ops } ;
+    Gen		g21	{ oplist } ;
+    uint	opnum	( oplist.size() ) ;
 
     Commute::commute_poly (g2, poly, tmp1) ;
     Commute::commute_poly (g1, tmp1, ans) ;
     Commute::commute_poly (Commute::commute_gen (g2, g1, g21), poly, ans) ;
     Commute::commute_poly (g1, poly.negate(), tmp2) ;
     Commute::commute_poly (g2, tmp2, ans) ;
-    Op::purge (opnum) ;
+    oplist.purge (opnum) ;
 
     cout << " jacobi(" << w1 << "," << w2 << ',' << obs << ")" ;
     if (ans.allzero())	cout << " OK\n" ;
@@ -64,11 +66,12 @@ void Test::jacobi (string w1, string w2, uint obsindx)	 // Test specfic Jacobi i
 
 void Test::jacobi (uint obsindx)				// Test Jacobi identities on Obs
     {
-    auto&	gens  { global.info().gens[global.repnum] } ;
-    auto	opnum { Op::list.size() } ;
-    uint	ngens ( gens.size() ) ;
-    ObsList	list  { "JacobiTemp" } ;
-    Obs		obs   { ObsList::obs(obsindx) } ;
+    auto&	gens	{ global.info().gens[global.repnum] } ;
+    auto&	oplist	{ global.info().ops } ;
+    uint	ngens	( gens.size() ) ;
+    uint	opnum	( oplist.size() ) ;
+    ObsList	list	{ "JacobiTemp" } ;
+    Obs		obs	{ ObsList::obs(obsindx) } ;
 
     for (int i(0) ; i < ngens ; ++i)
 	{
@@ -76,12 +79,12 @@ void Test::jacobi (uint obsindx)				// Test Jacobi identities on Obs
 
 	for (int j(i) ; j < ngens ; ++j)
 	    {
-	    Gen&	g2 { gens[j] } ;
-	    ObsPoly	poly  { obs, list } ;
-	    PolyMap	ans   { list } ;
-	    PolyMap	tmp1  { list } ;
-	    PolyMap	tmp2  { list } ;
-	    Gen		g21 ;
+	    Gen&	g2	{ gens[j] } ;
+	    Gen		g21	{ oplist } ;
+	    ObsPoly	poly	{ obsindx, list } ;
+	    PolyMap	ans	{ list } ;
+	    PolyMap	tmp1	{ list } ;
+	    PolyMap	tmp2	{ list } ;
 
 	    Commute::commute_poly (g2, poly, tmp1) ;
 	    Commute::commute_poly (g1, tmp1, ans) ;
@@ -95,14 +98,15 @@ void Test::jacobi (uint obsindx)				// Test Jacobi identities on Obs
 	    else		cout << " = " << ans << "\n" ;
 	    }
 	}
-    Op::purge (opnum) ;
+    oplist.purge (opnum) ;
     }
 
 void Test::jacobi()					// Test all Gen Jacobi identities
     {
-    auto&	gens  { global.info().gens[global.repnum] } ;
-    auto	opnum { Op::list.size() } ;
-    uint	ngens ( gens.size() ) ;
+    auto&	gens	{ global.info().gens[global.repnum] } ;
+    auto&	oplist	{ global.info().ops } ;
+    uint	ngens	( gens.size() ) ;
+    uint	opnum	( oplist.size() ) ;
 
     for (int i(0) ; i < ngens ; ++i)
 	{
@@ -114,8 +118,11 @@ void Test::jacobi()					// Test all Gen Jacobi identities
 
 	    for (int k(j) ; k < ngens ; ++k)
 		{
-		Gen& g3 { gens[k] } ;
-		Gen  tmp1, tmp2, tmp3, ans ;
+		Gen& g3   { gens[k] } ;
+		Gen  ans  { oplist } ;
+		Gen  tmp1 { oplist } ;
+		Gen  tmp2 { oplist } ;
+		Gen  tmp3 { oplist } ;
 		Commute::commute_gen (g1, Commute::commute_gen (g2, g3, tmp1), ans) ;
 		Commute::commute_gen (g2, Commute::commute_gen (g3, g1, tmp2), ans) ;
 		Commute::commute_gen (g3, Commute::commute_gen (g1, g2, tmp3), ans) ;
@@ -128,5 +135,5 @@ void Test::jacobi()					// Test all Gen Jacobi identities
 		}
 	    }
 	}
-    Op::purge (opnum) ;
+    oplist.purge (opnum) ;
     }

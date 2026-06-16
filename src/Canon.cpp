@@ -1,5 +1,6 @@
 #include "Canon.h"
 #include "Symm.h"
+#include "Global.h"
 #include "Gripe.h"
 #include "Blab.h"
 #include <cstring>
@@ -207,20 +208,10 @@ int Obs::canon()				// Canonicalize observable
 	    {
 	    auto p { begin() + mid } ;
 	    if (blab > 1) cout << "Converting " << *this ;
-	    if (is_EEloop())
-		{
-		mid = midE = 0 ;
-		front() += addE ;
-		if (isElink(*p)) *p -= addE ;
-		else		 excise(p,p+1) ;
-		}
-	    else if (mid != size() - 2) // is_Efermion
-		{
-		mid = midE = size() - 2 ;
-		(*this)[mid] += addE ;
-		if (isElink(*p)) *p -= addE ;
-		else		 excise(p,p+1) ;
-		}
+	    mid = midE = 0 ;
+	    front() += addE ;
+	    if (isElink(*p))	*p -= addE ;
+	    else		excise(p,p+1) ;
 	    if (blab > 1) cout << " -> " << *this << "\n" << flush ;
 	    }
 
@@ -264,8 +255,10 @@ int Obs::canon()				// Canonicalize observable
 		    {
 		    if (!known_xord())
 			{
+			if (blab) cout << "canon: classify " << *this << "\n" << flush ;
 			if (has_Es())	reduce    (0, ObsList::obs) ;
 			else		factorize (0, ObsList::obs) ;
+			if (blab) cout << "canon:: classify done\n" ;
 			}
 		    if (known_xord() && order() <= global.maxord())
 			{
@@ -281,13 +274,13 @@ int Obs::canon()				// Canonicalize observable
 				int	start ( shot ? mid : (flip ? size()-1 : 0) ) ;
 				Obs	obs   { *this } ;
 				int	sgn2  { obs.trans (symm, start) } ;
-				int	code  ( sgn1 * sgn2 < 0 ? -indx : indx ) ;
+				int	code  ( sgn2 < 0 ? -indx : indx ) ;
 
 				auto	p { Canon::cache.try_emplace (obs, code) } ;
 				if (p.second && blab > 1)
 				    {
 				    cout << "cache add: " << obs << " -> "
-					 << (sgn1 * sgn2 < 0 ? "-" : "")
+					 << (sgn2 < 0 ? "-" : "")
 					 << *this << "\n" << flush ;
 				    }
 				}

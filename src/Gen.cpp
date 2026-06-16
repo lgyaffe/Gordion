@@ -1,32 +1,37 @@
 #include "Gen.h"
-#include "Rep.h"
-#include "Build.h"
-#include "Global.h"
 #include "Commute.h"
-#include "Gripe.h"
-#include "Numerics.h"
-#include "Blab.h"
+#include "Global.h"
 #include "Linalg.h"
+#include "Rep.h"
+#include "Gripe.h"
+#include "Blab.h"
 
 Gen::Gen (const Op& op)				// Construct w/o projection
     :						// (only for Test::jacobi)
-    type  (op.type), T_odd (op.is_coord())
+    OpSum (global.info (op.is_Fermion()).ops),
+    type  (op.type),
+    T_odd (op.is_coord())
     {
-    emplace_back (OpTerm (Op::store (op), 1)) ;
+    emplace_back (OpTerm (oplist().store (op), 1)) ;
     inner_commute () ;
     }
 
 Gen::Gen (const OpSum& s, GenHdr& hdr, doub coeff)	// Constructor
     :
-    OpSum (s), type  ((OpType) hdr.type), order (hdr.order), T_odd (hdr.T_odd),
+    OpSum (s),
+    type  ((OpType) hdr.type),
+    order (hdr.order),
+    T_odd (hdr.T_odd),
     imag  ((theory.euclid ? (hdr.len % 2) : hdr.T_odd) ^ !Rep::list[hdr.rep].C_even),
     coeff (coeff)
     { inner_commute() ; }
 
 Gen::Gen (const Op& op, const Proj& proj)		// Construct with given projector
     :
-    order   (op.order), T_odd   (op.is_coord()),
-    imag    ((theory.euclid ? op.is_FermionO() : op.is_coord()) ^ !proj.C_even())
+    OpSum (global.info (op.is_Fermion()).ops),
+    order (op.order),
+    T_odd (op.is_coord()),
+    imag  ((theory.euclid ? op.is_FermionO() : op.is_coord()) ^ !proj.C_even())
     {
     if (Blab::blablevel[BLAB::GEN] > 1)
 	{
@@ -37,7 +42,7 @@ Gen::Gen (const Op& op, const Proj& proj)		// Construct with given projector
 	if (proj[i])
 	    {
 	    auto [sgn,trans]	{ Symm::list[i](op) } ;
-	    uint indx		{ Op::store (trans) } ;
+	    uint indx		{ oplist().store (trans) } ;
 	    emplace_back (OpTerm {indx, proj[i] * sgn} ) ;
 	    }
 	}
@@ -50,6 +55,8 @@ Gen::Gen (const Op& op, const Proj& proj)		// Construct with given projector
     }
 
 Gen::Gen (const OpSum& s, const Proj& proj)		// Construct with given projector
+    :
+    OpSum (s.oplist())
     {
     if (Blab::blablevel[BLAB::GEN] > 1)
 	{
@@ -61,8 +68,7 @@ Gen::Gen (const OpSum& s, const Proj& proj)		// Construct with given projector
 
     for (const OpTerm& t : s)
 	{
-	const Op op { Op::list[t.item] } ;
-
+	const Op op { oplist() [t.item] } ;
 	if (tmptype == OpType::Invalid)
 	    {
 	    tmptype = op.type ;
@@ -83,7 +89,7 @@ Gen::Gen (const OpSum& s, const Proj& proj)		// Construct with given projector
 	    if (proj[i])
 		{
 		auto [sgn,trans] { Symm::list[i](op) } ;
-		uint indx	 { Op::store (trans) } ;
+		uint indx	 { oplist().store (trans) } ;
 		emplace_back (indx, t.coeff * proj[i] * sgn) ;
 		}
 	    }
@@ -135,9 +141,9 @@ int Gen::project (Op& op)			// Project onto all reps
 		if (Gen::gennorm) tmp.normalize (repnum) ;
 		if (tmp.T_odd) gens.push_back (tmp) ;
 		else gens.insert (gens.begin() + neven++, tmp) ;
+		++added ;
 
 		if (tmp.order > global.maxgen()) global.maxgen() = tmp.order ;
-		++added ;
 
 		if (Blab::blablevel[BLAB::GEN])
 		    {
@@ -171,9 +177,9 @@ int Gen::project (OpSum&& s)			// Project onto all reps
 		if (Gen::gennorm) tmp.normalize (repnum) ;
 		if (tmp.T_odd) gens.push_back (tmp) ;
 		else gens.insert (gens.begin() + neven++, tmp) ;
+		++added ;
 
 		if (tmp.order > global.maxgen()) global.maxgen() = tmp.order ;
-		++added ;
 
 		if (Blab::blablevel[BLAB::GEN] > 1)
 		    {
@@ -193,7 +199,6 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
     bool	stage { b.is_Fermion() } ;
     const auto& gens  { global.info(stage).gens[repnum] } ;
     uint	ngen  ( gens.size() ) ;
-    uint	start { stage ? Op::nopG : 0 } ;
     int		maxop (-1) ;
 
     for (const auto& a : gens)
@@ -205,13 +210,13 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
 	if (maxop < 0 || s.item > maxop) return true ;
 	}
 
-    Dmtx genmtx (maxop-start+1, ngen+1) ;
+    Dmtx genmtx (maxop+1, ngen+1) ;
 
     for (int i(0) ; i < ngen ; ++i)
 	{
-	for (const auto& s : gens[i]) genmtx(s.item - start,i) = s.coeff ;
+	for (const auto& s : gens[i]) genmtx(s.item,i) = s.coeff ;
 	}
-    for (const auto& s : b) genmtx(s.item - start,ngen) = s.coeff ;
+    for (const auto& s : b) genmtx(s.item,ngen) = s.coeff ;
 
     return rank (genmtx) == ncol(genmtx) ;
     }
@@ -231,7 +236,8 @@ Gen& Gen::collect ()					// Collect terms
 
 void Gen::normalize (int repnum)			// Normalize generator
     {
-    const auto&		Hterms	{ global.info().Hterms } ;
+    bool		isF	{ is_Fermion() } ;
+    const auto&		Hterms	{ global.info(isF).Hterms } ;
     ObsList		tmplist	{ "GenNorm" } ;
     doub		normsq	(0) ;
 
@@ -272,16 +278,19 @@ void Gen::normalize (int repnum)			// Normalize generator
 	    cout << "Gen::normalize: method 2 for " << *this << "\n" ;
 	}
     coeff /= sqrt (normsq) ;
-    Build::clearpolys () ;
+    global.clearpolys (isF) ;
     }
 
 void Gen::normalize ()					// Generator normalization
     {
     for (int repnum(0) ; repnum < Rep::list.size() ; ++repnum)
 	{
-	auto& gens { global.info().gens[repnum] } ;
+	for (int stage(0) ; stage < 2 ; ++stage)
+	    {
+	    auto& gens { global.info(stage).gens[repnum] } ;
 
-	for (auto& gen : gens) gen.normalize (repnum) ;
+	    for (auto& gen : gens) gen.normalize (repnum) ;
+	    }
 	}
     }
 
@@ -352,7 +361,7 @@ void Gen::inner_commute ()			 	// Generator reduction
 	{
 	for (const auto& opterm : *this)
 	    {
-	    Obs		eloop  { Op::list[opterm.item] } ;
+	    Obs		eloop  { oplist()[opterm.item] } ;
 	    PolyTerm	factor { Polyindx(), opterm.coeff } ;
 	    Commute::do_inner (eloop, factor, reduction.obslist(), map) ;
 	    }
@@ -362,7 +371,7 @@ void Gen::inner_commute ()			 	// Generator reduction
 	ObsList& list { reduction.obslist() } ;
 	for (const auto& opterm : *this)
 	    {
-	    Op& op { Op::list[opterm.item] } ;
+	    Op& op { oplist()[opterm.item] } ;
 	    if (!op.staggered() || !op.isclosed()) continue ;
 	    int sgn  { isstag(op.front()) ? 1 : -1 } ;
 	    Obs loop { op.begin()+1, op.end()-1, ObsType::Loop } ;
@@ -379,19 +388,17 @@ void Gen::inner_commute ()			 	// Generator reduction
 
 int Gen::addgen (OpSum&& s)			// Add new generator
     {
-    int	 added(0) ;
-    auto type { Op::list[s.front().item].type } ;
+    int		added (0) ;
+    OpList&	list { s.oplist() } ;
+    Op		op1  { list[s.front().item] } ;	// N.B. non-ref
 
-    if (type == OpType::Fermion && !global.stage)
-	gripe ("Can't add fermion generator during gauge stage") ;
-
-    switch (type)
+    switch (op1.type)
 	{
 	case OpType::Loop:
-	    if (autoToddgens)	added += project (Op::loop_dt(s)) ;
+	    if (autoToddgens)	added += project (s.loop_dt()) ;
 	    if (!theory.euclid)	added += project (std::move(s)) ; break ;
 	case OpType::Fermion:
-	    if (autoToddgens)	added += project (Op::flipT(s)) ;
+	    if (autoToddgens)	added += project (s.flipT()) ;
 				added += project (std::move(s)) ; break ;
 	case OpType::Eloop:
 				added += project (std::move(s)) ; break ;
@@ -399,16 +406,15 @@ int Gen::addgen (OpSum&& s)			// Add new generator
 	}
     if (added)
 	{
-	Op::setprimary (type == OpType::Fermion) ;
-	Build::clearpolys () ;
+	list.setprimary () ;
+	global.clearpolys (op1.is_Fermion()) ;
 	}
     return added ;
     }
 
-void Gen::geninit ()				// Generator initialization
+void Gen::geninit (int stage)			// Generator initialization
     {
     bool isham { !theory.euclid } ;
-    int stage  { global.stage } ;
     char l[4]  { 'x', 'y', 'z', 'w' } ;
     char L[4]  { 'X', 'Y', 'Z', 'W' } ;
     char f[4]  { 'f', 'g', 'h', 'i' } ;
@@ -416,14 +422,15 @@ void Gen::geninit ()				// Generator initialization
 
     if (stage == 0)
 	{
-	OpType loop { OpType::Loop } ;
+	OpType	loop { OpType::Loop } ;
+	OpList&	list { global.info(0).ops } ;
 
 	for (int i(0) ; i < theory.dim ; ++i)		// 1x1 plaq
 	    {
 	    for (int j(i) ; ++j < theory.dim ;)
 		{
 		Op plaq { string {l[i],l[j],L[i],L[j]}, loop, 2 } ;
-		if (autoToddgens)	project (Op::loop_dt (plaq)) ; 
+		if (autoToddgens)	project (loop_dt (plaq, list)) ; 
 		if (isham)		project (plaq) ;
 		}
 	    }
@@ -437,7 +444,7 @@ void Gen::geninit ()				// Generator initialization
 		    if (i == k || j == k) continue ;
 			{
 			Op rect { string {l[i],l[j],l[k],L[j],L[i],L[k]}, loop, 4 } ;
-			if (autoToddgens)	project (Op::loop_dt (rect)) ; 
+			if (autoToddgens)	project (loop_dt (rect, list)) ; 
 			if (isham)		project (rect) ;
 			}
 		    }
@@ -452,7 +459,7 @@ void Gen::geninit ()				// Generator initialization
 		    {
 		    if (i == k || j == k) continue ;
 		    Op fig8 { string {l[i],l[k],l[j],L[k],L[j],l[k],L[i],L[k]}, loop, 4 } ;
-		    if (autoToddgens)	project (Op::loop_dt (fig8)) ; 
+		    if (autoToddgens)	project (loop_dt (fig8, list)) ; 
 		    if (isham)		project (fig8) ;
 		    }
 		}
@@ -464,7 +471,7 @@ void Gen::geninit ()				// Generator initialization
 		{
 		if (i == j) continue ;
 		Op plaq2 { string {l[i],l[j],L[i],L[j],l[i],l[j],L[i],L[j]}, loop, 4 } ;
-		if (autoToddgens)	project (Op::loop_dt (plaq2)) ; 
+		if (autoToddgens)	project (loop_dt (plaq2, list)) ; 
 		if (isham)		project (plaq2) ;
 		}
 	    }
@@ -474,7 +481,7 @@ void Gen::geninit ()				// Generator initialization
 	    if (theory.box.comp[i])
 		{
 		Op polyakov  { string (theory.box.comp[i],   l[i]), loop, 2 } ;
-		if (autoToddgens)	project (Op::loop_dt (polyakov)) ; 
+		if (autoToddgens)	project (loop_dt (polyakov, list)) ; 
 		if (isham)		project (polyakov) ;
 		}
 	    }
@@ -489,16 +496,17 @@ void Gen::geninit ()				// Generator initialization
 		    string plaq {l[i],l[j],L[i],L[j]} ;
 		    string poly (theory.box.comp[i], l[i]) ;
 		    Op plaqpoly { plaq+poly, loop, 4 } ;
-		    if (autoToddgens)	project (Op::loop_dt (plaqpoly)) ; 
+		    if (autoToddgens)	project (loop_dt (plaqpoly, list)) ; 
 		    if (isham)		project (plaqpoly) ;
 		    }
 		}
 	    }
-	Op::setprimary(0) ;
+	list.setprimary () ;
 	}
     else if (theory.nf > 0)
 	{
-	OpType ferm { OpType::Fermion } ;
+	OpList&	list { global.info(1).ops } ;
+	OpType	ferm { OpType::Fermion } ;
 
 	for (int k(0) ; k < theory.nf ; k += 2)		// Fxf, Gxf
 	    for (int i(0) ; i < theory.dim ; ++i)
@@ -509,22 +517,22 @@ void Gen::geninit ()				// Generator initialization
 		Op Fxf { string {F[k],l[i],f[k]}, ferm, 1 } ;
 		project (Fxf) ;
 		}
-	Op::setprimary(1) ;
+	list.setprimary () ;
 	}
     }
 
 ostream& Gen::print (ostream& stream) const		// Short form print
     {
     int k(0) ;
-    coeffprt (stream, coeff) ;
+    Print::coeffprt (stream, coeff) ;
     stream << (imag ? "i " : "") << "( " ;
     for (auto t : *this)
 	{
 	if (t.coeff != 0)
 	    {
 	    ++k ;
-	    coeffprt (stream, t.coeff); 
-	    stream << Op::list[t.item] << " + ..." ;
+	    Print::coeffprt (stream, t.coeff); 
+	    stream << oplist()[t.item] << " + ..." ;
 	    break ;
 	    }
 	}
@@ -535,15 +543,15 @@ ostream& Gen::print (ostream& stream) const		// Short form print
 ostream& operator<< (ostream& stream, const Gen& gen)
     {
     int k(0) ;
-    coeffprt (stream, gen.coeff) ;
+    Print::coeffprt (stream, gen.coeff) ;
     stream << (gen.imag ? "i " : "") << "(" ;
     for (auto t : gen)
 	{
 	if (t.coeff != 0)
 	    {
 	    stream << "\n\t" ;
-	    coeffprt (stream, t.coeff); 
-	    stream << Op::list[t.item] ;
+	    Print::coeffprt (stream, t.coeff); 
+	    stream << gen.oplist()[t.item] ;
 	    ++k ;
 	    }
 	}
@@ -551,8 +559,8 @@ ostream& operator<< (ostream& stream, const Gen& gen)
     stream << " )" ;
     if (gen.reduction.size())
 	{
-	stream << "\n reduction = " ;
-	coeffprt (stream, gen.coeff) ;
+	stream << "\n  reduction = " ;
+	Print::coeffprt (stream, gen.coeff) ;
 	stream << "(" <<  gen.reduction << ")" ;
 	}
     return stream ;

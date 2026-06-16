@@ -1,11 +1,11 @@
 #include "Parse.h"
 #include "Build.h"
 #include "Commute.h"
-#include "Rep.h"
 #include "Numerics.h"
-#include "Test.h"
 #include "Print.h"
+#include "Rep.h"
 #include "Save.h"
+#include "Test.h"
 #include "Blab.h"
 #include "Gripe.h"
 #include <fstream>
@@ -59,13 +59,6 @@ void Parse::read_input (istream&& in, bool prompt)	// Read input
     read_input (in, prompt) ;
     }
 
-void Parse::sig_catch (int signum)			// Catch interrupts
-    {
-    global.interrupt = true ;
-    std::cerr << "\nCaught Interrupt!\n" ;
-    if (awaiting) quit(1) ;
-    }
-
 [[noreturn]] void Parse::quit (int code)		// Exit program
     {
     if (global.interrupt) FINALIZE ;
@@ -73,6 +66,13 @@ void Parse::sig_catch (int signum)			// Catch interrupts
     auto secs { duration_cast<sec>(end - starttime).count() } ;
     if (timing && secs > 10) myout << "Total time: " << secs << " sec\n" ;
     exit (code) ;
+    }
+
+void Parse::sig_catch (int signum)			// Catch interrupts
+    {
+    global.interrupt = true ;
+    std::cerr << "\nCaught Interrupt!\n" ;
+    if (awaiting) quit(1) ;
     }
 
 void Parse::parse_line (const string& buf)		// Parse input line
@@ -103,8 +103,8 @@ void Parse::parse_cmd (const string& buf)		// Parse command
     auto start { hires::now() } ;
 
     if (cmd[0] == '#')			return ;	// skip cmoment
-    else if (cmd == "?")		print_help() ;
-    else if (isword(cmd,"help"))	print_help() ;
+    else if (cmd == "?")		parse_help() ;
+    else if (isword(cmd,"help"))	parse_help() ;
     else if (isword(cmd,"set"))		valid = parse_set   (line) ;
     else if (isword(cmd,"reset"))	valid = parse_reset (line) ;
     else if (isword(cmd,"call"))	valid = parse_call  (line) ;
@@ -150,7 +150,7 @@ bool Parse::parse_write (istringstream& line)		// Parse "write" command
     string			word ;
     if (parse_args (line,word))
 	{
-	if (word != "-")
+	if (word != "-")			// send output to file
 	    {
 	    cout.flush () ;
 	    if (fileout.is_open()) fileout.close() ;
@@ -162,7 +162,7 @@ bool Parse::parse_write (istringstream& line)		// Parse "write" command
 		}
 	    else gripe ("Cannot open " + word) ;
 	    }
-	else if (stdoutbuf)
+	else if (stdoutbuf)			// return output to std::cout
 	    {
 	    if (fileout.is_open()) fileout.close() ;
 	    cout.rdbuf (stdoutbuf) ;
@@ -222,7 +222,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	else if (isword(word,"stage") && parse_args (line,word))
 	    {
 	    if      (isword(word,"gauge"))	global.stageinit (0) ;
-	    else if (isword(word,"fermi"))	global.stageinit (1) ;
+	    else if (isword(word,"fermion"))	global.stageinit (1) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"approx") && parse_args (line,flag))
@@ -270,21 +270,21 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    global.geoswap = flag ;
 	    if (global.geoswap) global.autosave = true ;
 	    }
+	else if (isword(word,"maxnewt") && parse_args (line,i))
+	    {
+	    numerics.maxnewt = i ;
+	    }
+	else if (isword(word,"maxode") && parse_args (line,i))
+	    {
+	    numerics.maxode = i ;
+	    }
 	else if (isword(word,"maxthread") && parse_args (line,i))
 	    {
 	    global.maxthread = i ;
 	    }
-	else if (isword(word,"minmax") && parse_args (line,i))
-	    {
-	    numerics.minmax = i ;
-	    }
 	else if (isword(word,"mintol") && parse_args (line,value))
 	    {
 	    numerics.mintol = value ;
-	    }
-	else if (isword(word,"odemax") && parse_args (line,i))
-	    {
-	    numerics.odemax = i ;
 	    }
 	else if (isword(word,"odetol") && parse_args (line,value))
 	    {
@@ -293,10 +293,6 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	else if (isword(word,"oknegeig") && parse_args (line,flag))
 	    {
 	    global.oknegeig = flag ;
-	    }
-	else if (isword(word,"symcurv") && parse_args (line,flag))
-	    {
-	    global.symcurv = flag ;
 	    }
 	else if (isword(word,"rkmethod") && parse_args (line,word))
 	    {
@@ -316,6 +312,10 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	else if (isword(word,"svdcutoff") && parse_args (line,value))
 	    {
 	    numerics.svdcut = value ;
+	    }
+	else if (isword(word,"symcurv") && parse_args (line,flag))
+	    {
+	    global.symcurv = flag ;
 	    }
 	else if (isword(word,"sysfile") && parse_args (line,word))
 	    {
@@ -374,8 +374,9 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	else if (isword(word,"MMAlist") && line >> word)
 	    {
 	    do  {
-		Obs o { word } ; o.canon() ;
-		uint indx { ObsList::obs.find (o) } ;
+		Obs	o	{ word } ;
+		int	sgn	{ o.canon() } ;
+		uint	indx	{ ObsList::obs.find (o) } ;
 		if (indx != UINT_MAX)
 		    {
 		    global.info().MMAlist.insert (indx) ;
@@ -389,16 +390,18 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    int indx { Coupling::indx (word) } ;
 	    if (indx >= 0 && parse_args (line,value))
 		{
-		doub oldv { Coupling::list[indx].value } ; 
+		doub oldv  { Coupling::list[indx].value } ; 
+		int  stage { Coupling::list[indx].stage } ; 
 		Coupling::list[indx].value = value ;
-		if (oldv != value && global.stage && theory.euclid)
+		if (stage != global.stage) global.stageinit (stage) ;
+		if (value != oldv && stage && theory.euclid)
 		    {
 		    char8 mass	{ "mass" } ;
 		    int   mindx	{ Coupling::indx (mass) } ;
 		    if (indx == mindx && global.massreinit)
 			{
 			cout << "Reinitializing fermion vev's\n" ;
-			Numerics::numericsinit(1) ;
+			numerics.initialize (1) ;
 			}
 		    }
 		}
@@ -420,11 +423,11 @@ bool Parse::parse_reset (istringstream& line)		// Parse "reset" commands
 	else if (isword(word,"MMAlist"))	global.info().MMAlist.clear() ;
 	else if (isword(word,"stage"))		global.stageinit (0) ;
 	else if (isword(word,"blab"))		Blab::resetblab () ;
+	else if (isword(word,"numerics"))	numerics.initialize () ;
 	else if (isword(word,"mintol"))		numerics.mintol = numerics.dflttol ;
 	else if (isword(word,"odetol"))		numerics.odetol = numerics.dflttol ;
 	else if (isword(word,"svdcutoff"))	numerics.svdcut = 0 ;
-	else if (isword(word,"rkmethod"))	numerics.rk = RKdef::list.back() ;
-	else if (isword(word,"numerics"))	Numerics::numericsinit() ;
+	else if (isword(word,"rkmethod"))	numerics.rk = RKdef::list.front() ;
 	else if (isword(word,"sysfile"))
 	    {
 	    global.sysfile.clear() ;
@@ -452,6 +455,7 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
     bool	valid { true } ;
     bool	isH   { !theory.euclid } ;
     auto&	rep   { global.repnum } ;
+    auto	nrep  { Rep::list.size() } ;
     string	word ;
     if (line >> word)
 	{
@@ -461,144 +465,25 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
 	    }
 	else if (isword(word,"all") && parse_args (line,i))
 	    {
-	    Build::mk_obs (i) ;
-	    Build::mk_grad () ;
-	    for (int j(0) ; j < Rep::list.size() ; ++j)
-		{
-		Build::mk_curv (j) ;
-		if (isH) Build::mk_lagr (j) ;
-		}
-	    Build::mk_geos () ;				// Must be last for autosave
+								Build::mk_obs  (i) ;
+								Build::mk_grad () ;
+	    for (int j(0) ; j < nrep ; ++j)			Build::mk_curv (j) ;
+	    if (isH) for (int j(0) ; j < nrep ; ++j)		Build::mk_lagr (j) ;
+								Build::mk_geos () ;
 	    }
-	else if (isword(word,"geodesics") && eos(line))	Build::mk_geos () ;
-	else if (isword(word,"gradient")  && eos(line))	Build::mk_grad () ;
-	else if (isword(word,"curvature") && eos(line))	Build::mk_curv (rep) ;
+	else if (isword(word,"geodesics") && eos(line))		Build::mk_geos () ;
+	else if (isword(word,"gradient")  && eos(line))		Build::mk_grad () ;
+	else if (isword(word,"curvature") && eos(line))		Build::mk_curv (rep) ;
 	else if (isword(word,"curvature") && parse_args(line,word))
 	    {
-	    if (isword(word,"all"))
-		{
-		for (int j(0) ; j < Rep::list.size() ; ++j)	Build::mk_curv (j) ;
-		}
-	    else
-		{
-		try {
-		    Build::mk_curv (rep = Rep::known (word)) ;
-		    }
-		catch (const exception& e)
-		    {
-		    gripe ("Unknown representation " + word) ;
-		    }
-		}
+	    if (!isword(word,"all"))				Build::mk_curv (word) ;
+	    else for (int j(0) ; j < nrep ; ++j)		Build::mk_curv (j) ;
 	    }
-	else if (isword(word,"lagrange") && eos(line) && isH) Build::mk_lagr (rep) ;
+	else if (isword(word,"lagrange") && eos(line) && isH)	Build::mk_lagr (rep) ;
 	else if (isword(word,"lagrange") && parse_args(line,word) && isH)
 	    {
-	    if (isword(word,"all"))
-		{
-		for (int j(0) ; j < Rep::list.size() ; ++j)	Build::mk_lagr (j) ;
-		}
-	    else
-		{
-		try {
-		    Build::mk_lagr (rep = Rep::known (word)) ;
-		    }
-		catch (const exception& e)
-		    {
-		    gripe ("Unknown representation " + word) ;
-		    }
-		}
-	    }
-	else valid = false ;
-	}
-    else valid = false ;
-    return valid ;
-    }
-
-bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
-    {
-    std::regex	pattern { "(\\d+)\\)" } ;
-    std::smatch match ;
-    bool	valid { true } ;
-    short	order  (-1) ;
-    int		action (0) ;
-    doub	coef   (0) ;
-    string	word ;
-    OpSum	sum ;
-    int		i ;
-    if (line >> word)
-	{
-	if      (isword(word,"add"))		action = 1 ;
-	else if (isword(word,"suspend"))	action = 2 ;
-	else if (isword(word,"activate"))	action = 3 ;
-	if (action)
-	    {
-	    char c ;
-	    if (line >> c && c == '(')
-		{
-		line >> word ;
-		if (std::regex_match (word, match, pattern))
-		    {
-		    order = stoi (match[1].str()) ;
-		    if (order < 0) action = 0 ;
-		    }
-		else action = 0 ;
-		}
-	    else line.putback (c) ;
-
-	    switch (action)
-		{
-		case 1:				// Add generator
-		    do  {
-			if (!(line >> coef))
-			    {
-			    line.clear() ;
-			    coef = 1.0 ;
-			    }
-			if (line >> word)
-			    {
-			    try {
-				Obs o { word } ; o.canon() ;
-				uint indx { ObsList::obs.find (o) } ;
-				if (indx != UINT_MAX && order < 0)
-				    order = ObsList::obs(indx).corder ;
-				}
-			    catch (const BadInput&) {}
-			    if (order >= 0)
-				{
-				Op op { word, order } ;
-				sum.emplace_back (Op::store(op), coef) ;
-				}
-			    else gripe ("unknown order for " + word) ;
-			    }
-			} while (!eos(line)) ;
-
-		    if (sum.size())
-			{
-			int n { Gen::addgen (std::move(sum)) } ;
-			if (n)	cout << "  " << n ;
-			else	cout << "  No" ;
-			cout << " generators added\n" ;
-			}
-		    else valid = false ;
-		    break ;
-
-		case 2:				// Suspend generator(s)
-		    if (!order && eos(line))	valid = false ;
-		    else if (order)		Gen::suspend_group (order) ;
-		    else while (line >> i)	Gen::suspend_gen (i) ;
-		    break ;
-
-		case 3:				// Activate generator(s)
-		    if (!order && eos(line))	valid = false ;
-		    else if (order)		Gen::activate_group (order) ;
-		    else if (isstar (line))	Gen::activate_gen ()  ;
-		    else while (line >> i)	Gen::activate_gen (i) ;
-		    break ;
-
-		default:
-		    valid = false ;
-		}
-	    if (!eos(line)) valid = false ;
+	    if (!isword(word,"all"))				Build::mk_lagr (word) ;
+	    else for (int j(0) ; j < nrep ; ++j)		Build::mk_lagr (j) ;
 	    }
 	else valid = false ;
 	}
@@ -619,11 +504,11 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
 	try {
 	    if (isword(word,"freeenergy")	&& eos(line) && !isH)
 		{
-		numerics.eval_H (true) ;
+		numerics.eval_ham (true) ;
 		}
 	    else if (isword(word,"hamiltonian")	&& eos(line) && isH)
 		{
-		numerics.eval_H (true) ;
+		numerics.eval_ham (true) ;
 		}
 	    else if (isword(word,"gradient")    && eos(line))
 		{
@@ -712,6 +597,104 @@ bool Parse::parse_do (istringstream& line)		// Parse "do" commands
     return valid ;
     }
 
+bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
+    {
+    std::regex	pattern { "(\\d+)\\)" } ;
+    std::smatch match ;
+    bool	valid  { true } ;
+    short	order  (-1) ;
+    int		type   (-1) ;
+    int		action (0) ;
+    doub	coef   (0) ;
+    OpSum	sum[2] { global.info(0).ops, global.info(1).ops } ;
+    string	word ;
+    int		i ;
+    if (line >> word)
+	{
+	if      (isword(word,"add"))		action = 1 ;
+	else if (isword(word,"suspend"))	action = 2 ;
+	else if (isword(word,"activate"))	action = 3 ;
+	if (action)
+	    {
+	    char c ;
+	    if (line >> c && c == '(')
+		{
+		line >> word ;
+		if (std::regex_match (word, match, pattern))
+		    {
+		    order = stoi (match[1].str()) ;
+		    if (order < 0) action = 0 ;
+		    }
+		else action = 0 ;
+		}
+	    else line.putback (c) ;
+
+	    switch (action)
+		{
+		case 1:				// Add generator
+		    do  {
+			if (!(line >> coef))
+			    {
+			    line.clear() ;
+			    coef = 1.0 ;
+			    }
+			if (line >> word)
+			    {
+			    try {
+				Obs  o { word } ; o.canon() ;
+				uint indx { ObsList::obs.find (o) } ;
+				if (indx != UINT_MAX && order < 0)
+				    order = ObsList::obs(indx).corder ;
+				}
+			    catch (const BadInput&) {}
+			    if (order >= 0)
+				{
+				Op    op   { word, order } ;
+				bool  isF  { op.is_Fermion() } ;
+				if (type < 0) type = isF ;
+				else if (type != isF)
+				    gripe ("Can't mix gauge and fermi Op's") ;
+				auto& list { global.info(type).ops } ;
+				sum[isF].emplace_back (list.store(op), coef) ;
+				}
+			    else gripe ("unknown order for " + word) ;
+			    }
+			} while (!eos(line)) ;
+
+		    if (type >= 0 && sum[type].size())
+			{
+			int n { Gen::addgen (std::move(sum[type])) } ;
+			if (n)	cout << "  " << n ;
+			else	cout << "  No" ;
+			cout << " generators added\n" ;
+			}
+		    else valid = false ;
+		    break ;
+
+		case 2:				// Suspend generator(s)
+		    if (!order && eos(line))	valid = false ;
+		    else if (order)		Gen::suspend_group (order) ;
+		    else while (line >> i)	Gen::suspend_gen (i) ;
+		    break ;
+
+		case 3:				// Activate generator(s)
+		    if (!order && eos(line))	valid = false ;
+		    else if (order)		Gen::activate_group (order) ;
+		    else if (isstar (line))	Gen::activate_gen ()  ;
+		    else while (line >> i)	Gen::activate_gen (i) ;
+		    break ;
+
+		default:
+		    valid = false ;
+		}
+	    if (!eos(line)) valid = false ;
+	    }
+	else valid = false ;
+	}
+    else valid = false ;
+    return valid ;
+    }
+
 bool Parse::parse_add (istringstream& line)		// Parse "add" command
     {
     bool	valid { true } ;
@@ -722,8 +705,10 @@ bool Parse::parse_add (istringstream& line)		// Parse "add" command
 	    {
 	    doub	coef  (0) ;
 	    short	order (-1) ;
+	    int		type  (-1) ;
 	    bool	gotcoef { line >> coef } ;
 	    bool	gotword { false } ;
+	    OpSum	sum[2] { global.info(0).ops, global.info(1).ops } ;
 
 	    if (!gotcoef)
 		{
@@ -745,7 +730,6 @@ bool Parse::parse_add (istringstream& line)		// Parse "add" command
 		    }
 		}
 
-	    OpSum sum ;
 	    do  {
 		if (!gotcoef && !gotword && !(line >> coef))
 		    {
@@ -769,17 +753,22 @@ bool Parse::parse_add (istringstream& line)		// Parse "add" command
 		    catch (const BadInput&) {}
 		    if (order >= 0)
 			{
-			Op op { word, order } ;
-			sum.emplace_back (Op::store(op), coef) ;
+			Op	op   { word, order } ;
+			bool	isF  { op.is_Fermion() } ;
+			if (type < 0) type = isF ;
+			else if (type != isF)
+			    gripe ("Can't mix gauge and fermi Op's") ;
+			auto&	list { global.info(type).ops } ;
+			sum[type].emplace_back (list.store(op), coef) ;
 			}
 		    else gripe ("unknown order for " + word) ;
 		    gotword = false ;
 		    }
 		} while (!eos(line)) ;
 
-	    if (sum.size())
+	    if (type >= 0 && sum[type].size())
 		{
-		int n { Gen::addgen (std::move(sum)) } ;
+		int n { Gen::addgen (std::move(sum[type])) } ;
 		if (n)	cout << "  " << n ;
 		else	cout << "  No" ;
 		cout << " generators added\n" ;
@@ -948,11 +937,53 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
     uint	i, j ;
     if (line >> word)
 	{
-	if (isword(word,"canon") && parse_args (line,word))
+	if (isword(word,"canon") && parse_args (line,word2))
 	    {
-	    Obs		obs { word } ;
+	    Obs		obs { word2 } ;
 	    const char*	sgn { obs.canon() < 0 ? "-" : "" } ;
+	    cout << word2 << " -> " << sgn << obs << "\n" ;
+	    }
+	else if (isword(word,"classify") && parse_args (line,word))
+	    {
+	    Obs		obs	{ word } ;
+	    const char*	sgn	{ obs.canon() < 0 ? "-" : "" } ;
 	    cout << word << " -> " << sgn << obs << "\n" ;
+	    bool ok { obs.classify (ObsList::obs) } ;
+	    if (ok) cout << "classified: " << obs
+			 << " xorder " << obs.xorder << "\n" ;
+	    else    cout << "classify failed\n" ;
+	    }
+	else if (isword(word,"commute") && parse_args (line,i,j))
+	    {
+	    auto&	gens  { global.info().gens[global.repnum] } ;
+	    uint	ngens ( gens.size() ) ;
+	    uint	nobs  ( ObsList::obs.size() ) ;
+
+	    if (i < ngens && j < nobs)
+		{
+		const Obs&	obs	{ ObsList::obs(j) } ;
+		ObsPoly		poly	{ j, ObsList::obs } ;
+		ObsList		tmplist	{ "ParseTemp" } ;
+		PolyMap		ans	{ tmplist } ;
+
+		Commute::commute_poly (gens[i], poly, ans) ;
+		if (obs.imag() && gens[i].imag) ans.negate() ;
+		cout << "[" << gens[i] << ", " << obs << "] = \n\t" ;
+		cout << ans << "\n" ;
+		}
+	    }
+	else if (isword(word,"commute") && parse_args (line,word,word2))
+	    {
+	    Op  	op	{ word, -1 } ;
+	    Obs 	obs	{ word2 } ;
+	    PolyTerm	factor	{ Polyindx(), 1 } ;
+	    ObsList	tmplist	{ "ParseTemp" } ;
+	    PolyMap	ans	{ tmplist } ;
+
+	    Commute::do_commute (op, obs, factor, tmplist, ans) ;
+	    cout << "[" << op << ", " << obs << "] = " ;
+	    cout << (obs.imag() ? "i (\n\t" : "(\n\t") ;
+	    cout << ans << " )\n" ;
 	    }
 	else if (isword(word,"compose") && parse_args (line,word2,word))
 	    {
@@ -969,6 +1000,21 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 		{
 		gripe ("Unknown symmetry " + word2 + " or " + word) ;
 		}
+	    }
+	else if (isword(word,"do_inner") && parse_args (line,word))
+	    {
+	    Obs 	obs (word) ;
+	    if (obs.is_Eloop())
+		{
+		ObsList	tmplist { "ParseTemp" } ;
+		PolyTerm	factor { Polyindx(), 1 } ;
+		PolyMap	ans { tmplist } ;
+
+		Commute::do_inner (obs, factor, tmplist, ans) ;
+		cout << "do_inner [" << obs << "] = \n\t" ;
+		cout << ans << "\n" ;
+		}
+	    else cout << "Bad Obs type\n" ;
 	    }
 	else if (isword(word,"transform") && parse_args (line,word,word2))
 	    {
@@ -1000,69 +1046,12 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    short	xord	{ obs.noEbound(ObsList::obs) } ;
 	    cout << obs << ": xorder >= " << xord << "\n" ;
 	    }
-	else if (isword(word,"classify") && parse_args (line,word))
-	    {
-	    Obs		obs	{ word } ;
-	    const char*	sgn	{ obs.canon() < 0 ? "-" : "" } ;
-	    cout << word << " -> " << sgn << obs << "\n" ;
-	    bool ok { obs.classify (ObsList::obs) } ;
-	    if (ok) cout << "classified: " << obs
-			 << " xorder " << obs.xorder << "\n" ;
-	    else    cout << "classify failed\n" ;
-	    }
-	else if (isword(word,"commute") && parse_args (line,i,j))
-	    {
-	    auto&	gens  { global.info().gens[global.repnum] } ;
-	    uint	ngens ( gens.size() ) ;
-	    uint	nobs  ( ObsList::obs.size() ) ;
-
-	    if (i < ngens && j < nobs)
-		{
-		Obs	obs	{ ObsList::obs(j) } ;
-		ObsPoly	poly	{ obs, ObsList::obs } ;
-		ObsList	tmplist	{ "ParseTemp" } ;
-		PolyMap	ans	{ tmplist } ;
-
-		Commute::commute_poly (gens[i], poly, ans) ;
-		if (obs.imag() && gens[i].imag) ans.negate() ;
-		cout << "[" << gens[i] << ", " << obs << "] = \n\t" ;
-		cout << ans << "\n" ;
-		}
-	    }
-	else if (isword(word,"commute") && parse_args (line,word,word2))
-	    {
-	    Op  	op	{ word, -1 } ;
-	    Obs 	obs	{ word2 } ;
-	    PolyTerm	factor	{ Polyindx(), 1 } ;
-	    ObsList	tmplist	{ "ParseTemp" } ;
-	    PolyMap	ans	{ tmplist } ;
-
-	    Commute::do_commute (op, obs, factor, tmplist, ans) ;
-	    cout << "[" << op << ", " << obs << "] = " ;
-	    cout << (obs.imag() ? "i (\n\t" : "(\n\t") ;
-	    cout << ans << " )\n" ;
-	    }
-	else if (isword(word,"do_inner") && parse_args (line,word))
-	    {
-	    Obs 	obs (word) ;
-	    if (obs.is_Eloop())
-		{
-		ObsList	tmplist { "ParseTemp" } ;
-		PolyTerm	factor { Polyindx(), 1 } ;
-		PolyMap	ans { tmplist } ;
-
-		Commute::do_inner (obs, factor, tmplist, ans) ;
-		cout << "do_inner [" << obs << "] = \n\t" ;
-		cout << ans << "\n" ;
-		}
-	    else cout << "Bad Obs type\n" ;
-	    }
 	else return false ;
 	}
     return true ;
     }
 
-void Parse::print_help ()					// Print command help
+void Parse::parse_help ()					// Print command help
     {
     cout << "Usage: " << program << cmdargs << "\n" ;
     cout << R"(Commands:
@@ -1076,6 +1065,7 @@ build		observables	<maxorder>
 		all		<maxorder>
 
 call		canon		<obs>
+		compose		<symm1> <symm2>
 		u1bound		<obs>
 		noEbound	<obs>
 		classify	<obs>
@@ -1102,7 +1092,7 @@ generator	add		[(<order>)] [<coeff>] <op> [...]
 		suspend		(<order>)
 		activate	(<order>)
 		suspend		<gen_#> [<gen_#> ...]
-		activage	* | <gen_#> [<gen_#> ...]
+		activate	* | <gen_#> [<gen_#> ...]
 
 load		<sys_infofile>
 		[<vev_set_#>] <vev_datafile>	
@@ -1124,7 +1114,7 @@ print		baseobs
 		lagrange (+)	* | <gen_#> [<gen_#>]
 		mode (+)	* | <mode_#>
 		observable	(<corder>,<xorder>)
-		observable	* | <obs_#> [<obs_#>] | <obs> [<obs>]
+		observable	* | <obs_#> [<obs_#>] | <obs> ...
 		obsstats
 		operator	* | <op_#>  [<op_#>]
 		primary
@@ -1157,8 +1147,8 @@ save		sys		[<filename>]
 
 set		stage		gauge | fermi
 		approx		false | true
-		autoToddgens	true | false
 		autosave	false | true |
+		autoToddgens	true | false
 		blab		<source_file> <value>
 		checkobs	false | true
 		dots		false | true
@@ -1166,17 +1156,17 @@ set		stage		gauge | fermi
 		gennorm		false | true
 		geoswap		false | true
 		oknegeig	false | true
-		symcurv		true | false
 		massreinit	true | false
+		maxnewt		<integer>
+		maxode		<integer>
 		maxthread	<integer>
-		minmax		<integer>
-		odemax		<integer>
 		mintol		<value>
 		odetol		<value>
 		representation  <repname>
 		rkmethod	<rkname>
 		savedir		<directory>
-		svdcutof	fvalue>
+		svdcutoff	<value>
+		symcurv		true | false
 		sysfile		<filename>
 		timing		true | false
 		vevfile		<filename>
@@ -1209,14 +1199,3 @@ a | b denotes alternatives a or b
 Semicolons may spearate multiple commands on a single input line.
 )" << "\n" ;
     }
-
-bool Parse::isstar (istringstream& line)		// Next word == "*"?
-    {
-    string	word ;
-    auto	pos { line.tellg() } ;
-    if (parse_args (line,word) && word == "*") return true ;
-    line.clear() ;
-    line.seekg (pos) ;
-    return false ;
-    }
-

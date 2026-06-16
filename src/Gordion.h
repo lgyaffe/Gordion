@@ -44,6 +44,7 @@ using real   = float ;			// Poly coeffs & vev's
 #else
 using real   = doub ;			// Poly coeffs & vev's
 #endif
+
 using cmplx  = complex<doub> ;		// Complex eigenvalues
 using symb   = char ;			// Basic symbol type
 using uchar  = uint8_t ;		// Hterm #
@@ -63,8 +64,8 @@ template <typename Key, typename... Value>
 template <typename T, typename U>		// reinterpret_cast alias
     T cast_to(U* ptr) { return reinterpret_cast<T>(ptr) ; }
 
-static string cmdargs { " [-f <startup_file>] [sys-info or vev-data files]\n" } ;
 static string program ;
+static string cmdargs { " [-f <startup_file>] [sys-info or vev-data files]\n" } ;
 
 static constexpr ulong ipow(ulong base, ulong exp, ulong ans = 1) // Integer power function
     {

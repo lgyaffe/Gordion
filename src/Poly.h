@@ -1,16 +1,12 @@
 #ifndef POLY_H
 #define POLY_H
-#include "Gordion.h"
 #include "Data.h"
 #include "Term.h"
 #include "Theory.h"
-#include "Gripe.h"
 #include <functional>
 
 class Gen ;
-class Obs ;
 class ObsList ;
-class ObsPoly ;
 
 class Polyindx : public array<uint,PSIZ>		// Obs index tuples
     {
@@ -45,6 +41,7 @@ class PolyTerm : public Term<real,Polyindx>		// Polynomial term
     const uint	operator[](int i) const { return item[i] ; }	// Subscript
     uint&	operator[](int i)	{ return item[i] ; }	// Subscript
 
+    PolyTerm	reindex (ObsList&, const ObsList&) const ;	// Re-index
     PolyTerm	operator* (const PolyTerm&) const ;		// Combine
     PolyTerm	operator* (doub z) const			// Scale term
 		{ PolyTerm ans { *this } ; ans.coeff *= z ; return ans ; }
@@ -101,14 +98,11 @@ class ObsPoly : public Polyvec			// Cubic polynomial of Obs
 
     void	push_map (PolyMap&) ;			// Add terms in map
     void	sort() ;				// Sort terms
+    ObsPoly&	negate() ; 				// Negate poly
     bool	allzero() const ;			// Vanishnig poly?
-    ObsPoly&	scale(doub) ;				// Scale poly
-    ObsPoly&	negate() { return scale(-1.0L) ; }	// Negate poly
     ObsList&	obslist() const { return list ; }	// Underlying ObsList
 
     ObsPoly (ObsList& l) : list(l) {}			// Constructor
-    ObsPoly (Obs&, ObsList&) ;				// Constructor
-    ObsPoly (const Gen&, ObsList&) ;			// Constructor
     ObsPoly (uint indx, ObsList& l)			// Constructor
 	    : list(l), Polyvec(1, PolyTerm(indx)) {}
 

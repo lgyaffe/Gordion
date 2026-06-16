@@ -4,11 +4,16 @@
 
 namespace Print
     {
+    inline bool is_one (doub c) { return std::abs(c - 1) < 1.e-15 ; }
+    inline bool is_int (doub c) { return std::abs(c - std::round(c)) < 1.e-15 ; }
+
+    ostream& coeffprt (ostream&, doub) ;
+
     void print_obs (uint,uint) ;
     void print_obs (uint) ;
-    void print_obs (string) ;
     void print_obs () ;
-    void print_obs_select (string) ;
+    void print_obs (const string&) ;
+    void print_obs_select (const string&) ;
 
     void print_op (uint,uint) ;
     void print_op (uint) ;

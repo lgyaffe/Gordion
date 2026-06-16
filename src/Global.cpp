@@ -1,18 +1,11 @@
 #include "Global.h"
-#include "Rep.h"
-#include "Canon.h"
 #include "Numerics.h"
-#include "Gripe.h"
 
-void Global::stageinit (uint i)		// Stage initialization
+void Global::stageinit (uint i = 0)		// Stage initialization
     {
-    if (i == Global::Fermi && !theory.nf) gripe ("No fermions!!!") ;
+    if (i && !theory.nf) gripe ("No fermions!!!") ;
     stage = i ? Global::Fermi : Global::Gauge ;
-    if (!ObsList::base.nobs(stage))	ObsList::base.obsinit () ;
-    if (!ObsList::obs.nobs(stage))	ObsList::obs.obsinit  () ;
-    if (!info().gens[0].size())		Gen::geninit () ;
-    if (!info().Hterms.size())		Theory::theorydefn () ;
-    if (i || !numerics.vev.size())	Numerics::numericsinit () ;
+    if (!okfermivev) numerics.initialize (1) ;
     }
 
 string Global::dfltfilename (const string&& ext)  // Make default file name
@@ -23,20 +16,18 @@ string Global::dfltfilename (const string&& ext)  // Make default file name
     int		maxgen { info().maxgen } ;
 
     return format ("{}{}{}{}a{}.{}",
-		name, maxgen, global.fg(), obsord, approx, ext) ;
+		name, maxgen, fg(), obsord, approx, ext) ;
     }
 
 void Global::mk_bcktlist (uint stage)		// Make Obs bucket list
     {
-    auto&	info  { global.info(stage) } ;
-    auto&	bckt  { info.bckt } ;
+    auto&	bckt  { info(stage).bckt } ;
     uint	count { ObsList::obs.nobs(stage) } ;
     uint	start { stage ? ObsList::obs.nobsG : 0 } ;
     uint	end   { start + count } ;
     uint	chunk ( 1024 ) ;
 
     if (count >= MAXBCKT * chunk) chunk = 1 + (count - 1)/MAXBCKT ;
-    else while (1 + (count - 1)/chunk > MAXBCKT) chunk *= 2 ;
 
     bckt.resize (1 + (count - 1)/chunk) ;
     for (uint i(start), k(0) ; i < end ; i += chunk, ++k)
@@ -49,7 +40,7 @@ uint3 Global::bckt_pos (uint i)			// Return stage/bucket/indx
     {
     uint	stage { i >= ObsList::obs.nobsG } ;
     uint	start { stage ? ObsList::obs.nobsG : 0 } ;
-    const auto& bckt  { global.info(stage).bckt } ;
+    const auto& bckt  { info(stage).bckt } ;
 
     if (bckt.size())
 	{
@@ -63,4 +54,12 @@ uint3 Global::bckt_pos (uint i)			// Return stage/bucket/indx
 	else fatal ("Invalid observable number!") ;
 	}
     else gripe (format ("Make stage {} observables first!", stage)) ;
+    }
+
+void Global::clearpolys (int stage)		// Clear polynomial scripts
+    {
+    data(stage).grad.clear() ;
+    for (auto& mtx  : data(stage).geos) mtx.clear() ;
+    for (auto& mtx  : data(stage).lagr) mtx.clear() ;
+    for (auto& cube : data(stage).curv) cube.clear() ;
     }

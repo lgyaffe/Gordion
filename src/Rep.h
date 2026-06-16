@@ -1,7 +1,6 @@
 #ifndef REP_H
 #define REP_H
 #include "Symm.h"
-#include "Gen.h"
 
 class Proj : public vector<doub>		// Symmetry irrep projector
     {

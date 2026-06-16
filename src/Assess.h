@@ -1,5 +1,6 @@
 #ifndef ASSESS_H
 #define ASSESS_H
+#include "Gordion.h"
 #include "Theory.h"
 
 class Site
@@ -20,6 +21,8 @@ class Site
 	return point < b.point ;
 	} ;
     } ;
+
+using SiteVec = vector<Site> ;
 
 class Intersect
     {

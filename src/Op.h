@@ -1,18 +1,25 @@
 #ifndef OP_H
 #define OP_H
-#include "Symb.h"
-#include "Obs.h"
-#include "Term.h"
 #include "Index.h"
-#include "Global.h"
+#include "Obs.h"
 
 using OpTerm = Term<doub,uint> ;			// Term with list index
+class OpList ;
+class Obs ;
 
 class OpSum : public vector<OpTerm>			// Op linear combination
     {
+    std::reference_wrapper<OpList> list ;		// Operator list
     public:
-    using	vector<OpTerm>::vector ;
-    int		collect (bool = false) ;		// collect terms
+    OpSum (OpList&) ;					// Constructor
+    OpSum (OpTerm*, OpTerm*, OpList&) ;			// Constructor
+
+    OpList&		oplist() const { return list ;} // Underlying OpList
+    int			collect (bool = false) ;	// Collect terms
+    OpSum 		flipT   () const ;		// Flip fermion staggering
+    OpSum 		loop_dt () ;			// Return [EE,loops]/2
+    static OpSum 	loop_dt (Op, OpList&) ;		// Return [EE,loops]/2
+    static OpSum 	loop_dt (OpTerm, OpSum&) ;	// Return [EE,loops]/2
 
     friend ostream& operator<< (ostream&, const OpSum&) ;
     } ;
@@ -28,7 +35,7 @@ enum class OpType : char				// Operator types
 class Op : public SymbStr				// Op = generator term
     {
     public:
-    OpType		type { OpType::Invalid } ;	// Observable type
+    OpType		type { OpType::Invalid } ;	// Operator type
     mutable bool	primary { false } ;		// Primary Op?
     short		order   { -1 } ;		// Grading order
 
@@ -40,9 +47,8 @@ class Op : public SymbStr				// Op = generator term
 	:
 	SymbStr	(s),
 	type	((OpType) hdr.type),
-	order	(hdr.order),
-	primary	(hdr.prim)
-	{ if (Op::check) validate() ; }
+	order	(hdr.order)
+	{ if (check) validate() ; }
 
     Op (const SymbStr& s, OpType t, short o)		// Constructor
 	:
@@ -50,7 +56,7 @@ class Op : public SymbStr				// Op = generator term
 	type	(t),
 	order	(o)
 	{ if (type == OpType::Loop) findstart() ;
-	  if (Op::check) validate() ; }
+	  if (check) validate() ; }
 
     Op (const Obs& a) 					// Convert Obs -> Op
 	:
@@ -66,7 +72,6 @@ class Op : public SymbStr				// Op = generator term
     bool is_Loop()	const { return type == OpType::Loop ; }
     bool is_Eloop()	const { return type == OpType::Eloop ; }
     bool is_Fermion()	const { return type == OpType::Fermion ; }
-    bool is_FermionE()	const { return is_Fermion() && !oddlen() ; }
     bool is_FermionO()	const { return is_Fermion() &&  oddlen() ; }
     bool staggered()	const { return is_Fermion() &&
 				isstag(front()) ^ isstag(back()) ; }
@@ -74,34 +79,41 @@ class Op : public SymbStr				// Op = generator term
 				(theory.euclid && !staggered() ||
 				!theory.euclid && staggered() ^ oddlen()) ; }
 
-    static void		setprimary (int) ;		// Identify primary Ops
-    static OpSum 	loop_dt (Op) ;			// Return [EE,loop]/2
-    static OpSum 	loop_dt (OpSum) ;		// Return [EE,loops]/2
-    static OpSum 	flipT (OpSum) ;			// Flip fermion staggering
     static OpType	optype (const string) ;		// Determine type
-    static uint		store (const Op&) ;		// Store in list
-    static void		purge (uint limit)		// Purge entries
-	    {
-	    nopF -= std::erase_if (list.map, [&](const auto& p)
-			{ return p.second >= limit && p.second >= nopG; }) ;
-	    nopG -= std::erase_if (list.map, [&](const auto& p)
-			{ return p.second >= limit && p.second <  nopG; }) ;
-	    list.resize (limit) ;
-	    }
-
-    static inline uint	nopG ;				// # gauge Op's
-    static inline uint	nopF ;				// # fermi Op's
-    static uint&	nops (int stage) { return stage ? nopF : nopG ; }
     static inline bool	check { false } ;		// Do validity tests?
-    static Index<Op>	list ;				// List of defined Ops
 
-    static ostream& print(ostream&, uint) ;		// Print indexed Op
-    static ostream& print(ostream&) ;			// Print Op list
     friend ostream& operator<< (ostream&, const Op&) ;	// Print Op
 
     private:
     void		validate() ;
-    static OpSum 	loop_dt (OpTerm,OpSum&) ;	// Return [EE,loop]/2
+    } ;
+
+class OpList : public Index<Op>
+    {
+    public:
+    uint	store () ;			// Store Op in list
+    void	setprimary () ;			// Identify primary Op's
+
+    uint store (const Op& op)			// Store Op in list
+	{
+	uint	len  ( size() ) ;
+	uint	indx { Index<Op>::store (op) } ;
+	if (indx >= size()) fatal ("OpList::store: bad store! ") ;
+	return indx ;
+	}
+    void purge (uint limit)			// Purge entries
+	{
+	std::erase_if (map, [&](const auto& p) { return p.second >= limit ; }) ;
+	resize (limit) ;
+	}
+    void clear ()				// Clear list
+	{
+	map.clear () ;
+	clear () ;
+	}
+
+    ostream& print (ostream&, uint) const ;	// Print indexed Op
+    ostream& print (ostream&) const ;		// Print Op list
     } ;
 
 #endif

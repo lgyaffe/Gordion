@@ -1,7 +1,6 @@
 #ifndef SYMM_H
 #define SYMM_H
 #include "Op.h"
-#include "Obs.h"
 #include <bitset>
 
 class Symm ;
@@ -46,7 +45,6 @@ class Symm						// Symmetry transformation
 
     Symm() : map(idmap) {}				// default constructor
 
-    string		print() const ;
     pair<int,Op>	operator()(const Op&) const ;		// Transform Op
     int			operator()(const Symm&) const noexcept ;// Compose tranformations
     bool		operator==(const Symm&) const noexcept ;// Compare transformations

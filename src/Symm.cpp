@@ -1,5 +1,4 @@
 #include "Symm.h"
-#include "Blab.h"
 #include <sstream>
 #include <cstring>
 
@@ -117,13 +116,6 @@ bool Symm::operator==(const Symm&s) const noexcept		// Compare transformation
 SymmTerm Symm::known (const string&& name)			// Return named symmetry
     {
     return SymmTerm { list.map.at(name) } ;
-    }
-
-string Symm::print() const					// Print transformation
-    {
-    ostringstream buf ;
-    buf << *this ;
-    return buf.str() ;
     }
 
 ostream& operator<< (ostream& stream, const Symm& a)		// Print transformation

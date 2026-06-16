@@ -248,11 +248,13 @@ namespace RK				// Runge-Kutta method definitions
 
 const std::array<RKdef,7> RKdef::list
     {
-    RKdef { 4, 3, RK::ss32_c, RK::ss32_a, RK::ss32_b, RK::ss32_bh, RK::ss32_db, RK::ss32_n },
-    RKdef { 4, 3, RK::bs32_c, RK::bs32_a, RK::bs32_b, RK::bs32_bh, RK::bs32_db, RK::bs32_n },
-    RKdef { 5, 4, RK::ss43_c, RK::ss43_a, RK::ss43_b, RK::ss43_bh, RK::ss43_db, RK::ss43_n },
+    RKdef { 9, 6, RK::jv65_c, RK::jv65_a, RK::jv65_b, RK::jv65_bh, RK::jv65_db, RK::jv65_n },
+    RKdef { 8, 5, RK::bs54_c, RK::bs54_a, RK::bs54_b, RK::bs54_bh, RK::bs54_db, RK::bs54_n },
     RKdef { 7, 5, RK::jb54_c, RK::jb54_a, RK::jb54_b, RK::jb54_bh, RK::jb54_db, RK::jb54_n },
     RKdef { 7, 5, RK::dp54_c, RK::dp54_a, RK::dp54_b, RK::dp54_bh, RK::dp54_db, RK::dp54_n },
-    RKdef { 8, 5, RK::bs54_c, RK::bs54_a, RK::bs54_b, RK::bs54_bh, RK::bs54_db, RK::bs54_n },
-    RKdef { 9, 6, RK::jv65_c, RK::jv65_a, RK::jv65_b, RK::jv65_bh, RK::jv65_db, RK::jv65_n }
+    RKdef { 5, 4, RK::ss43_c, RK::ss43_a, RK::ss43_b, RK::ss43_bh, RK::ss43_db, RK::ss43_n },
+    RKdef { 4, 3, RK::ss32_c, RK::ss32_a, RK::ss32_b, RK::ss32_bh, RK::ss32_db, RK::ss32_n },
+    RKdef { 4, 3, RK::bs32_c, RK::bs32_a, RK::bs32_b, RK::bs32_bh, RK::bs32_db, RK::bs32_n }
     } ;
+
+RKdef::RKdef () { *this = RKdef::list[0] ; }		// Default RK choice

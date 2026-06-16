@@ -1,0 +1,34 @@
+Feb 9, 2026:
+    Added Version.h.
+    Added VEV32 preprocessor symbol & real typedef for selecting 32 bit vev's and poly coeffs.
+    Added version numbers to save file headers, incompatibility checking in Save::read_header.
+
+Feb 27, 20206:
+    Added PAGESIZE preprocessor definitions in Save.cpp, used in I/O buffer alignas specifications.
+    Enclosed std::locale("en_US.UTF-8") statements in Print.cpp in try/catch block.
+
+Mar 1, 2026:
+    Added Parse::eos to encapuslate proper testing for end of input string.
+
+Mar 7, 2026:
+    Fixed definition of is_coord() in Obs.h
+
+Apr 14, 2026:
+    Modified Coupling.{h,cpp} and Theory.cpp to allow products of powers of adjustable
+    coupling constants as coefficients in Hamiltonian (or free energy) terms.
+    Modified Makefile with commend about possible definition of MASSSCALE symbol.
+
+May 29, 2026:
+    Uploaded version 1.3.  See Version.h.  Changes include reducing spectrum
+    evaluation to small second order eigensystem, and allowing use of Eigen
+    instead of Armadillo for linear algebra operations (used for testing).
+
+June 16, 2026:
+    Uploaded version 1.4.  See Version.h.  Changes made to disentangle initialization
+    and generator definition from minimization stage, enabling definition of both
+    gauge and fermi generators at any time, and flipping back and forth between
+    minimization stages without unnecessary rebuilding of observables or polys.
+    Made setting of coupling value automatically switch to related minimization stage.
+    Fixed critical error in addition of spec Obs to Canon::cache.
+
+

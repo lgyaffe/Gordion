@@ -6,6 +6,7 @@ class Coupling : public char8		// Adjustable coupling constant
     {
     public:
     doub	value = 0 ;			// Coupling value
+    int		stage = -1 ;			// Coupling stage
 
     static int indx (const string& s)		// Return coupling index
 	{

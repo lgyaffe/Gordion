@@ -54,7 +54,7 @@ namespace Save
     void read_stat	(int)  ;	// Load Statistics
     void rewrite_stat	() ;		// Save Statistics
 
-    struct FileHdr			// Save file header
+    static inline struct FileHdr	// Save file header
 	{
 	char8	name ;
 	Version	version ;
@@ -66,9 +66,9 @@ namespace Save
 	ulong cvsetsize() const { return coupsize() + vevsize() ; }
 	bool is_sysfile() const { return !ncoup && !nvev ; }
 	bool is_vevfile() const { return  ncoup ||  nvev ; }
-	} ;
+	} filehdr ;
 
-    inline static FileHdr	filehdr ;	// Save file header
+    //inline static FileHdr	filehdr ;	// Save file header
     inline static string	syspath ;	// Sys info file pathname
     inline static std::mutex	savemutex ;	// Sys info file mutex
     } ;

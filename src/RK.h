@@ -1,9 +1,9 @@
 #ifndef RK_H
 #define RK_H
+#include "Gordion.h"				// just for real typedef
 #include <limits>
 #include <cstring>
 #include <array>
-#include "Gordion.h"				// just for real typedef
 
 class RKdef					// embedded Runge-Kutta method
     {
@@ -29,7 +29,9 @@ class RKdef					// embedded Runge-Kutta method
 	    fsal {b[n-1] == 0 && !std::memcmp(a[n-2],b,(n-1)*sizeof(real))}
 	{}
 
-    static const std::array<RKdef,7>	list ;	// Array of defined methods
+    RKdef () ;					// Default constructor
+
+    static const std::array<RKdef,7> list ;	// Array of defined methods
     } ;
 
 #endif

@@ -1,6 +1,5 @@
 #include "Poly.h"
 #include "Gen.h"
-#include "Gripe.h"
 
 std::size_t Polyhash::operator()(const Polyindx& t)	// Polyindx hash function
     const noexcept
@@ -43,32 +42,38 @@ PolyTerm PolyTerm::operator* (const PolyTerm& fac) const // Multiply PolyTerms
 	}
     }
 
-void PolyTerm::print (ostream& stream, const ObsList& l) const // Print PolyTerm
+PolyTerm PolyTerm::reindex (ObsList& listb, const ObsList& lista) const
     {
-    coeffprt (stream, coeff) ;
-    if (!item[0] && is_one (std::abs(coeff))) stream << l(item[0]) ;
+    PolyTerm ans { *this } ;
+    for (int k(0) ; k < PSIZ ; ++k)
+	{
+	if (!ans[k]) break ;
+
+	Obs	o	{ lista (ans[k]) } ;
+	auto	tmp	{ listb.is_known (std::move(o)) } ;
+	if (tmp.coeff)	{ ans[k] = tmp[0] ; ans.coeff *= tmp.coeff ; }
+	else gripe (format("Observable {} missing in list {}!",o.print(),listb.name)) ;
+	}
+    return ans ;
+    }
+
+void PolyTerm::print (ostream& stream, const ObsList& l) const	// Print PolyTerm
+    {
+    Print::coeffprt (stream, coeff) ;
+    if (!item[0] && Print::is_one (std::abs(coeff))) stream << l(item[0]) ;
     for (int k(0) ; k < PSIZ ; ++k)
 	if (item[k]) stream << (k ? " " : "") << l(item[k]) ;
     }
 
-ObsPoly::ObsPoly (Obs& obs, ObsList& l) : list(l)	// Convert Obs -> ObsPoly
+void ObsPoly::sort ()					// Sort ObsPoly terms
     {
-    push_back (l.catalog(obs)) ;
+    std::sort (begin(), end(),
+        [](const PolyTerm &a, const PolyTerm &b) { return a.item < b.item ; }) ;
     }
 
-ObsPoly::ObsPoly (const Gen& gen, ObsList& l) : list(l)	// Convert Gen -> ObsPoly
+ObsPoly& ObsPoly::negate ()				// Negate ObsPoly
     {
-    for (auto& t : gen)
-	{
-	const auto&	op  { Op::list[t.item] } ;
-	Obs		obs { op, (ObsType) op.type, op.order, -1 } ;
-	push_back (l.catalog(obs) * t.coeff * gen.coeff) ;
-	}
-    }
-
-ObsPoly& ObsPoly::scale (doub s)			// Scale ObsPoly
-    {
-    for (auto& t : *this) t.coeff *= s ;
+    for (auto& t : *this) t.coeff *= -1 ;
     return *this ;
     }
 
@@ -84,23 +89,17 @@ void ObsPoly::push_map (PolyMap& map)			// Add map terms to ObsPoly
     sort() ;
     }
 
-void ObsPoly::sort ()					// Sort ObsPoly terms
-    {
-    std::sort (begin(), end(),
-        [](const PolyTerm &a, const PolyTerm &b) { return a.item < b.item ; }) ;
-    }
-
 bool PolyMap::add_gen (const Gen& gen)			// Add Gen to PolyMap
     {
-    try {
-	for (auto& t : gen)
-	    {
-	    const auto&	op  { Op::list[t.item] } ;
-	    Obs		obs { op, (ObsType) op.type, op.order, -1 } ;
-	    add (obslist().catalog(obs) * t.coeff * gen.coeff) ;
-	    }
+    const auto& oplist { gen.oplist() } ;
+    for (auto& t : gen)
+	{
+	const auto&	op  { oplist[t.item] } ;
+	Obs		obs { op, (ObsType) op.type, op.order, -1 } ;
+	PolyTerm	tmp { obslist().is_known (std::move(obs)) } ;
+	if (tmp.coeff) add (tmp * t.coeff * gen.coeff) ;
+	else return false ;
 	}
-    catch (const Fatal& e) { return false ; }
     return true ;
     }
 

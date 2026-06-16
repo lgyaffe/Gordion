@@ -1,7 +1,6 @@
 #ifndef THEORY_H
 #define THEORY_H
 #include "Gordion.h"
-#include "Gripe.h"
 
 enum LATTTYPE { Hamilton = 0, Euclid = 1 } ;	// Basic lattice theory class
 
@@ -84,7 +83,7 @@ class Theory					// Basic theory info
 						     && !box.comp[2] &&  box.comp[3] ; }
 
     static void theoryinit() ;
-    static void theorydefn() ;
+    static void theorydefn(int) ;
     } ;
 
 #if   defined (YM1h)

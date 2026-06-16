@@ -3,6 +3,7 @@
 #include "Counter.h"
 #include "Coupling.h"
 #include "Data.h"
+#include "Op.h"
 #include "Version.h"
 #include <atomic>
 
@@ -24,9 +25,10 @@
 struct StageInfo				// Stage-specific info
     {
     short			maxgen { 0 } ;	// Max Gen order
-    short			maxord { 2 } ;	// Max Obs sc order
+    short			maxord { 0 } ;	// Max Obs sc order
     uint			MMAlimit ;	// initial # Obs for MMA file
     ObsSet			MMAlist ;	// addl Obs for MMA file
+    OpList			ops ;		// Operators
     array<vector<Gen>,NREP>	gens ;	 	// Generators
     array<ushort,NREP>		neven ;	 	// # T-even generators
     vector<AdjTerm>		Hterms ; 	// Hamiltonian/free energy
@@ -64,8 +66,9 @@ class Global					// Global data
     uint	maxthread  { 0 } ;		// Thread limit
     bool	autosave   { false } ;		// Write savefile on bulid
     bool	geoswap    { false } ;		// Swap geo bckts to disk
-    bool	massreinit { true } ;		// Auto vev init on new mass
+    bool	massreinit { true } ;		// Auto vev init on new mass?
     bool	symcurv    { true } ;		// Symmetrize curvature?
+    bool	okfermivev { false } ;		// Fermi vev's initialized?
     bool	oknegeig   { false } ;		// Negative curvature OK?
     bool	vevappend  { false } ;		// Append to vev data file?
     bool	MMAappend  { false } ;		// Append to MMA file?
@@ -88,10 +91,13 @@ class Global					// Global data
     auto&	maxord	()	{ return info().maxord ; }
     auto&	count	()	{ return info().count  ; }
     uint	nobs	()	{ return ObsList::obs.nobs (stage) ; }
-    char	fg	()const	{ return stage == Fermi ? 'f' : 'g' ; }
+    char	fg () const	{ return stage == Fermi ? 'f' : 'g' ; }
 
-    void	stageinit    (uint = 0) ;	// stage initialization
-    string	dfltfilename (const string&&);	// default file names
+    string	dfltfilename (const string&&) ;	// default file names
+    uint3	bckt_pos     (uint) ;		// Obs bucket position
+    void	mk_bcktlist  (uint) ;		// make bucket list
+    void	clearpolys   (int) ;		// Clear polys
+    void	stageinit    (uint) ;		// State initialization
 
     string sysfilename ()			// Sys info file name
 	{
@@ -109,9 +115,6 @@ class Global					// Global data
 #ifdef PARALLEL
     static inline tbb::task_scheduler_handle handle {tbb::attach{}} ;
 #endif
-
-    static void	 mk_bcktlist  (uint) ;		// make bucket list
-    static uint3 bckt_pos     (uint) ;		// Obs bucket position
     } ;
 
 extern Global global ;

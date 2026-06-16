@@ -7,6 +7,7 @@ namespace Parse
     {
     void read_input  (istream&&, bool) ;	// Read input line
     void read_input  (istream&,  bool) ;	// Read input line
+    void parse_help  () ;			// Print command help
     void parse_line  (const string&)  ;		// Parse input line
     void parse_cmd   (const string&)  ;		// Parse command word
     bool parse_set   (istringstream&) ;		// Parse "set" commands
@@ -23,12 +24,14 @@ namespace Parse
     bool parse_write (istringstream&) ;		// Parse "write" command
     bool parse_save  (istringstream&) ;		// Parse "save" command
     bool parse_load  (istringstream&) ;		// Parse "load" command
-    bool isstar	     (istringstream&) ;		// Is next word == "*"?
-    bool eos	     (istringstream&) ;		// End of string?
 
-    void	 print_help  () ;		// Print command help
     void	 sig_catch (int) ;		// Catch interrupts
     [[noreturn]] void quit (int) ;		// Exit program
+
+    inline bool eos (istringstream& line)	// End of string?
+	{
+	return line.peek() == EOF ;
+	}
 
     template <typename... Args>
     bool parse_args (istringstream& line, Args&... args) // Parse command args
@@ -43,17 +46,20 @@ namespace Parse
 	return false;
 	}
 
-    inline bool eos (istringstream& line)	// End of string?
-	{
-	return line.peek() == EOF ;
-	}
-
-    inline bool isword(const string& w, const string& cmd, int min=1)
-	//
-	// Abbreviating word comparison
-	//
+    inline bool isword (const string& w, const string& cmd, int min=1)
+	//					// Abbreviating comparison
 	{
 	return (w.size() >= min) && 0 == cmd.compare (0, w.size(), w) ;
+	}
+
+    inline bool isstar (istringstream& line)	// Next word == "*"?
+	{
+	string	word ;
+	auto	pos { line.tellg() } ;
+	if (parse_args (line,word) && word == "*") return true ;
+	line.clear() ;
+	line.seekg (pos) ;
+	return false ;
 	}
     } ;
 

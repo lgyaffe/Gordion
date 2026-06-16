@@ -1,4 +1,5 @@
 #include "Symb.h"
+#include "Theory.h"
 #include "Gripe.h"
 
 bool Symb::in_thy(symb c) noexcept		// Test if valid symb

@@ -26,17 +26,16 @@ class Ode : public RKdef			// Runge-Kutta ODE integrator
     Ode (OdeRhs rhsfunc, OdeNorm normfunc, doub& tol, const RKdef& rk, uint max=dfltmax)
 	: rhs(rhsfunc), norm(normfunc), tolerance(tol), RKdef(rk), maxstep(max) {} ;
 
-    struct Stats
+    static struct Stats
 	{
 	static inline uint32_t steps   { 0 } ;		// # total steps
 	static inline uint32_t rejects { 0 } ;		// # steps rejected
 	static inline uint32_t derivs  { 0 } ;		// # derivative evals
 	static inline uint32_t integs  { 0 } ;		// # integrations
 	static inline uint32_t fails   { 0 } ;		// # failed integrations
-	} ;
+	} stats ;
 
-    static constexpr int	dfltmax = 1500 ;	// Default max steps
-    static inline Stats		stats ;			// ODE integration stats
+    static constexpr int dfltmax = 1500 ;	// Default max steps
     } ;
 
 #endif

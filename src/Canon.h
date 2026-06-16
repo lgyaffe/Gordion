@@ -1,6 +1,5 @@
 #ifndef CANON_H
 #define CANON_H
-#include "Global.h"
 #include "Index.h"
 #include "Obs.h"
 
@@ -33,7 +32,7 @@ static_assert (ipow(2,specbits*specchunksize) < UINT_MAX, "specchunksize too big
 class CanonCache : public hash<string,int>		// Short Obs cache
     {
     public:
-    bool freeze { false } ;
+    bool freeze { true } ;
 
     void purge (uint indx)		// purge entries >= indx
 	    { std::erase_if (*this, [indx](const auto& p)

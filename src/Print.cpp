@@ -1,13 +1,40 @@
 #include "Print.h"
-#include "Rep.h"
-#include "Build.h"
 #include "Canon.h"
+#include "Gen.h"
 #include "Numerics.h"
+#include "Rep.h"
 #include "Save.h"
 #include "Blab.h"
 #include <locale>
 #include <cstdio>
 #include <regex>
+
+ostream& Print::coeffprt (ostream& stream, doub c)	// Pretty print coefficient
+    {
+    if (c)
+	{
+	const string sgn { c > 0 ? "+" : "-" } ;
+	c = std::abs(c) ;
+	doub x { c * sqrt(2.0) } ;
+	if      (is_one (c))	stream << sgn ;
+	else if (is_int (c))	stream << sgn <<    c << " " ;
+	else if (is_int (1/c))	stream << sgn << "1/" << (int)(1/c) << " " ;
+	else if (is_int (2*c))	stream << sgn << 2*c  << "/2" << " " ;
+	else if (is_int (3*c))	stream << sgn << 3*c  << "/3" << " " ;
+	else if (is_int (4*c))	stream << sgn << 4*c  << "/4" << " " ;
+	else if (is_int (8*c))	stream << sgn << 8*c  << "/8" << " " ;
+	else if (is_int (16*c))	stream << sgn << 16*c << "/16" << " " ;
+	else if (is_int (x))	stream << sgn <<   x  << "/\u221A2" << " "  ;
+	else if (is_int (2*x))	stream << sgn << 2*x  << "/(2\u221A2)" << " " ;
+	else if (is_int (3*x))	stream << sgn << 3*x  << "/(3\u221A2)" << " " ;
+	else if (is_int (4*x))	stream << sgn << 4*x  << "/(4\u221A2)" << " " ;
+	else if (is_int (8*x))	stream << sgn << 8*x  << "/(8\u221A2)" << " " ;
+	else if (is_int (16*x))	stream << sgn << 16*x << "/(16\u221A2)" << " " ;
+	else			stream << sgn << format("{:.2e} ", c) ;
+	}
+    else stream << "+0 " ;
+    return stream ;
+    } ;
 
 void Print::print_obs (uint i, uint j)		// Print ObsList::obs range
     {
@@ -27,7 +54,7 @@ void Print::print_obs (uint i)			// Print indexed Obs
     else gripe (format("Invalid observable number {}", i)) ;
     }
 
-void Print::print_obs (string word)		// Print specified Obs
+void Print::print_obs (const string& word)	// Print specified Obs
     {
     bool	found { false } ;
     SymbStr	s { to_symb(word) } ;
@@ -45,7 +72,7 @@ void Print::print_obs ()			// Print ObsList::obs
     ObsList::obs.print (cout) ;
     }
 
-void Print::print_obs_select (string word)	// Print order-selected Obs
+void Print::print_obs_select (const string& word)	// Print order-selected Obs
     {
     std::regex	patt3 { "\\((\\d+),(\\d+),([A-Z]+[a-z]+)\\)" } ;
     std::regex	patt2 { "\\((\\d+),(\\d+)\\)" } ;
@@ -110,33 +137,34 @@ void Print::print_base ()			// Print ObsList::base
     ObsList::base.print (cout) ;
     }
 
-void Print::print_op (uint i, uint j)		// Print Op::list range
+void Print::print_op (uint i, uint j)		// Print OpList range
     {
-    if (i < Op::list.size() && j < Op::list.size())
+    const auto& oplist { global.info().ops } ;
+    if (i < oplist.size() && j < oplist.size())
 	{
-	for (int k(i) ; k <= j ; ++k) Op::print (cout, k) ;
+	for (int k(i) ; k <= j ; ++k) oplist.print (cout, k) ;
 	}
     else gripe (format("Invalid operator number {} or j", i, j)) ;
     }
 
 void Print::print_op (uint i)			// Print indexed Op
     {
-    if (i < Op::list.size())
-	{
-	Op::print (cout, i) ;
-	}
+    const auto& oplist { global.info().ops } ;
+    if (i < oplist.size()) oplist.print (cout, i) ;
     else gripe (format("Invalid operator number {}", i)) ;
     }
 
-void Print::print_op ()				// Print Op::list
+void Print::print_op ()				// Print OpList
     {
-    Op::print (cout) ;
+    const auto& oplist { global.info().ops } ;
+    oplist.print (cout) ;
     }
 
 void Print::print_primary ()			// Print primary Op's
     {
+    const auto& oplist { global.info().ops } ;
     cout << "Primary Op's:\n" ;
-    for (const auto& op : Op::list)
+    for (const auto& op : oplist)
 	{
 	if (op.primary) cout << op << "\n" ;
 	}
@@ -160,7 +188,7 @@ void Print::print_gen (uint i, bool full)	// Print specified Gen
 	{
 	const Gen& gen { gens[i] } ;
 
-	cout << " " << Rep::list[global.repnum].name
+	cout << "  " << Rep::list[global.repnum].name
 	     << " generator " << global.fg() << i
 	     << (gen.T_odd ? "*" : "") << " (" << gen.order << ") = " ;
 	if (full) cout << gen ;
@@ -436,6 +464,14 @@ void Print::print_lagrange ()			// Print Lagrange bracket
 	}
     }
 
+void Print::print_spectrum ()
+    {
+    auto prevprec { cout.precision(12) } ;
+    cout << Rep::list[numerics.lastrep].name ;
+    raw_print (numerics.spectrum," spectrum =") ;
+    cout << std::setprecision (prevprec) ;
+    }
+
 void Print::print_mode (uint i)
     {
     const auto& repnam { Rep::list[numerics.lastrep].name } ;
@@ -450,14 +486,6 @@ void Print::print_mode (uint i)
 void Print::print_mode ()
     {
     for (int i(0) ; i < ncol(numerics.modes) ; ++i) print_mode (i) ;
-    }
-
-void Print::print_spectrum ()
-    {
-    auto prevprec { cout.precision(12) } ;
-    cout << Rep::list[numerics.lastrep].name ;
-    raw_print (numerics.spectrum," spectrum =") ;
-    cout << std::setprecision (prevprec) ;
     }
 
 void Print::print_geodesic (uint i, uint j)	// Print specified geodesic equation
@@ -601,8 +629,11 @@ void Print::print_stats ()			// Print global statistics
     try { cout.imbue (std::locale("en_US.UTF-8")) ; }
     catch (const std::exception&) {}
     cout << "  Canonical obs:        " << ObsList::obs.size()       << "\n" ;
-    cout << "  Basic obs:            " << ObsList::base.size()      << "\n" ;
-    cout << "  Operator terms:       " << Op::list.size()           << "\n" ;
+    cout << "      basic obs:        " << ObsList::base.size()      << "\n" ;
+    cout << "  Operators:            " << global.info(0).ops.size()
+    					+ global.info(1).ops.size() << "\n" ;
+    cout << "      gauge:            " << global.info(0).ops.size() << "\n" ;
+    cout << "      fermion:          " << global.info(1).ops.size() << "\n" ;
     cout << "  Ode integrations:     " << Ode::stats.integs         << "\n" ;
     cout << "      steps:            " << Ode::stats.steps          << "\n" ;
     cout << "      rejects:          " << Ode::stats.rejects        << "\n" ;
@@ -656,8 +687,8 @@ void Print::print_state ()			// Print global state variables
     cout << " Check obs:          " << Obs::check        << "\n" ;
     cout << " Dot obs:            " << SymbStr::dots     << "\n" ;
     cout << " Normalize gens:     " << Gen::gennorm      << "\n" ;
-    cout << " Max Newton iters:   " << numerics.minmax   << "\n" ;
-    cout << " Max ODE steps:      " << numerics.odemax   << "\n" ;
+    cout << " Max Newton iters:   " << numerics.maxnewt  << "\n" ;
+    cout << " Max ODE steps:      " << numerics.maxode   << "\n" ;
     cout << " Minimize tolerance: " << numerics.mintol   << "\n" ;
     cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;

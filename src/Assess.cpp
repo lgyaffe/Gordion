@@ -1,7 +1,6 @@
 #include "Assess.h"
 #include "Global.h"
 #include "Commute.h"
-#include "Rep.h"
 #include "Blab.h"
 #include "Gripe.h"
 
@@ -9,17 +8,17 @@ thread_local int depth (0) ;		// Used in debugging output
 
 PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
     {
-    ++global.count().assessed ;
+    ++global.count().assessed ; ++depth ;
 
     uint blab { Blab::blablevel[BLAB::ASSESS] } ;
-    if (blab > 1) cout << "\nassess depth " << ++depth << ": " << name
+    if (blab > 1) cout << "\nassess " << depth << ": " << name
 		   << " frozen " << frozen() << " approx " << approx
 		   << " classify " << classify << " " << a << "\n" << flush ;
 
     doub	sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
     uint	indx { find (a) } ;
 
-    if (blab > 1) cout << "assess depth " << depth << ": "
+    if (blab > 1) cout << "assess " << depth << "| "
 		       << (sgn < 0 ? "-" : "") << a << "\n" ;
 
     if (indx != UINT_MAX)			// found in list
@@ -29,14 +28,17 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	    const Obs& b { (*this)(indx) } ;
 	    if (classify && a.corder >= 0 && a.corder < b.corder) 
 		{
-		//fatal (format ("Bad corder in (): indx {} {} cord {} -> {}",
+		//fatal (format ("Bad corder in {}: indx {} {} cord {} -> {}",
 		//	name, indx, b.print(), b.corder, a.corder)) ;
-		cout << format ("Warning: Bad corder in ():  indx {} {} cord {} -> {}\n",
+		cout << format ("Warning: Bad corder in {}:  indx {} {} cord {} -> {}\n",
 			name, indx, b.print(), b.corder, a.corder) ;
 		}
 	    }
 	if (blab > 1)
-	    cout << "assess " << depth-- << ":: found at #" << indx << "\n" ;
+	    {
+	    cout << "assess " << depth << ":: " << a << " found at #" << indx << "\n" ;
+	    }
+	--depth ;
 	++global.count().found ;
 	return PolyTerm {Polyindx(indx), sgn} ;
 	}
@@ -45,15 +47,29 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	if (approx)
 	    {
 	    PolyTerm approx = a.approximate (*this) ;
-	    if (approx.coeff)			// return approx
+	    if (approx.coeff)
 		{
-		if (blab > 1) cout << "assess " << depth-- << ":: returning approx "
-				   << approx.coeff << " * " << approx.item << "\n" << flush ;
-		return approx * sgn ;
+		if (blab > 1)
+		    {
+		    cout << "assess " << depth << ":: " << a
+			 << " returning approx " << approx.coeff
+			 << " * " << approx.item << "\n" << flush ;
+		    }
+		--depth ;
+		return approx * sgn ;			// return approx
 		}
-	    else if (blab > 1) cout << "assess " << depth-- << ":: cannot approx\n" ;
+	    else if (blab > 1)
+		{
+		cout << "assess " << depth << ":: " << a
+		     << " cannot approx\n" ;
+		}
 	    }
-	else if (blab > 1) cout << "assess " << depth-- << ":: absent " << a << "\n" ;
+	else if (blab > 1)
+	    {
+	    cout << "assess " << depth << ":: " << a
+		 << " absent " << a << "\n" ;
+	    }
+	--depth ;
 	return PolyTerm (Polyindx(), 0) ;
 	}
     else if (classify)			// Obs generation phase, determine xorder
@@ -66,16 +82,27 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 		a.shrink_to_fit() ;
 		if (global.maxthread == 1) store(a) ;
 		else			   retain(a) ;
-		if (blab > 1) cout << "assess " << depth-- << ":: retained/stored "
-				   << a << " -> " << name << "\n" ;
+		if (blab > 1)
+		    {
+		    cout << "assess " << depth << ":: " << a
+			 << " retained/stored -> " << name << "\n" ;
+		    }
+		--depth ;
 		++global.count().stored ;
 		return PolyTerm (Polyindx(UINT_MAX-1), sgn) ;
 		}
 	    else if (a.order() < maxord)
-		cout << (format ("Obs {} order {} < maxord {}",a.print(),a.order(),maxord)) << "\n" ;
+		{
+		cout << "assess " << depth << ":: " << a << " Warning: order "
+		     << a.order() << " < maxord " << maxord << "!!!\n" ;
+		}
 	    }
-	else if (blab > 1) cout << "assess " << depth-- << ":: classify discard\n" ;
-	else if (blab) cout << "Classify discard: " << a << "\n" ;
+	else if (blab > 1)
+	    {
+	    cout << "assess " << depth << ":: " << a
+		 << " classify reject: maxord " << maxord << "\n" ;
+	    }
+	--depth ;
 	++global.count().discarded ;
 	return PolyTerm (Polyindx(), 0) ;
 	}
@@ -83,8 +110,13 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	{
 	a.shrink_to_fit() ;
 	uint indx { store(a) } ;
-	if (blab > 1) cout << "assess " << depth-- << ":: immediate store " << a
-			   << " -> " << name << " #" << indx << "\n" ;
+	if (blab > 1)
+	    {
+	    cout << "assess " << depth << ":: " << a
+		 << " immediate store " << " -> "
+		 << name << " #" << indx << "\n" ;
+	    }
+	--depth ;
 	return PolyTerm (Polyindx(indx), sgn) ;
 	}
     }
@@ -92,7 +124,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 bool Obs::classify (ObsList& list)	// Determine Obs expectation order
     {
     uint	blab	{ Blab::blablevel[BLAB::ASSESS] } ;
-    bool	success	{ false } ;
+    bool	keep	{ false } ;
     short	xmin	(0) ;
 
     if (has_Es())	xmin = noEbound (list) ;
@@ -105,27 +137,27 @@ bool Obs::classify (ObsList& list)	// Determine Obs expectation order
 	//
 	// Allow corder < 0 to enable "call classify" to work
 	{
-	success = has_Es() ? reduce (xmin,list) : factorize (xmin,list) ;
+	keep = has_Es() ? reduce (xmin,list) : factorize (xmin,list) ;
 	}
     if (blab > 1) cout << "classify " << depth << ":: " << *this << "\n" << flush ;
-    if (success) ++global.count().classified ;
-    return success ;
+    if (keep) ++global.count().classified ;
+    return keep ;
     }
 
 bool Obs::factorize (short xmin, const ObsList& list)	// Factorize no-E Obs
     const
     {
     uint blab { Blab::blablevel[BLAB::ASSESS] } ;
-    if (blab > 1) cout << "factorize " << depth << ": " << *this << "\n" << flush ;
+    if (blab > 1) cout << "\nfactorize " << depth << ": " << *this << "\n" << flush ;
 
-    vector<Site>&	sites { sitelist() } ;
-    bool		prev  { list.freezeif() } ;
-    bool		isFf  { is_Fermion() } ;
-    bool		iseuc { theory.euclid } ;
-    auto		s { sites.begin() } ;
-    auto		b { cbegin() } ;
-    auto		e { cend() } ;
-    int			intersects (0) ;
+    SiteVec&	sites { sitelist() } ;
+    bool	prev  { list.freezeif() } ;
+    bool	isFf  { is_Fermion() } ;
+    bool	iseuc { theory.euclid } ;
+    auto	s { sites.begin() } ;
+    auto	b { cbegin() } ;
+    auto	e { cend() } ;
+    int		intersects (0) ;
 
     thread_local SymbStr buf ;
     buf.clear() ;
@@ -264,18 +296,16 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
     bool	prev  { list.freezeif() } ;
     bool	isham { !theory.euclid } ;
     uint	blab  { Blab::blablevel[BLAB::ASSESS] } ;
-    if (blab > 1) cout << "reduce " << depth << ": " << *this << "\n" << flush ;
+    if (blab > 1) cout << "\nreduce " << depth << ": " << *this << "\n" << flush ;
 
-    if (is_EEloop())
+    if (is_EEloop())				// split w. E-plaquette reduction
 	{
 	for (const auto& gen : global.info(0).gens.front())
 	    {
 	    if (gen.order != 2 || !gen.is_Eloop()) continue ;
-	    if (blab > 1)
-		{
-		cout << "reduce " << depth << ": splitting ["
-		     << gen.reduction << "," << *this << "]\n" << flush ;
-		}
+	    if (blab > 1) cout << "reduce " << depth << ": splitting ["
+			       << gen.reduction << "," << *this << "]\n" << flush ;
+
 	    PolyMap ans { list } ;
 	    Commute::do_split (1.0, gen.reduction, *this, list, ans) ;
 	    for (const auto& [indx,coeff] : ans)
@@ -287,8 +317,12 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
 		    short xord ( o1.xorder + o2.xorder + 2 ) ;
 		    if (xorder < 0 || xorder > xord)
 			{
-			if (blab > 1) cout << "reduceA: " << *this << " xorder " << xorder
-			     << " -> " << xord << "\n" ;
+			if (blab > 1)
+			    {
+			    cout << "reduce " << depth << " [" << gen.reduction
+				 << "," << *this << "]: " << " xorder " << xorder
+				 << " -> " << xord << "\n" ;
+			    }
 			xorder = xord ;
 			}
 		    if (xorder == xmin) break ;
@@ -297,32 +331,18 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
 	    if (xorder == xmin) break ;
 	    }
 	}
-    if (xorder != xmin)
+    if (xorder != xmin)			// commute w. plaquette
 	{
-	for (const auto& op : Op::list)
+	for (const auto& op : global.info(0).ops)
 	    {
-	    if (op.is_Loop())
-		{
-		if (op.order != 2 || !has_Es()) continue ;
-		}
-	    else if (op.is_Fermion())
-		{
-		if (op.order != 1 || op.is_coord() || !bilinear()) continue ;
-		}
-	    else continue ; // op is Eloop()
+	    if (!op.is_Loop() || op.order != 2) continue ;
+	    if (blab > 1) cout << "reduce " << depth << ": doing ["
+			       << op << "," << *this << "]\n" << flush ;
 
 	    PolyMap ans { list } ;
-	    if (isham && op.is_Loop() && bilinear()) front() = stag(front()) ;
-	    if (blab > 1)
-		{
-		cout << "reduce " << depth << ": doing ["
-		     << op << "," << *this << "]\n" << flush ;
-		}
-	    if (op.is_Fermion() && is_Efermion())
-		 Commute::do_commuteD (op, *this, one, list, ans) ;
-	    else Commute::do_commute  (op, *this, one, list, ans) ;
-	    if (isham && op.is_Loop() && bilinear()) front() = stag(front()) ;
-
+	    if (isham && bilinear()) front() = stag(front()) ;
+	    Commute::do_commute  (op, *this, one, list, ans) ;
+	    if (isham && bilinear()) front() = stag(front()) ;
 	    for (const auto& [indx,coeff] : ans)
 		{
 		//if (coeff)		// N.B.
@@ -331,8 +351,48 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
 		    for (auto& k : indx) if (k) xord += list(k).xorder ;
 		    if (xorder < 0 || xorder > xord)
 			{
-			if (blab > 1) cout << "reduceB: " << *this << " xorder " << xorder
-					   << " -> " << xord << "\n" ;
+			if (blab > 1)
+			    {
+			    cout << "reduce " << depth
+				 << " [" <<  op << "," << *this << "] -> "
+				 << ObsList::obs(indx[0]) << " . "
+				 << ObsList::obs(indx[1]) << " xorder "
+				 << xorder << " -> " << xord << "\n" ;
+			    }
+			xorder = xord ;
+			}
+		    if (xorder == xmin) break ;
+		    }
+		}
+	    if (xorder == xmin) break ;
+	    }
+	}
+    if (xorder != xmin && is_Efermion())	// commute w. fermion hopping term
+	{
+	for (const auto& op : global.info(1).ops)
+	    {
+	    if (!op.primary || op.is_coord()) continue ;
+	    if (blab > 1) cout << "reduce " << depth << ": doing ["
+			       << op << "," << *this << "]\n" << flush ;
+
+	    PolyMap ans { list } ;
+	    Commute::do_commuteD (op, *this, one, list, ans) ;
+	    for (const auto& [indx,coeff] : ans)
+		{
+		//if (coeff)		// N.B.
+		    {
+		    short xord { op.order } ;
+		    for (auto& k : indx) if (k) xord += list(k).xorder ;
+		    if (xorder < 0 || xorder > xord)
+			{
+			if (blab > 1)
+			    {
+			    cout << "reduce " << depth
+				 << " [" <<  op << "," << *this << "] -> "
+				 << ObsList::obs(indx[0]) << " . "
+				 << ObsList::obs(indx[1]) << " xorder "
+				 << xorder << " -> " << xord << "\n" ;
+			    }
 			xorder = xord ;
 			}
 		    if (xorder == xmin) break ;
@@ -345,7 +405,6 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
 
     if (blab > 1) cout << "reduce " << depth << ":: " << *this
 		       << ", xorder " << xorder << "\n" << flush ;
-
     if (known_xord()) ++global.count().reduced ;
     return known_xord() ;
     }
@@ -358,8 +417,8 @@ PolyTerm Obs::approximate (const ObsList& list) const		// Approximate Obs?
     thread_local vector<Intersect> intersects ;
     intersects.clear() ;
 
-    vector<Site>&	sites { sitelist() } ;
-    auto		s { sites.begin() } ;
+    SiteVec&	sites { sitelist() } ;
+    auto	s { sites.begin() } ;
 
     while ((s = std::adjacent_find (s, sites.end())) != sites.end())
 	{
@@ -447,14 +506,14 @@ PolyTerm Obs::approximate (const ObsList& list) const		// Approximate Obs?
     return PolyTerm (Polyindx(), 0) ;
     }
 
-vector<Site>& Obs::sitelist () const		// Return sorted list of site coords
+SiteVec& Obs::sitelist () const		// Return sorted list of site coords
     {
     auto	p { cbegin() + 1 } ;
     char	c { front() } ;
     Coord	x {0,0,0,0} ;
     short	nEs (0) ;
 
-    thread_local vector<Site> sites ;
+    thread_local SiteVec sites ;
     sites.clear() ;
     sites.reserve (size()) ;
 

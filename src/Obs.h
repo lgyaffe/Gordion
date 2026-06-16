@@ -48,7 +48,7 @@ class Obs : public SymbStr			// Obs = SymbStr + meta-info
 	type	(t),
 	corder	(cord),
 	xorder	(xord)
-	{ if (Obs::check) validate() ; }
+	{ if (check) validate() ; }
 
     Obs(const_iterator beg, const_iterator end, ObsType t, short cord=-1, short xord=-1)
 	:
@@ -56,16 +56,16 @@ class Obs : public SymbStr			// Obs = SymbStr + meta-info
 	type	(t),
 	corder	(cord),
 	xorder	(xord)
-	{ if (Obs::check) validate() ; } ;			
+	{ if (check) validate() ; } ;			
 
-    int			canon() ;			// Canonicalize
-    int			findstart() noexcept ;		// Rotate to start
-    short		middleE()   const ;		// Return mid-E loc
-    bool		Esublat()   const ; 		// E sublattice?
-    void		validate()  const ;		// Validate
-    vector<Site>&	sitelist()  const ;		// Sort site coords
+    int		canon() ;				// Canonicalize
+    int		findstart() noexcept ;			// Rotate to start
+    short	middleE()   const ;			// Return mid-E loc
+    bool	Esublat()   const ; 			// E sublattice?
+    void	validate()  const ;			// Validate
+    SiteVec&	sitelist()  const ;			// Sort site coords
+    int		trans (const Symm&, int) noexcept;	// Symmetry transform
 
-    int		trans	    (const Symm&, int) noexcept;// Symmetry transform
     PolyTerm	approximate (const ObsList&) const ;	// Factor/approx
     short	noEbound    (const ObsList&) const ;	// no-E xorder bound
     bool	classify    (ObsList&) ;		// Determine xorder
@@ -90,9 +90,8 @@ class Obs : public SymbStr			// Obs = SymbStr + meta-info
     bool is_Fermion()	const { return type == ObsType::Fermion ; }
     bool is_Efermion()	const { return type == ObsType::Efermion ; }
     bool is_Entropy()	const { return type == ObsType::Entropy ; }
-    bool is_FermionE()	const { return is_Fermion() && !(size() % 2) ; }
     bool is_FermionO()	const { return is_Fermion() &&  (size() % 2) ; }
-    bool imag()		const { return theory.euclid && is_FermionE() ; }
+    bool imag()		const { return theory.euclid && !is_FermionO() ; }
 
     bool is_gauge() const { return is_Loop()
 				|| is_Eloop()
@@ -122,8 +121,6 @@ class Obs : public SymbStr			// Obs = SymbStr + meta-info
     static constexpr const char* type_name[] = 		// ObsType names
 	    { "Loop", "Eloop", "Fermion", "EEloop", "Efermion", "Entropy" } ;
 
-    friend ostream& operator<< (ostream&, const Obs&) ;
-
     static inline const std::map<string,ObsType> obstypes
 	{
 	{ "Loop",     ObsType::Loop},
@@ -133,6 +130,8 @@ class Obs : public SymbStr			// Obs = SymbStr + meta-info
 	{ "Efermion", ObsType::Efermion},
 	{ "Entropy",  ObsType::Entropy}
 	} ;
+
+    friend ostream& operator<< (ostream&, const Obs&) ;
     } ;
 
 struct Obshash					// Obs hash function 
@@ -164,8 +163,8 @@ class ObsList: public vector<const Obs*>
     bool		canonicalize ;		// Canonicalize entries?
     bool		classify ;		// Classify entries?
     bool		approx {false} ;	// Approximate exclusions?
-    uint		nobsG ;			// # gauge entries
-    uint		nobsF ;			// # fermi entries
+    uint		nobsG  {1} ;		// # gauge entries
+    uint		nobsF  {0} ;		// # fermi entries
 
     ObsList (const string, bool=false, bool=false) ;
 
@@ -186,8 +185,18 @@ class ObsList: public vector<const Obs*>
     void	purge (uint limit)		// Purge entries
 		    {
 		    resize (limit) ;
-		    std::erase_if (map, [limit](const auto& p)
-			{ return p.second >= limit ; }) ;
+		    nobsG -= std::erase_if (map, [&](const auto& p)
+			    { return p.second >= limit && p.second <  nobsG; }) ;
+		    nobsF -= std::erase_if (map, [&](const auto& p)
+			    { return p.second >= limit && p.second >= nobsG; }) ;
+		    }
+    void	empty ()			// Empty list
+		    {
+		    clear () ;
+		    map.clear () ;
+		    store (Obs(SymbStr(), ObsType::Loop, 0, 0)) ;
+		    nobsG = 1 ;
+		    nobsF = 0 ;
 		    }
     void	insert	(Obsset& set)		// Merge new Obs set
 		    {
@@ -220,24 +229,24 @@ class ObsList: public vector<const Obs*>
     uint& nobs (int stage)   	  	{ return stage ? nobsF : nobsG ; }
     bool  neq  (const ObsList& l) const { return this != &l ; }
 
-    void	obsinit  () ;			// Load basic Obs
-    void	do_fermi_init() ;		// Fermion -> Loop map
+    int		do_fermiinit () ;		// Load Fermion -> Loop map
+    void	obsinit	(int) ;			// Load basic Obs
+    ostream&	print	(ostream&, uint) const ;// Print obs
+    ostream&	print	(ostream&) const ;	// Print list
+
     uint	store	 (const Obs&) ;		// Store in list
     PolyTerm	catalog  (Obs) ;		// Catalog Obs
     PolyTerm	catalog  (Obs, Obs) ;		// Catalog Obs
-    PolyTerm	assess   (Obs&) ;		// Store, approx or discard?
     PolyTerm	is_known (Obs&&) const ;	// Find in list
     PolyTerm	is_known (Obs&&, Obs&&) const ;	// Find in list
-
-    ostream& print(ostream&, uint) const ;	// Print obs
-    ostream& print(ostream&) const ;		// Print list
+    PolyTerm	assess   (Obs&) ;		// Store, approx or discard?
 
     static ObsList			obs  ;		// Canonicalized Obs
     static ObsList			base ;		// Basic defined Obs
     static ObsList			redu ;		// Gen reductions
+    static inline vector<uint2>		fermiinit ;	// Fermion -> Loop map
     static inline thread_local Obsset	inbox ;		// Obs awaiting insertion
     static inline thread_local bool	freeze {true} ;	// Freeze master list?
-    static inline vector<uint2>		fermiinit ;	// Fermion -> Loop map
 
     static void	retain (const Obs& o)		// Retain for later insertion
 	{ inbox.insert (o) ; }

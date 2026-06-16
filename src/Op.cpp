@@ -1,9 +1,19 @@
 #include "Op.h"
-#include "Global.h"
 #include "Commute.h"
+#include "Global.h"
 #include "Gripe.h"
 #include <numeric>
 #include <regex>
+
+OpSum::OpSum (OpList& oplist)			// Constructor
+    :
+    vector<OpTerm>::vector(), list (oplist)
+    {}
+
+OpSum::OpSum (OpTerm* beg, OpTerm* end, OpList& oplist)
+    :
+    vector<OpTerm>::vector(beg, end), list (oplist)
+    {}
 
 Op::Op(const string& s, OpType t, short ord)	// Construct from string
     :
@@ -96,100 +106,45 @@ void Op::findstart()				// Rotate to preferred start
     if (a) rotate (begin(), begin() + a, end()) ;
     }
 
-void Op::setprimary (int stage)			// Determine Op primacy
+OpSum OpSum::flipT () const		// Flip bilinear staggering
     {
-    auto maxgen { global.info().maxgen } ;
-    int	 opnum	( list.size() ) ;
-
-    for (int i(0) ; i < opnum ; ++i)
+    OpSum ans { oplist() } ;
+    for (auto& t : *this)
 	{
-	const Op& op { list[i] } ;
-	if (op.is_Fermion() == stage && op.order <= maxgen) op.primary = true ;
-	}
-    for (int i(0) ; i < opnum ; ++i)
-	{
-	Op& op1 { list[i] } ;
-	if (!op1.order || op1.is_Fermion() != stage) continue ;
-
-	for (int j(0) ; j < i ; ++j)
-	    {
-	    Op& op2 { list[j] } ;
-
-	    if (!op2.order || op2.is_Fermion() != stage)	continue ;
-	    if (op1.order + op2.order > maxgen)			continue ;
-
-	    Gen ans1 ;
-	    Commute::op_commute (1.0, op1, op2, ans1) ;
-
-	    for (auto& term : ans1.collect())
-		{
-		const Op& new1 { list[term.item] } ;
-
-		if (new1.order == op1.order + op2.order)
-		    new1.primary = false ;
-
-		for (int k(0) ; k <= i ; ++k)
-		    {
-		    Op op3 { list[k] } ;// N.B. non-ref 'cuz list may grow
-
-		    if (!op3.order || op3.is_Fermion() != stage)	continue ;
-		    if (op1.order + op2.order + op3.order > maxgen)	continue ;
-
-		    Gen ans2 ;
-		    Commute::op_commute (1.0, op3, new1, ans2) ;
-
-		    for (auto& term : ans2)
-			{
-			const Op& new2 { list[term.item] } ;
-			if (new2.order == op3.order + op2.order + op1.order)
-			    new2.primary = false ;
-			}
-		    }
-		}
-	    }
-	}
-    Op::purge (opnum) ;
-    }
-
-OpSum Op::loop_dt (Op op)			// Loop Op -> Eloop OpSum
-    {
-    if (op.type != OpType::Loop) fatal ("Bad call to loop_dt") ;
-    OpSum ans ;
-    return loop_dt (OpTerm(Op::store(op)), ans) ;
-    }
-
-OpSum Op::loop_dt (OpSum s)			// Loop OpSum -> Eloop OpSum
-    {
-    OpSum ans ;
-    for (auto& t : s) loop_dt (t, ans) ;
-    return ans ;
-    }
-
-OpSum Op::flipT (OpSum s)			// Flip bilinear staggering
-    {
-    OpSum ans ;
-    for (auto& t : s)
-	{
-	Op op { list[t.item] } ;
+	Op op { oplist()[t.item] } ;
 	if (op.type != OpType::Fermion) fatal ("Bad call to flipT") ;
 	op.front() = stag(op.front()) ;
-	ans.emplace_back ( Op::store(op) ) ;
+	ans.emplace_back ( ans.oplist().store(op) ) ;
 	}
     return ans ;
     }
 
-OpSum Op::loop_dt (OpTerm t, OpSum& ans)	// Loop OpTerm -> Eloop OpSum
+OpSum OpSum::loop_dt ()				// Loop OpSum -> Eloop OpSum
     {
-    Op op { list[t.item] } ;
+    OpSum ans { oplist() } ;
+    for (auto& t : *this) loop_dt (t, ans) ;
+    return ans ;
+    }
+
+OpSum OpSum::loop_dt (Op op, OpList& list)	// Loop Op -> Eloop OpSum
+    {
+    if (op.type != OpType::Loop) fatal ("Bad call to loop_dt") ;
+    OpSum ans { list } ;;
+    return loop_dt (OpTerm (list.store(op)), ans) ;
+    }
+
+OpSum OpSum::loop_dt (OpTerm t, OpSum& ans)	// Loop OpTerm -> Eloop OpSum
+    {
+    Op op { ans.oplist()[t.item] } ;
     if (op.type != OpType::Loop) fatal ("Bad call to loop_dt") ;
     op.type = OpType::Eloop ;
 
     for (auto ptr = op.begin() ; ptr < op.end() ; ++ptr)
 	{
 	op.front() += addE ;
-	uint	indx { Op::store (op) } ;
+	uint	indx { ans.oplist().store (op) } ;
 	doub	coef { isrefl(op.front()) ? -t.coeff : t.coeff } ;
-	ans.emplace_back ( Op::store(op), coef ) ;
+	ans.emplace_back ( indx, coef ) ;
 	op.front() -= addE ;
 	rotate (op.begin(), op.begin() + 1, op.end()) ;
 	}
@@ -224,38 +179,6 @@ int OpSum::collect (bool divgcd)		// Collect terms, optionally
     else return 1 ;
     }
 
-uint Op::store (const Op& op)				// Store Op in list
-    {
-    uint	len  ( list.size() ) ;
-    uint	indx { list.store (op) } ;
-
-    if (list.size() > len)		// Op added
-	{
-	if (Op::nopF && !op.is_Fermion())
-	    gripe ("Can't add gauge Op after fermion Op's") ;
-	++Op::nops (op.is_Fermion()) ;
-	}
-    if (indx >= list.size()) fatal ("Op::store: bad store! ") ;
-    return indx ;
-    }
-
-ostream& Op::print (ostream& stream, uint indx)		// Print indexed Op
-    {
-    const Op& op { list[indx] } ;
-    return stream << " op #" << indx << " = " << op << "\n" ;
-    }
-
-ostream& Op::print (ostream& stream)			// Print Op::list
-    {
-    stream << " operators:\n" ;
-    for (int indx(0) ; indx < list.size() ; ++indx)
-	{
-	const Op& op { list[indx] } ;
-	stream  << " #" << indx << " = " << op << "\n" ;
-	}
-    return stream ;
-    }
-
 ostream& operator<< (ostream& stream, const Op& op)	// Print Op
     {
     if (op.size()) stream << static_cast<SymbStr>(op) ;
@@ -268,8 +191,84 @@ ostream& operator<< (ostream& stream, const OpSum& s)	// Print OpSum
     {
     for (auto& t : s)
 	{
-	coeffprt (stream, t.coeff) ;
-	stream << Op::list[t.item] ;
+	Print::coeffprt (stream, t.coeff) ;
+	stream << s.oplist() [t.item] ;
 	}
     return stream ;
     }
+
+void OpList::setprimary ()			// Determine Op primacy
+    {
+    int	opnum	( size() ) ;
+    int maxord	(0) ;
+
+    for (int i(0) ; i < opnum ; ++i)
+	{
+	const Op& op { (*this)[i] } ;
+	if (!op.order) continue ;
+	if (op.order > maxord) maxord = op.order ;
+	op.primary = true ;
+	}
+    for (int i(0) ; i < opnum ; ++i)
+	{
+	Op op1 { (*this)[i] } ;			// N.B. non-ref needed
+	if (!op1.order) continue ;
+	for (int j(0) ; j < i ; ++j)
+	    {
+	    Op op2 { (*this)[j] } ;		// N.B. non-ref needed
+	    if (!op2.order) continue ;
+	    if (op1.order + op2.order > maxord)	continue ;
+	    Gen ans1 (*this) ;
+	    Commute::op_commute (1.0, op1, op2, ans1) ;
+
+	    for (auto& term : ans1)		// N.B. don't collect
+		{
+		const Op& new1 { (*this)[term.item] } ;
+		if (new1.order == op1.order + op2.order)
+		    new1.primary = false ;
+		else if (new1.order > op1.order + op2.order)
+		    cout << "Warning: mis-ordered Op: " << new1 << "\n" ;
+		}
+	    for (int k(0) ; k <= i ; ++k)
+		{
+		Op op3 { (*this)[k] } ;		// N.B. non-ref needed
+		if (!op3.order) continue ;
+		if (op1.order + op2.order + op3.order > maxord) continue ;
+		for (auto& term : ans1)		// N.B. don't collect
+		    {
+		    const Op tmp { (*this)[term.item] } ;
+		    Gen ans2 (*this) ;
+		    Commute::op_commute (1.0, op3, tmp, ans2) ;
+
+		    for (auto& term : ans2)	// N.B. don't collect
+			{
+			const Op& new2 { (*this)[term.item] } ;
+			if (new2.order == op1.order + op2.order + op3.order)
+			    new2.primary = false ;
+			else if (new2.order > op1.order + op2.order + op3.order)
+			    cout << "Warning: mis-ordered Op: " << new2 << "\n" ;
+			}
+		    }
+		}
+	    }
+	}
+    purge (opnum) ;
+    }
+
+ostream& OpList::print (ostream& stream, uint indx) const	// Print indexed Op
+    {
+    const Op& op { (*this)[indx] } ;
+    return stream << " op #" << indx << " = " << op << "\n" ;
+    }
+
+ostream& OpList::print (ostream& stream) const			// Print OpList
+    {
+    stream << " operators:\n" ;
+    for (int indx(0) ; indx < size() ; ++indx)
+	{
+	const Op& op { (*this)[indx] } ;
+	stream  << " #" << indx << " = " << op << "\n" ;
+	}
+    return stream ;
+    }
+

@@ -1,8 +1,8 @@
 #include "Obs.h"
-#include "Op.h"
-#include "Symm.h"
 #include "Global.h"
 #include "Numerics.h"
+#include "Op.h"
+#include "Symm.h"
 #include "Gripe.h"
 #include "Blab.h"
 #include <regex>
@@ -184,7 +184,7 @@ int Obs::trans (const Symm& symm, int start) noexcept	// Symmetry transform Obs
 
     bool neg	{ false } ;
     uint blab	{ Blab::blablevel[BLAB::SYMM] } ;
-    if (blab > 0) cout << "Symm " << symm.name << " on " << *this
+    if (blab > 1) cout << "Symm " << symm.name << " on " << *this
 		       << " at " << start << " -> " ;
     if (symm.isCodd())
 	{
@@ -209,14 +209,14 @@ int Obs::trans (const Symm& symm, int start) noexcept	// Symmetry transform Obs
 	back()  = stag(back()) ;
 	front() = stag(front()) ;
 	}
-    if (blab > 0) cout << (neg ? "-" : "") << *this << "\n" << flush ;
+    if (blab > 1) cout << (neg ? "-" : "") << *this << "\n" << flush ;
 
     ++global.count().symmtrans ;
     return neg ? -1 : 1 ;
     }
 
-ObsList::ObsList (const string s, bool can, bool clas)		// Construct ObsList
-    : name(s), canonicalize(can), classify (clas)
+ObsList::ObsList (const string s, bool can, bool clsfy)		// Construct ObsList
+    : name(s), canonicalize(can), classify (clsfy)
     {
     store (Obs(SymbStr(), ObsType::Loop, 0, 0)) ;
     }
@@ -250,7 +250,7 @@ PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
 
     int  sgn  { canonicalize ? a.canon() : a.findstart() } ;
     uint indx { find(a) } ;
-    if (find (a) < UINT_MAX-1)
+    if (indx < UINT_MAX-1)
 	{
 	if (blab > 1)
 	    cout << "catalog " << name << ": found "
@@ -263,6 +263,7 @@ PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
 	    fatal (format("Failed classify: {} ({},{}) in {}",
 		a.print(), a.corder, a.xorder, name)) ;
 	}
+    if (freeze) gripe (format("Cannot catalog {} into frozen list ()", a.print(), name)) ;
     PolyTerm ans (store(a), sgn) ;
     if (blab > 1)
 	{
@@ -276,11 +277,23 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
     {							// N.B. pass by value
     uint blab { Blab::blablevel[BLAB::OBS] } ;
     if (blab > 1) cout << "catalog " << name << ": " << a << ", " << b << "\n" ;
+    if (Obs::check) { a.validate() ; b.validate() ; }
 
     int	sgna ( canonicalize ? a.canon() : a.findstart() ) ;
     int	sgnb ( canonicalize ? b.canon() : b.findstart() ) ;
+    uint indxa { find(a) } ;
+    uint indxb { find(b) } ;
 
-    if (Obs::check) { a.validate() ; b.validate() ; }
+    if (indxa < UINT_MAX-1 && indxb < UINT_MAX-1)
+	{
+	if (blab > 1)
+	    cout << "catalog " << name << ": found "
+		 << a << " at " << indxa << ", "
+		 << b << " at " << indxb << "\n" ;
+	return PolyTerm (Polyindx (indxa,indxb), sgna * sgnb) ;
+	}
+    if (freeze) gripe (format("Cannot catalog {} {} into frozen list ()",
+		    a.print(), b.print(), name)) ;
     if (classify && !a.known_xord())
 	{
 	if (!a.classify (*this))
@@ -307,13 +320,13 @@ uint ObsList::store (const Obs& o)			// Store Obs in ObsList
     uint blab { Blab::blablevel[BLAB::OBS] } ;
     if (classify)
 	{
-	if (o.corder < 0)
-	    {
-	    cout << "Cannot store Obs with unknown corder\n" ;
-	    }
 	if (o.bilinear() && !o.is_coord())
 	    {
 	    fatal (format("Non-coord Obs {} in {}", o.print(), name)) ;
+	    }
+	if (o.corder < 0)
+	    {
+	    cout << "Cannot store Obs with unknown corder\n" ;
 	    }
 	if (o.corder < 0 || o.xorder < 0)
 	    {
@@ -328,14 +341,13 @@ uint ObsList::store (const Obs& o)			// Store Obs in ObsList
     return indx ;
     }
 
-void ObsList::obsinit ()			// Load basic Obs
+void ObsList::obsinit (int stage)		// Load basic Obs
     {
     bool iseuc	 { theory.euclid } ;
-    int  stage	 { global.stage } ;
     char link[4] { 'x', 'y', 'z', 'w' } ;
     char Link[4] { 'X', 'Y', 'Z', 'W' } ;
 
-    ObsList::freeze = false ;
+    freeze = false ;
     if (stage == 0)
 	{
 	if (iseuc)				// gauge entropy
@@ -343,7 +355,7 @@ void ObsList::obsinit ()			// Load basic Obs
 	    SymbStr entG ( EntrG ) ;
 	    catalog (Obs(entG,ObsType::Entropy,0,0)) ;
 	    }
-	if (!iseuc)			// E & EE
+	if (!iseuc)				// E & EE
 	    {
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
@@ -373,8 +385,8 @@ void ObsList::obsinit ()			// Load basic Obs
 		catalog (Obs(Polyakov,ObsType::Loop,2,2)) ;
 		}
 	    }
-	// if (!neq(ObsList::obs)) global.nobsG() = nobs() ; !!!
 	nobsG = size() ;
+	if (!neq (ObsList::obs)) global.info(0).maxord = 2 ;
 	}
     else if (theory.nf)
 	{
@@ -409,18 +421,23 @@ void ObsList::obsinit ()			// Load basic Obs
 		}
 	    }
 	nobsF = size() - nobsG ;
-	if (!neq(ObsList::obs)) do_fermi_init() ;
+	if (!neq (ObsList::obs))
+	    {
+	    global.info(1).maxord = 1 ;
+	    do_fermiinit() ;
+	    }
 	}
-    ObsList::freeze = true ;
+    freeze = true ;
     }
 
-void ObsList::do_fermi_init ()			// Initialize fermion -> loop map
+int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
     {
     uint	initfail  ( 0 ) ;
     uint	beg	  { nobsG } ;
     uint	blab	  { Blab::blablevel[BLAB::OBS] } ;
-    if (blab > 3) cout << "do_fermi_init start\n" << flush ;
+    if (blab > 3) cout << "do_fermiinit start\n" << flush ;
 
+    fermiinit.clear () ;
     for (uint i(beg) ; i < size() ; ++i)
 	{
 	const Obs& a { (*this)(i) } ;
@@ -437,19 +454,14 @@ void ObsList::do_fermi_init ()			// Initialize fermion -> loop map
 	    }
 	else fermiinit.emplace_back (i, term[0]) ;
 	}
-    if (blab)
-	{
-	cout << "Fermion initializations: " << fermiinit.size() ;
-	if (initfail) cout << " + " << initfail << " missing loop partners" ;
-	cout << "\n" ;
-	}
+    return initfail ;
     }
 
 ostream& ObsList::print (ostream& stream, uint indx) const	// Print indexed Obs
     {
     bool	addvev	 { !neq(ObsList::obs) } ;
     auto	prevprec { stream.precision(12) } ;
-    const Obs&	obs	{ *at(indx) } ;
+    const Obs&	obs	 { *at(indx) } ;
     stream << name << " Obs #" << indx << ": " << std::setprecision(12) ;
     stream << obs ;
     if (addvev && indx < numerics.vev.size())
@@ -473,7 +485,7 @@ ostream& operator<< (ostream& stream, const Obs& obs)		// Print Obs -> stream
 
 ostream& ObsList::print (ostream& stream) const			// Print ObsList -> stream
     {
-    bool	addvev   { !neq(ObsList::obs) } ;
+    bool	addvev	 { !neq(ObsList::obs) } ;
     auto	prevprec { stream.precision(12) } ;
     stream << name << " observables:\n" << std::setprecision(12) ;
     for (int indx(0) ; indx < size() ; ++indx)
