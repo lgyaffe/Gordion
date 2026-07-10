@@ -67,4 +67,6 @@ class AdjTerm                           // ObsPoly times adjustable coupling
     friend ostream& operator<< (ostream&, const vector<AdjTerm>&) ;
     } ;
 
+inline Couplings Coupling::list ;		// Defined Coupling's
+
 #endif

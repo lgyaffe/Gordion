@@ -1,14 +1,14 @@
 #include "Global.h"
 #include "Numerics.h"
 
-void Global::stageinit (uint i = 0)		// Stage initialization
+void Global::stageinit (uint i)			// Stage initialization
     {
     if (i && !theory.nf) gripe ("No fermions!!!") ;
     stage = i ? Global::Fermi : Global::Gauge ;
     if (!okfermivev) numerics.initialize (1) ;
     }
 
-string Global::dfltfilename (const string&& ext)  // Make default file name
+string Global::dfltfilename (const string&& ext) // Make default file name
     {
     const char*	name   { theory.name.data() } ;
     int		approx { approx } ;
@@ -59,7 +59,7 @@ uint3 Global::bckt_pos (uint i)			// Return stage/bucket/indx
 void Global::clearpolys (int stage)		// Clear polynomial scripts
     {
     data(stage).grad.clear() ;
-    for (auto& mtx  : data(stage).geos) mtx.clear() ;
-    for (auto& mtx  : data(stage).lagr) mtx.clear() ;
-    for (auto& cube : data(stage).curv) cube.clear() ;
+    for (auto& rec : data(stage).geos) rec.clear() ;
+    for (auto& rec : data(stage).lagr) rec.clear() ;
+    for (auto& rec : data(stage).curv) rec.clear() ;
     }

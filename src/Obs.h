@@ -22,29 +22,29 @@ class Op ;
 class Symm ;
 class ObsList ;
 
-class Obs : public SymbStr			// Obs = SymbStr + meta-info
+class Obs : public Str				// Obs = Str + meta-info
     {
     public: 
-    short		corder { -1 } ;	// Creation order
-    mutable short	xorder { -1 } ;	// Expectation order
-    mutable short	midE   { -1 } ;	// mid-E location
-    ObsType		type ;		// Observable type
+    short		corder { -1 } ;		// Creation order
+    mutable short	xorder { -1 } ;		// Expectation order
+    mutable short	midE   { -1 } ;		// mid-E location
+    ObsType		type ;			// Observable type
 
     explicit Obs (const Op&) ;					// Constructor
     explicit Obs (const string&) ;				// Constructor
     explicit Obs (const string&, ObsType, short, short) ;	// Constructor
 
-    Obs(const SymbStr& s, ObsHdr& hdr)				// Constructor
+    Obs(const Str& s, ObsHdr& hdr)				// Constructor
 	:
-	SymbStr	(s),
+	Str	(s),
 	type	((ObsType) hdr.type),
 	corder	(hdr.corder),
 	xorder	(hdr.xorder)
 	{}
 
-    Obs(const SymbStr& s, ObsType t, short cord, short xord)	// Constructor
+    Obs(const Str& s, ObsType t, short cord, short xord)	// Constructor
 	:
-	SymbStr (s),
+	Str	(s),
 	type	(t),
 	corder	(cord),
 	xorder	(xord)
@@ -52,7 +52,7 @@ class Obs : public SymbStr			// Obs = SymbStr + meta-info
 
     Obs(const_iterator beg, const_iterator end, ObsType t, short cord=-1, short xord=-1)
 	:
-	SymbStr	(string (beg,end)),
+	Str	(beg,end),
 	type	(t),
 	corder	(cord),
 	xorder	(xord)
@@ -134,31 +134,13 @@ class Obs : public SymbStr			// Obs = SymbStr + meta-info
     friend ostream& operator<< (ostream&, const Obs&) ;
     } ;
 
-struct Obshash					// Obs hash function 
-    {
-    std::size_t operator()(const SymbStr& s) const
-	{
-	return std::hash<string>{}(s) ;
-	}
-    using is_transparent = void ;
-    } ;
+using Obsset = unordered_set<Obs,Strhash,Str_eq> ;
+using Obsmap = hash<Obs,uint,Strhash,Str_eq> ;
 
-struct Obs_eq					// Obs equality function 
+class ObsList: vector<const Obs*>
     {
-    bool operator()(const SymbStr& s, const SymbStr& t) const
-	{
-	return std::equal_to<string>{}(s,t) ;
-	}
-    using is_transparent = void ;
-    } ;
-
-using Obsset = unordered_set<Obs,Obshash,Obs_eq> ;
-using Obsmap = hash<Obs,uint,Obshash,Obs_eq> ;
-
-class ObsList: public vector<const Obs*>
-    {
-    public:
     Obsmap 		map ;			// Hash table
+    public:
     string		name ;			// List name
     bool		canonicalize ;		// Canonicalize entries?
     bool		classify ;		// Classify entries?
@@ -166,12 +148,19 @@ class ObsList: public vector<const Obs*>
     uint		nobsG  {1} ;		// # gauge entries
     uint		nobsF  {0} ;		// # fermi entries
 
+    using vector::const_iterator ;	// Expose base const_iterator
+    const_iterator begin() const { return vector::cbegin() ; }
+    const_iterator end()   const { return vector::cend()   ; }
+
     ObsList (const string, bool=false, bool=false) ;
 
     const Obs&	operator() (uint indx) const	// Return indexed Obs
 		    { return *(*this)[indx] ; }
 
-    uint	find (const SymbStr& s) const	// Find Obs, return index
+    auto	size() const { return vector::size() ; } // List size
+    auto	shrink() { return shrink_to_fit() ; }	// Shrink
+
+    uint	find (const Str& s) const	// Find Obs, return index
 		    {
 		    auto p1 { map.find(s) } ;
 		    if (p1 != map.end()) return p1->second ;
@@ -194,14 +183,18 @@ class ObsList: public vector<const Obs*>
 		    {
 		    clear () ;
 		    map.clear () ;
-		    store (Obs(SymbStr(), ObsType::Loop, 0, 0)) ;
+		    store (Obs(Str(), ObsType::Loop, 0, 0)) ;
 		    nobsG = 1 ;
 		    nobsF = 0 ;
+		    }
+    void	reserve (int len)		// Reserve space
+		    {
+		    vector::reserve (len) ;
+		    map.reserve (len) ;
 		    }
     void	insert	(Obsset& set)		// Merge new Obs set
 		    {
 		    reserve (size() + set.size()) ;
-		    map.reserve (size() + set.size()) ;
 		    for (const auto& obs : set) store (obs) ;
 		    }
     bool	frozen () const			// Frozen master list?
@@ -291,5 +284,9 @@ class ObsStats : public array<vector<vector<uint>>,nobstype>	// Obs statistics
     float avglen ;
     uint  maxloop ;
     } ;
+
+inline ObsList ObsList::obs  {"Canonical",true,true} ;	// Canonical Obs
+inline ObsList ObsList::base {"Basic"} ;		// Basic defined Obs
+inline ObsList ObsList::redu {"Reduction"} ;		// Gen reduction Obs
 
 #endif

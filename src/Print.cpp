@@ -57,7 +57,7 @@ void Print::print_obs (uint i)			// Print indexed Obs
 void Print::print_obs (const string& word)	// Print specified Obs
     {
     bool	found { false } ;
-    SymbStr	s { to_symb(word) } ;
+    Str		s { word } ;
     uint	indx { ObsList::obs.find (s) } ;
     if (indx != UINT_MAX)
 	{
@@ -503,7 +503,7 @@ void Print::print_geodesic (uint i, uint j)	// Print specified geodesic equation
 	    if (geos(j,pos).len)
 		{
 		cout << " geo (" << i << "," << j << ") = d<"
-		     << *list[i] << ">/d("
+		     << list(i) << ">/d("
 		     << global.fg() << j << ") = "
 		     << geos(j,pos) << "\n" ;
 		}
@@ -685,7 +685,7 @@ void Print::print_state ()			// Print global state variables
     cout << " Symmetrize curv:    " << global.symcurv    << "\n" ;
     cout << " Auto T-odd gens:    " << Gen::autoToddgens << "\n" ;
     cout << " Check obs:          " << Obs::check        << "\n" ;
-    cout << " Dot obs:            " << SymbStr::dots     << "\n" ;
+    cout << " Dot obs:            " << Str::dots         << "\n" ;
     cout << " Normalize gens:     " << Gen::gennorm      << "\n" ;
     cout << " Max Newton iters:   " << numerics.maxnewt  << "\n" ;
     cout << " Max ODE steps:      " << numerics.maxode   << "\n" ;
@@ -708,7 +708,7 @@ void Print::print_blab ()			// Print blab levels
     {
     for (const auto& [name,indx] : Blab::blabmap)
 	{
-	cout << " Blab level [" << name << "]\t= " << Blab::blablevel[indx] << "\n" ;
+	cout << " Blab level [" << name << "]\t= " << Blab::level(indx) << "\n" ;
 	}
     }
 

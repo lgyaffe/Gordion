@@ -2,30 +2,6 @@
 #define SYMB_H
 #include "Gordion.h"
 
-class SymbStr : public string				// Symbol string
-    {
-    public:
-    SymbStr	()		   : string() {}
-    SymbStr	(const string& s)  : string(s) {}
-    SymbStr	(const symb c)     : string(1,c) {}
-    SymbStr	(const symb* p, const symb* q) : string(p,q) {}
-    SymbStr	(const_iterator p,const_iterator q) : string(p,q) {}
-
-    string	print () const ;
-    string	print (const_iterator, const_iterator) const ;
-    int		join (symb) ;	
-    int		join (const_iterator, const_iterator) ;	
-    int		joinends (SymbStr::iterator, SymbStr::iterator) noexcept ;
-    void	excise   (SymbStr::iterator, SymbStr::iterator) noexcept ;	
-    bool	isclosed (const_iterator, const_iterator) const noexcept ;
-    bool	isclosed () const { return isclosed (cbegin(), cend()) ; }
-    SymbStr&	joinends () { resize (joinends (begin(), end())) ; return *this ; }
-
-    static inline bool	dots { false } ;	// print w. symb separators?
-
-    friend ostream& operator<< (ostream&, const SymbStr&) ;
-    } ;
-
 namespace Symb					// Symbol namespace
     {
     // Symbol code bits:
@@ -97,9 +73,8 @@ namespace Symb					// Symbol namespace
     inline bool EEorEElink(symb c)	{ return isEE(c) || isEElink(c)
 							 || isEE_F(c) ; }
 
-    int		to_symb   (char) noexcept ;	// char -> symb
-    SymbStr	to_symb   (const string&) ;	// string -> SymbStr
-    bool	in_thy    (symb) noexcept ;	// Valid symb?
+    int		char_to_symb (char) noexcept ;	// char -> symb
+    bool	in_thy	     (symb) noexcept ;	// Valid symb?
 
     static const vector<string>	symbname	// symb -> printable map
 	{
@@ -160,5 +135,47 @@ namespace Symb					// Symbol namespace
     } ;
 
 using namespace Symb ;
+
+class Str : public string				// Symbol string
+    {
+    public:
+    Str	()		   : string()    {}
+    Str	(const symb c)     : string(1,c) {}
+    Str	(const symb*    p, const symb*   q) : string(p,q) {}
+    Str	(const_iterator p,const_iterator q) : string(p,q) {}
+    Str	(const string& s) ;
+
+    string	print () const ;
+    string	print (const_iterator, const_iterator) const ;
+    int		join (symb) ;	
+    int		join (const_iterator, const_iterator) ;	
+    int		joinends (Str::iterator, Str::iterator) noexcept ;
+    void	excise   (Str::iterator, Str::iterator) noexcept ;	
+    bool	isclosed (const_iterator, const_iterator) const noexcept ;
+    bool	isclosed () const { return isclosed (cbegin(), cend()) ; }
+    Str&	joinends () { resize (joinends (begin(), end())) ; return *this ; }
+
+    static inline bool	dots { false } ;	// print w. symb separators?
+
+    friend ostream& operator<< (ostream&, const Str&) ;
+    } ;
+
+struct Strhash					// Str hash function 
+    {
+    std::size_t operator()(const Str& s) const
+	{
+	return std::hash<string>{}(s) ;
+	}
+    using is_transparent = void ;
+    } ;
+
+struct Str_eq					// Str equality function 
+    {
+    bool operator()(const Str& s, const Str& t) const
+	{
+	return std::equal_to<string>{}(s,t) ;
+	}
+    using is_transparent = void ;
+    } ;
 
 #endif

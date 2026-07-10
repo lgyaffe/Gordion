@@ -3,7 +3,7 @@
 #include "Counter.h"
 #include "Coupling.h"
 #include "Data.h"
-#include "Op.h"
+#include "Gen.h"
 #include "Version.h"
 #include <atomic>
 
@@ -14,12 +14,10 @@
 #define FOR_EACH tbb::parallel_for_each
 #define TASK_ARENA(n,cap,code) \
     if (n) { tbb::task_arena arena(n); arena.execute([cap]{code;}); } else code ;
-#define FINALIZE tbb::finalize (global.handle)
 #else
 #include <execution>
 #define FOR_EACH std::for_each
 #define TASK_ARENA(n,cap,code) code
-#define FINALIZE
 #endif
 
 struct StageInfo				// Stage-specific info
@@ -66,7 +64,7 @@ class Global					// Global data
     uint	maxthread  { 0 } ;		// Thread limit
     bool	autosave   { false } ;		// Write savefile on bulid
     bool	geoswap    { false } ;		// Swap geo bckts to disk
-    bool	massreinit { true } ;		// Auto vev init on new mass?
+    bool	massreinit { true } ;		// Auto reinit on new mass?
     bool	symcurv    { true } ;		// Symmetrize curvature?
     bool	okfermivev { false } ;		// Fermi vev's initialized?
     bool	oknegeig   { false } ;		// Negative curvature OK?
@@ -93,11 +91,11 @@ class Global					// Global data
     uint	nobs	()	{ return ObsList::obs.nobs (stage) ; }
     char	fg () const	{ return stage == Fermi ? 'f' : 'g' ; }
 
-    string	dfltfilename (const string&&) ;	// default file names
+    string	dfltfilename (const string&&) ;	// Default file names
     uint3	bckt_pos     (uint) ;		// Obs bucket position
-    void	mk_bcktlist  (uint) ;		// make bucket list
+    void	mk_bcktlist  (uint) ;		// Make bucket list
     void	clearpolys   (int) ;		// Clear polys
-    void	stageinit    (uint) ;		// State initialization
+    void	stageinit    (uint) ;		// Stage initialization
 
     string sysfilename ()			// Sys info file name
 	{
@@ -111,10 +109,6 @@ class Global					// Global data
 	{
 	return MMAfile.size() ? MMAfile : dfltfilename("m") ;
 	}
-
-#ifdef PARALLEL
-    static inline tbb::task_scheduler_handle handle {tbb::attach{}} ;
-#endif
     } ;
 
 extern Global global ;
@@ -132,5 +126,7 @@ inline PolyArr<N>::PolyArr (RecordID id)	// PolyArr Constructor
 	p.entry().id = id ;
 	}
     }
+
+inline Global global ;				// Global information
 
 #endif

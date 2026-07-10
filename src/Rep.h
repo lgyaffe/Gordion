@@ -43,4 +43,7 @@ class Rep : public vector<Proj>			// Representation projector(s)
     friend ostream& operator<< (ostream&, const Rep&) ;
     } ;
 
+inline Index<Rep>	Rep::list ;			// Defined Rep's
+inline vector<Proj>	Proj::list ;			// Defined Proj's
+
 #endif

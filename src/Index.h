@@ -3,10 +3,10 @@
 #include "Gordion.h"
 
 template <typename T>
-class Index : public vector<T>		// vector<T> plus index map for
-    {					// types T inheriting from string
+class Index : public vector<T>		// vector<T> plus index with string keys
+    {
     public:
-    hash<string,uint>  map ;			// name -> index map
+    hash<string,uint>  map ;			// string key -> index map
 
     uint store (const string& key, const T& t)	// store if new, return indx
 	{
@@ -14,7 +14,6 @@ class Index : public vector<T>		// vector<T> plus index map for
 	if (isnew) vector<T>::push_back (t) ;
 	return iter->second ;
 	}
-    uint store (const T& t) { return store (t,t) ; }
     } ;
 
 #endif

@@ -62,4 +62,7 @@ class Symm						// Symmetry transformation
     static void		symminit () ;			// Initialize symmetries
     } ;
 
+inline Symmmap		Symm::trans2indx ;
+inline Index<Symm>	Symm::list ;			// Defined Symm's
+
 #endif

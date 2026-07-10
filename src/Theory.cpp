@@ -21,10 +21,10 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
     int		lamindx   ( Coupling::indx (lambda) ) ;
     PolyMap	map	  { ObsList::base } ;
     ObsList&	baslist   { ObsList::base } ;
-    symb	link[4]   { 0x00, 0x01, 0x02, 0x03 } ;
-    symb	Link[4]   { 0x04, 0x05, 0x06, 0x07 } ;
-    symb	ferm[4]   { 0x28, 0x29, 0x2a, 0x2b } ;
-    symb	Ferm[4]   { 0x2c, 0x2d, 0x2e, 0x2f } ;
+    symb	link[4]   { 'x', 'y', 'z', 'w' } ;
+    symb	Link[4]   { 'X', 'Y', 'Z', 'W' } ;
+    symb	ferm[4]   { 'f', 'g', 'h', 'i' } ;
+    symb	Ferm[4]   { 'F', 'G', 'H', 'I' } ;
     bool	isham	  { !theory.euclid } ;
     bool	iseuc	  {  theory.euclid } ;
 
@@ -49,7 +49,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    doub	coeff    { theory.dim > 1 ? 0.25 : 1.0 } ;
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
-		uint	indx	{ baslist.find (SymbStr (KinG + i)) } ;
+		uint	indx	{ baslist.find (Str (KinG + i)) } ;
 		Obs	EE	{ baslist(indx) } ; EE.canon() ;
 		uint	cindx	{ baslist.find (EE) } ;
 		if (indx == UINT_MAX) fatal ("Baselist missing EE") ;
@@ -62,7 +62,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	else					// Euclidean gauge entropy
 	    {
 	    ObsPoly	gauge_ent (baslist) ;
-	    uint	indx	{ baslist.find (SymbStr (EntrG)) } ;
+	    uint	indx	{ baslist.find (Str (EntrG)) } ;
 	    if (indx == UINT_MAX) fatal ("Baselist missing S") ;
 	    gauge_ent.push_back (PolyTerm (indx, -1.0)) ;
 	    global.info(1).Hterms.emplace_back (unitcoeff, gauge_ent, gauge_ent) ;
@@ -74,10 +74,10 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    {
 	    plaquette.push_back  (PolyTerm(0, 2)) ;
 	    cplaquette.push_back (PolyTerm(0, 2)) ;
-	    SymbStr	str	 { string (theory.box.comp[0], link[0]) } ;
-	    SymbStr	Str	 { string (theory.box.comp[0], Link[0]) } ;
-	    uint	indx	 { baslist.find (str) } ;
-	    uint	Indx	 { baslist.find (Str) } ;
+	    Str		lll	 { string (theory.box.comp[0], link[0]) } ;
+	    Str		LLL	 { string (theory.box.comp[0], Link[0]) } ;
+	    uint	indx	 { baslist.find (lll) } ;
+	    uint	Indx	 { baslist.find (LLL) } ;
 	    Obs		polyakov { baslist(indx) } ; polyakov.canon() ;
 	    Obs		Polyakov { baslist(Indx) } ; Polyakov.canon() ;
 	    uint	cindx	 { baslist.find (polyakov) } ;
@@ -100,10 +100,10 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 		{
 		for (int j(i) ; ++j < theory.dim ;)
 		    {
-		    SymbStr	str   { string{link[i],link[j],Link[i],Link[j]} } ;
-		    SymbStr	Str   { string{link[i],Link[j],Link[i],link[j]} } ;
-		    uint	indx  { baslist.find (str) } ;
-		    uint	Indx  { baslist.find (Str) } ;
+		    Str		xyXY   { string{link[i],link[j],Link[i],Link[j]} } ;
+		    Str		xYXy   { string{link[i],Link[j],Link[i],link[j]} } ;
+		    uint	indx  { baslist.find (xyXY) } ;
+		    uint	Indx  { baslist.find (xYXy) } ;
 		    Obs		plaq  { baslist(indx) } ; plaq.canon() ;
 		    Obs		Plaq  { baslist(Indx) } ; Plaq.canon() ;
 		    uint	cindx { baslist.find (plaq) } ;
@@ -141,7 +141,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    ObsPoly ckinetic_F (baslist) ;
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
-		uint    indx	{ baslist.find (SymbStr (KinF + i)) } ;
+		uint    indx	{ baslist.find (Str (KinF + i)) } ;
 		Obs	ee	{ baslist(indx) } ; ee.canon() ;
 		uint	cindx	{ baslist.find (ee) } ;
 		if (indx == UINT_MAX) fatal ("Baselist missing ee") ;
@@ -158,14 +158,14 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    {
 	    for (int j(0) ; j < theory.dim ; ++j)
 		{
-		SymbStr str	{ string{Ferm[i],link[j],ferm[i]} } ;
-		SymbStr Str	{ string{Ferm[i],Link[j],ferm[i]} } ;
-		uint	indx	{ baslist.find (str) } ;
-		uint	Indx	{ baslist.find (Str) } ;
-		Obs	Fxf	{ baslist(indx) } ; Fxf.canon() ;
-		Obs	FXf	{ baslist(Indx) } ; FXf.canon() ;
-		uint	cindx	{ baslist.find (Fxf) } ;
-		uint	cIndx	{ baslist.find (FXf) } ;
+		Str 	Fxf	{ string{Ferm[i],link[j],ferm[i]} } ;
+		Str 	FXf	{ string{Ferm[i],Link[j],ferm[i]} } ;
+		uint	indx	{ baslist.find (Fxf) } ;
+		uint	Indx	{ baslist.find (FXf) } ;
+		Obs	hop	{ baslist(indx) } ; hop.canon() ;
+		Obs	Hop	{ baslist(Indx) } ; Hop.canon() ;
+		uint	cindx	{ baslist.find (hop) } ;
+		uint	cIndx	{ baslist.find (Hop) } ;
 		if (indx == UINT_MAX) fatal ("Baselist missing Fxf") ;
 		if (Indx == UINT_MAX) fatal ("Baselist missing FXf") ;
 		hop_term.push_back (PolyTerm (indx,  0.5)) ;
@@ -193,7 +193,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	if (iseuc)
 	    {
 	    ObsPoly	fermi_ent (baslist) ;
-	    uint	indx	{ baslist.find (SymbStr {EntrF}) } ;
+	    uint	indx	{ baslist.find (Str {EntrF}) } ;
 	    if (indx == UINT_MAX) fatal ("Baselist missing s") ;
 	    fermi_ent.push_back (PolyTerm (indx, -1.0)) ;
 	    global.info(1).Hterms.emplace_back (unitcoeff, fermi_ent, fermi_ent) ;

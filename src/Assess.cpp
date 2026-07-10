@@ -10,7 +10,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
     {
     ++global.count().assessed ; ++depth ;
 
-    uint blab { Blab::blablevel[BLAB::ASSESS] } ;
+    uint blab { Blab::level(Blab::ASSESS) } ;
     if (blab > 1) cout << "\nassess " << depth << ": " << name
 		   << " frozen " << frozen() << " approx " << approx
 		   << " classify " << classify << " " << a << "\n" << flush ;
@@ -123,7 +123,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 
 bool Obs::classify (ObsList& list)	// Determine Obs expectation order
     {
-    uint	blab	{ Blab::blablevel[BLAB::ASSESS] } ;
+    uint	blab	{ Blab::level(Blab::ASSESS) } ;
     bool	keep	{ false } ;
     short	xmin	(0) ;
 
@@ -147,7 +147,7 @@ bool Obs::classify (ObsList& list)	// Determine Obs expectation order
 bool Obs::factorize (short xmin, const ObsList& list)	// Factorize no-E Obs
     const
     {
-    uint blab { Blab::blablevel[BLAB::ASSESS] } ;
+    uint blab { Blab::level(Blab::ASSESS) } ;
     if (blab > 1) cout << "\nfactorize " << depth << ": " << *this << "\n" << flush ;
 
     SiteVec&	sites { sitelist() } ;
@@ -159,7 +159,7 @@ bool Obs::factorize (short xmin, const ObsList& list)	// Factorize no-E Obs
     auto	e { cend() } ;
     int		intersects (0) ;
 
-    thread_local SymbStr buf ;
+    thread_local Str buf ;
     buf.clear() ;
     buf.reserve (size() + 4 * isFf) ;
 
@@ -295,7 +295,7 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
     PolyTerm	one   { Polyindx(), 1 } ;
     bool	prev  { list.freezeif() } ;
     bool	isham { !theory.euclid } ;
-    uint	blab  { Blab::blablevel[BLAB::ASSESS] } ;
+    uint	blab  { Blab::level(Blab::ASSESS) } ;
     if (blab > 1) cout << "\nreduce " << depth << ": " << *this << "\n" << flush ;
 
     if (is_EEloop())				// split w. E-plaquette reduction
@@ -411,7 +411,7 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
 
 PolyTerm Obs::approximate (const ObsList& list) const		// Approximate Obs?
     {
-    uint blab { Blab::blablevel[BLAB::ASSESS] } ;
+    uint blab { Blab::level(Blab::ASSESS) } ;
     if (blab > 1) cout << "approximate " << depth << ": " << *this << "\n" ;
 
     thread_local vector<Intersect> intersects ;
@@ -462,7 +462,7 @@ PolyTerm Obs::approximate (const ObsList& list) const		// Approximate Obs?
 
 	int attempt ( 0 ) ;
 
-	thread_local SymbStr buf ;
+	thread_local Str buf ;
 	buf.clear() ;
 	buf.reserve (size()) ;
 
@@ -543,7 +543,7 @@ SiteVec& Obs::sitelist () const		// Return sorted list of site coords
 
 short Obs::u1bound (short oldmin) const		// Lower bound xorder, gauge Obs only
     {
-    uint	blab { Blab::blablevel[BLAB::ASSESS] } ;
+    uint	blab { Blab::level(Blab::ASSESS) } ;
     Coord	bbox[2] {{0,0,0,0}, {0,0,0,0}} ;
     Coord	x {0,0,0,0} ;
     short	minord (0) ;
@@ -604,10 +604,10 @@ short Obs::u1bound (short oldmin) const		// Lower bound xorder, gauge Obs only
 short Obs::noEbound (const ObsList& list) const	// Lower bound xorder, Obs w. E's
     {
     auto	p { cbegin() } ;
-    uint	blab { Blab::blablevel[BLAB::ASSESS] } ;
+    uint	blab { Blab::level(Blab::ASSESS) } ;
     if (blab > 1) cout << "noEbound " << depth << ": " << *this << "\n" ;
 
-    thread_local SymbStr buf ;
+    thread_local Str buf ;
     buf.clear() ;
     buf.reserve (size()) ;
 

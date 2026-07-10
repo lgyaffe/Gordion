@@ -7,7 +7,7 @@ class Site
     {
     public:
     ulong	point ;		// site coordinate
-    short	pos ;		// position in SymbStr
+    short	pos ;		// position in Str
     short	nEs ;		// # preceeding E's
     symb	in ;		// prior Symb
     symb	out ;		// following Symb

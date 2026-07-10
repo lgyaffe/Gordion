@@ -10,7 +10,7 @@ void Commute::commute_poly (const Gen& gen, const ObsPoly& poly, PolyMap& ans)
     //
     // Evaluate [Gen,ObsPoly]
     //
-    uint blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint blab { Blab::level(Blab::COMMUTE) } ;
     for (auto term : poly)				// loop over ObsPoly terms
 	{
 	if (term.coeff) commute_term (gen, term, poly.obslist(), ans) ;
@@ -24,7 +24,7 @@ void Commute::commute_poly (const Gen& gen, const PolyMap& poly, PolyMap& ans)
     //
     // Evaluate [Gen,PolyMap]
     //
-    uint blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint blab { Blab::level(Blab::COMMUTE) } ;
     for (auto [indx,coeff] : poly)			// loop over PolyMap terms
 	{
 	PolyTerm term { indx, coeff } ;
@@ -39,7 +39,7 @@ void Commute::commute_term (const Gen& gen, const PolyTerm& term, ObsList& list,
     // Evaluate [Gen,PolyTerm]
     //
     {
-    uint blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint blab { Blab::level(Blab::COMMUTE) } ;
     if (blab) cout << "\n--- commute_term: gen " << gen << ", term " << term << "\n" ;
 
     const auto&	oplist	{ gen.oplist() } ;
@@ -144,7 +144,7 @@ void Commute::do_commuteA (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     // Evaluate [Eloop Op a, Obs b] * PolyTerm factor --- a[0] differentiates
     //
     {
-    uint	blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint	blab { Blab::level(Blab::COMMUTE) } ;
     symb	x { a.front() } ;
     int		dir { axis(x) } ;
     int		tnRa { tnR(x) } ;
@@ -153,7 +153,7 @@ void Commute::do_commuteA (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 
     if (blab > 1) cout << "do_commuteA " << a << ", " << b << "\n" ;
 
-    SymbStr buf ;
+    Str buf ;
     buf.reserve (a.size() + bsize + 1) ;
 
     for (int i(0) ; i < bsize ; ++i)
@@ -206,7 +206,7 @@ void Commute::do_commuteB (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     // Evaluate -[Eloop Obs b, Op a] * PolyTerm factor --- b[0] differentiates
     //
     {
-    uint	blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint	blab { Blab::level(Blab::COMMUTE) } ;
     symb	x { b.front() } ;
     int		dir { axis(x) } ;
     int		tnRb { tnR(x) } ;
@@ -215,7 +215,7 @@ void Commute::do_commuteB (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 
     if (blab > 1) cout << "do_commuteB " << a << ", " << b << "\n" ;
 
-    SymbStr buf ;
+    Str buf ;
     buf.reserve (asize + b.size() + 1) ;
     
     for (int i(0) ; i < asize ; ++i)
@@ -268,7 +268,7 @@ void Commute::do_commuteC (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     // Evaluate -[EEloop Obs b, Op a] * PolyTerm factor --- b[0] differentiates
     //
     {
-    uint	blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint	blab { Blab::level(Blab::COMMUTE) } ;
     symb	x { b.front() } ;
     int		dir { axis(x) } ;
     int		tnRb { tnR(x) } ;
@@ -279,7 +279,7 @@ void Commute::do_commuteC (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 
     if (blab > 1) cout << "do_commuteC " << a << ", " << b << "\n" ;
 
-    SymbStr buf ;
+    Str buf ;
     buf.reserve (asize + bsize + 1) ;
     
     for (int i(0) ; i < asize ; ++i)		// b[0] differentiates
@@ -357,14 +357,14 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     short midE { b.middleE() } ;
     if (!midE) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::COMMUTE] } ;
+    uint	blab	{ Blab::level(Blab::COMMUTE) } ;
     short	corder	{ cordsum (a,b) } ;
     symb	x	{ b[midE] } ;
     int		dir	{ axis(x) } ;
     int		tnRb	{ tnR(x)  } ;
     int		asize	( a.size() ) ;
     int		bsize	( b.size() ) ;
-    SymbStr	buf ;
+    Str		buf ;
 
     if (blab > 1) cout << "do_commuteD " << a << ", " << b << "\n" ;
 
@@ -480,13 +480,13 @@ void Commute::do_commuteE (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     // Evaluate [bilinear Op a, bilinear Obs b] * PolyTerm factor --- endpoints anticommute
     //
     {
-    uint	blab	{ Blab::blablevel[BLAB::COMMUTE] } ;
+    uint	blab	{ Blab::level(Blab::COMMUTE) } ;
     short	corder	{ cordsum (a,b) } ;
     bool	iseuc	{ theory.euclid } ;
 
     if (blab > 1) cout << "do_commuteE " << a << ", " << b << "\n" ;
 
-    SymbStr buf ;
+    Str buf ;
     buf.reserve (a.size() + b.size() + 1) ;
 
     symb x { a.back() } ;
@@ -535,7 +535,7 @@ void Commute::do_split (doub coeff, const ObsPoly& redu, const Obs& b, ObsList& 
     // Evaluate coeff * [Eloop Gen::reduction, EEloop Obs b] -> cubic product of loops
     //
     {
-    uint		blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint		blab { Blab::level(Blab::COMMUTE) } ;
     static PolyTerm	one  { Polyindx(), 1 } ;
     ObsList		tmplist { "SplitTemp" } ;
 
@@ -586,11 +586,11 @@ void Commute::do_inner (const Obs& a, const PolyTerm factor, ObsList& list, Poly
     // Inner commutator: (Eloop -> tr([E,loop])) * PolyTerm factor
     //
     {
-    uint blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint blab { Blab::level(Blab::COMMUTE) } ;
     if (blab > 1) cout << "--- do_inner: list " << list.name << " "
 		       << a << " factor " << factor << "\n" ;
 
-    SymbStr buf ;
+    Str buf ;
     buf.reserve (a.size() + 1) ;
     buf.assign  (a.cbegin(), a.cend()) ;
 
@@ -665,7 +665,7 @@ Gen& Commute::commute_gen (const Gen& gen1, const Gen& gen2, Gen& ans)
     // Evaluate [Gen, Gen] -> Gen
     //
     {
-    uint blab { Blab::blablevel[BLAB::COMMUTE] } ;
+    uint blab { Blab::level(Blab::COMMUTE) } ;
     if (blab) cout << "\n--- commute_gen: " << gen1 << "," << gen2
 		   << ", ans " << ans << "\n" ;
 
@@ -701,11 +701,11 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
     if (!coeff) return ;
 
     auto&	oplist	{ ans.oplist() } ;
-    uint	blab	{ Blab::blablevel[BLAB::COMMUTE] } ;
+    uint	blab	{ Blab::level(Blab::COMMUTE) } ;
     if (blab) cout << "op_commute[Op,Op]: a " << a << " b " << b
 		   << " coeff " << coeff << "\n" ;
 
-    SymbStr buf ;
+    Str buf ;
     if (a.size() + b.size() >= buf.capacity())
 	{
 	buf.reserve (a.size() + b.size() + 1) ;

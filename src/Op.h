@@ -10,6 +10,7 @@ class Obs ;
 class OpSum : public vector<OpTerm>			// Op linear combination
     {
     std::reference_wrapper<OpList> list ;		// Operator list
+
     public:
     OpSum (OpList&) ;					// Constructor
     OpSum (OpTerm*, OpTerm*, OpList&) ;			// Constructor
@@ -32,27 +33,29 @@ enum class OpType : char				// Operator types
     Invalid
     } ;
 
-class Op : public SymbStr				// Op = generator term
+class OpList ;
+
+class Op : public Str					// Op = generator term
     {
     public:
-    OpType		type { OpType::Invalid } ;	// Operator type
-    mutable bool	primary { false } ;		// Primary Op?
-    short		order   { -1 } ;		// Grading order
+    OpType	type { OpType::Invalid } ;	// Operator type
+    bool	primary { false } ;		// Primary Op?
+    short	order   { -1 } ;		// Grading order
 
     Op () {}						// Default constructor
     explicit Op (const string&, short) ;		// Constructor
     explicit Op (const string&, OpType, short) ;	// Constructor
 
-    Op (const SymbStr& s, OpHdr& hdr)			// Constructor
+    Op (const Str& s, OpHdr& hdr)			// Constructor
 	:
-	SymbStr	(s),
+	Str	(s),
 	type	((OpType) hdr.type),
 	order	(hdr.order)
 	{ if (check) validate() ; }
 
-    Op (const SymbStr& s, OpType t, short o)		// Constructor
+    Op (const Str& s, OpType t, short o)		// Constructor
 	:
-	SymbStr	(s),
+	Str	(s),
 	type	(t),
 	order	(o)
 	{ if (type == OpType::Loop) findstart() ;
@@ -60,7 +63,7 @@ class Op : public SymbStr				// Op = generator term
 
     Op (const Obs& a) 					// Convert Obs -> Op
 	:
-	SymbStr	(a),
+	Str	(a),
 	order	(a.corder),
 	type	(a.is_Fermion() ? OpType::Fermion :
 		 a.is_Eloop() ? OpType::Eloop :
@@ -97,7 +100,7 @@ class OpList : public Index<Op>
     uint store (const Op& op)			// Store Op in list
 	{
 	uint	len  ( size() ) ;
-	uint	indx { Index<Op>::store (op) } ;
+	uint	indx { Index::store (op,op) } ;
 	if (indx >= size()) fatal ("OpList::store: bad store! ") ;
 	return indx ;
 	}

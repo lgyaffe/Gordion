@@ -11,10 +11,10 @@ void Blab::setblab (string file, uint level)	// Set specified blab level
 void Blab::resetblab ()				// (Re)set blab levels
     {
     std::fill (blablevel.begin(), blablevel.end(), 0) ;
-    //blablevel[BLAB::ASSESS]	= 4 ;
-    //blablevel[BLAB::CANON]	= 3 ;
-    //blablevel[BLAB::COMMUTE]	= 3 ;
-    //blablevel[BLAB::GEN]	= 1 ;
-    //blablevel[BLAB::OBS]	= 2 ;
-    //blablevel[BLAB::NUMERICS]	= 1 ;
+    //blablevel[ASSESS]	= 4 ;
+    //blablevel[CANON]	= 3 ;
+    //blablevel[COMMUTE]	= 3 ;
+    //blablevel[GEN]	= 1 ;
+    //blablevel[OBS]	= 2 ;
+    //blablevel[NUMERICS]	= 1 ;
     }

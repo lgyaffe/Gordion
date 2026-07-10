@@ -1,13 +1,13 @@
 #include "Canon.h"
-#include "Symm.h"
 #include "Global.h"
+#include "Symm.h"
 #include "Gripe.h"
 #include "Blab.h"
 #include <cstring>
 
 int Obs::canon()				// Canonicalize observable
     {
-    uint blab { Blab::blablevel[BLAB::CANON] } ;
+    uint blab { Blab::level(Blab::CANON) } ;
     if (blab > 1) cout << "canon " << *this << "\n" << flush ;
     ++global.count().canons ;
 
@@ -331,7 +331,7 @@ int Obs::canon()				// Canonicalize observable
 		    fatal (format("bad spectable node: obs {} start {} rev {} indx {}",
 			    print(), start, reverse, indx)) ;
 		    }
-//		SymbStr chunk { string(specchunksize,'\0') } ;
+//		Str chunk { string(specchunksize,'\0') } ;
 //		if (!Canon::specchunk (indx % (spectblsize()/2), chunk))
 //		    {
 //		    fatal (format("specchunk failed! obs {} start {} rev {} chunk {}",
@@ -408,7 +408,7 @@ int Obs::canon()				// Canonicalize observable
 	}
     }
 
-bool Canon::loopchunk (uint code, SymbStr& s)	// Map looptbl index -> loop chunk
+bool Canon::loopchunk (uint code, Str& s)	// Map looptbl index -> loop chunk
     {
     int	 dim { theory.dim } ;
     int	 base { 2 * dim } ;
@@ -424,12 +424,12 @@ bool Canon::loopchunk (uint code, SymbStr& s)	// Map looptbl index -> loop chunk
     return true ;
     }
 
-bool Canon::specchunk (uint code, SymbStr& s)	// Map spectbl index -> spec chunk
+bool Canon::specchunk (uint code, Str& s)	// Map spectbl index -> spec chunk
     {
     int	 dim  { theory.dim } ;
     int	 base { 2 * dim } ;
     int  len  ( s.size() ) ;				// must equal specchunksize
-    uint blab { Blab::blablevel[BLAB::CANON] } ;
+    uint blab { Blab::level(Blab::CANON) } ;
     if (blab > 3) cout << "\t specchunk: code " << code << "\n" ;
 
     for (auto p { s.rbegin() } ; p < s.rend() ; code /= base)	// lay down links
@@ -487,7 +487,7 @@ uint Canon::speccode (const Obs& obs, int start, bool reverse)	// Map spec chunk
     int  len  ( obs.size() ) ;
     int  inc  { reverse ? -1 : +1 } ;
     int  k    { start } ;
-    uint blab { Blab::blablevel[BLAB::CANON] } ;
+    uint blab { Blab::level(Blab::CANON) } ;
     if (blab > 3) cout << "speccode " << obs << " len " << len
 			    << " start " << start << " reverse " << reverse << "\n" ;
 
@@ -554,8 +554,8 @@ uint Canon::speccode (const Obs& obs, int start, bool reverse)	// Map spec chunk
 
 void Canon::looptblinit()					// Initialize looptable
     {
-    int		nodecount(0) ;
-    SymbStr	chk (string(loopchunksize,'\0')) ;
+    int	nodecount(0) ;
+    Str	chk (string(loopchunksize,'x')) ;
 
     for (int code(0) ; code < looptable.size() ; ++code)	// run over all loop chunks
 	{
@@ -612,7 +612,7 @@ void Canon::spectblinit()					// Initialize spectable
     int		nodecount(0) ;
     uint	halftbl	( spectable.size()/2 ) ;
     uint	csymm	( Symm::list.size()/2 ) ;
-    SymbStr	chk	(string(specchunksize,'\0')) ;
+    Str		chk	(string(specchunksize,'x')) ;
 
     for (int code(0) ; code < halftbl ; ++code)
 	{
@@ -654,7 +654,7 @@ void Canon::spectblinit()					// Initialize spectable
 	    symmlist.shrink_to_fit() ;
 	    node.indx = symmset.store (symmstr, symmlist) ;
 	    ++nodecount ;
-	    if (Blab::blablevel[BLAB::CANON] > 2)
+	    if (Blab::level(Blab::CANON) > 2)
 		{
 		cout << "spectbl node[" << code + rev * halftbl << "]: "
 			  << " code " << code << " chunk " << chk.print()
@@ -698,7 +698,7 @@ ostream& operator<< (ostream& stream, const CanonCache& cache)
     for (const auto& [key,indx] : cache)
 	{
 	const Obs& a { ObsList::obs (abs(indx)) } ;
-	stream	<< std::left  << std::setw(12) << SymbStr(key).print() << " -> "
+	stream	<< std::left  << std::setw(12) << Str(key).print() << " -> "
 		<< std::right << std::setw(2) << indx << ": " << a << "\n" ;
 	}
     return stream ;

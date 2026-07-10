@@ -17,16 +17,18 @@ OpSum::OpSum (OpTerm* beg, OpTerm* end, OpList& oplist)
 
 Op::Op(const string& s, OpType t, short ord)	// Construct from string
     :
-    SymbStr(to_symb(s)), type(t), order(ord)
+    Str(s), type(t), order(ord)
     {
     if (type == OpType::Loop) findstart() ;
+    joinends() ;
     validate() ;
     }
 
 Op::Op(const string& s, short ord)		// Construct from string
     :
-    SymbStr(to_symb(s)), type(optype(s)), order(ord)
+    Str(s), type(optype(s)), order(ord)
     {
+    joinends() ;
     if (type == OpType::Loop) findstart() ;
     validate() ;
     }
@@ -67,7 +69,7 @@ void Op::validate()				// Test Op validity
     else if (!fs && !Es && type != OpType::Loop)  err = "has wrong type" ;
     else if (!fs &&  Es && type != OpType::Eloop) err = "has wrong type" ;
 
-    if (err) gripe (format("Bad Op: {} {}", SymbStr::print(), err)) ;
+    if (err) gripe (format("Bad Op: {} {}", Str::print(), err)) ;
     }
 
 OpType Op::optype (const string s)		// Determine Op type
@@ -181,7 +183,7 @@ int OpSum::collect (bool divgcd)		// Collect terms, optionally
 
 ostream& operator<< (ostream& stream, const Op& op)	// Print Op
     {
-    if (op.size()) stream << static_cast<SymbStr>(op) ;
+    if (op.size()) stream << static_cast<Str>(op) ;
     else stream << "1" ;
     if (op.order >= 0) stream << " (" << op.order << ")" ;
     return stream ;
@@ -204,7 +206,7 @@ void OpList::setprimary ()			// Determine Op primacy
 
     for (int i(0) ; i < opnum ; ++i)
 	{
-	const Op& op { (*this)[i] } ;
+	Op& op { (*this)[i] } ;
 	if (!op.order) continue ;
 	if (op.order > maxord) maxord = op.order ;
 	op.primary = true ;
@@ -223,7 +225,7 @@ void OpList::setprimary ()			// Determine Op primacy
 
 	    for (auto& term : ans1)		// N.B. don't collect
 		{
-		const Op& new1 { (*this)[term.item] } ;
+		Op& new1 { (*this)[term.item] } ;
 		if (new1.order == op1.order + op2.order)
 		    new1.primary = false ;
 		else if (new1.order > op1.order + op2.order)
@@ -242,7 +244,7 @@ void OpList::setprimary ()			// Determine Op primacy
 
 		    for (auto& term : ans2)	// N.B. don't collect
 			{
-			const Op& new2 { (*this)[term.item] } ;
+			Op& new2 { (*this)[term.item] } ;
 			if (new2.order == op1.order + op2.order + op3.order)
 			    new2.primary = false ;
 			else if (new2.order > op1.order + op2.order + op3.order)

@@ -1,5 +1,6 @@
 #ifndef LINALG
 #define LINALG
+#include "Gordion.h"
 #include <complex>
 #include <numeric>
 #include <iostream>

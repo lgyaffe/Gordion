@@ -1,10 +1,9 @@
 #ifndef GORDION_H
 #define GORDION_H
 #include <cstdint>
-#include <cmath>
+#include <set>
 #include <array>
 #include <vector>
-#include <set>
 #include <unordered_set>
 #include <unordered_map>
 #include <fstream>

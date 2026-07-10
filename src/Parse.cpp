@@ -61,7 +61,6 @@ void Parse::read_input (istream&& in, bool prompt)	// Read input
 
 [[noreturn]] void Parse::quit (int code)		// Exit program
     {
-    if (global.interrupt) FINALIZE ;
     auto end  { hires::now() } ;
     auto secs { duration_cast<sec>(end - starttime).count() } ;
     if (timing && secs > 10) myout << "Total time: " << secs << " sec\n" ;
@@ -251,7 +250,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"dots") && parse_args (line,flag))
 	    {
-	    SymbStr::dots = flag ;
+	    Str::dots = flag ;
 	    }
 	else if (isword(word,"echo") && parse_args (line,flag))
 	    {

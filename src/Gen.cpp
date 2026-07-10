@@ -33,7 +33,7 @@ Gen::Gen (const Op& op, const Proj& proj)		// Construct with given projector
     T_odd (op.is_coord()),
     imag  ((theory.euclid ? op.is_FermionO() : op.is_coord()) ^ !proj.C_even())
     {
-    if (Blab::blablevel[BLAB::GEN] > 1)
+    if (Blab::level(Blab::GEN) > 1)
 	{
 	cout << "Gen::Gen (Op&, Proj&) " << op << " " << proj.name << "\n" ;
 	}
@@ -58,7 +58,7 @@ Gen::Gen (const OpSum& s, const Proj& proj)		// Construct with given projector
     :
     OpSum (s.oplist())
     {
-    if (Blab::blablevel[BLAB::GEN] > 1)
+    if (Blab::level(Blab::GEN) > 1)
 	{
 	cout << "Gen::Gen (OpSum&, proj&) " << proj.name << "\n" ;
 	}
@@ -104,7 +104,7 @@ Gen::Gen (const OpSum& s, const Proj& proj)		// Construct with given projector
 
 void Gen::settype (Op& op)			// Set & check Gen type
     {
-    if (Blab::blablevel[BLAB::GEN] > 1)
+    if (Blab::level(Blab::GEN) > 1)
 	{
 	cout << "Gen::settype gen " << *this << " Op " << op
 	     << " size " << size() << "\n" ;
@@ -145,7 +145,7 @@ int Gen::project (Op& op)			// Project onto all reps
 
 		if (tmp.order > global.maxgen()) global.maxgen() = tmp.order ;
 
-		if (Blab::blablevel[BLAB::GEN])
+		if (Blab::level(Blab::GEN))
 		    {
 		    cout << proj.name << " gen " << global.fg()
 			 << indx << (tmp.T_odd ? "*" : "")
@@ -181,7 +181,7 @@ int Gen::project (OpSum&& s)			// Project onto all reps
 
 		if (tmp.order > global.maxgen()) global.maxgen() = tmp.order ;
 
-		if (Blab::blablevel[BLAB::GEN] > 1)
+		if (Blab::level(Blab::GEN) > 1)
 		    {
 		    cout << proj.name << " gen #" << global.fg()
 			 << indx << (tmp.T_odd ? "*" : "")
@@ -274,7 +274,7 @@ void Gen::normalize (int repnum)			// Normalize generator
 	    doub x { coeff * opterm.coeff } ;
 	    normsq += x * x ;
 	    }
-	if (Blab::blablevel[BLAB::GEN])
+	if (Blab::level(Blab::GEN))
 	    cout << "Gen::normalize: method 2 for " << *this << "\n" ;
 	}
     coeff /= sqrt (normsq) ;
@@ -352,7 +352,7 @@ void Gen::inner_commute ()			 	// Generator reduction
     {
     if (type == OpType::Loop) return ;
 
-    uint blab { Blab::blablevel[BLAB::GEN] } ;
+    uint blab { Blab::level(Blab::GEN) } ;
     if (blab > 1) cout << "--- inner_commute: " << *this << " " << (int)type << "\n" ;
 
     PolyMap map { reduction.obslist() } ;

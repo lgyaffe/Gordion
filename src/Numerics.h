@@ -31,7 +31,7 @@ class Numerics
     Cmtx	modes ;			// Oscillation eigenvectors
     Uvec	Tevens ;		// T-even active generators
     Uvec	Todds ;			// T-odd active generators
-    short	lastrep ;		// Symmetry representation
+    ushort	lastrep ;		// Symmetry representation
 
     Rvec	vev_tmp ;		// Temporary vev vector
     const real*	vev_buf ;		// Pointer to vev buffer data
@@ -78,11 +78,11 @@ class Numerics
 	return z ;
 	}
 
-    static doub	termvalue (const PolyTerm& t, const doub* o)	// Evaluate PolyTerm
+    static doub	termvalue (const PolyTerm& t, const doub* v)	// Evaluate PolyTerm
 	{
 	doub z { t.coeff } ;
 	for (int k(0) ; k < PSIZ ; ++k)
-	    if (t[k]) z *= o[t[k]] ;
+	    if (t[k]) z *= v[t[k]] ;
 	    else break ;
 	return z ;
 	}
@@ -103,6 +103,6 @@ class Numerics
     static void	data_write   (ofstream&, const string, doub, const Cvec&) ;
     } ;
 
-extern Numerics numerics ;
+inline Numerics numerics ;				// Numerical data
 
 #endif

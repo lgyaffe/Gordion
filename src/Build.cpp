@@ -34,9 +34,11 @@ void Build::clearobs (int stage)		// Clear prior observables
 
 void Build::mk_obs (int target)			// Build observables
     {
+    if (global.interrupt) return ;
+
     auto& maxord  { global.maxord() } ;
     auto& obslist { ObsList::obs } ;
-    uint  blab	  { Blab::blablevel[BLAB::BUILD] } ;
+    uint  blab	  { Blab::level(Blab::BUILD) } ;
 
     obslist.approx  = false ;
     ObsList::freeze = false ;
@@ -49,9 +51,12 @@ void Build::mk_obs (int target)			// Build observables
 	auto numobs { obslist.size() } ;
 	while (maxord < target)
 	    {
+	    if (global.interrupt) return ;
 	    if (++maxord % 4) continue ;
 	    mk_loops () ;
-	    if (!theory.euclid) { mk_Eloops() ; mk_EEloops() ; }
+	    if (theory.euclid) continue ;
+	    mk_Eloops() ;
+	    mk_EEloops() ;
 	    }
 	if (obslist.size() != numobs)
 	    {
@@ -76,9 +81,11 @@ void Build::mk_obs (int target)			// Build observables
 
 	while (maxord < target)
 	    {
+	    if (global.interrupt) return ;
 	    if (++maxord % 2) continue ;
 	    mk_fermions () ;
-	    if (!theory.euclid) mk_Efermions() ;
+	    if (theory.euclid) continue ;
+	    mk_Efermions() ;
 	    }
 	vector<Op>().swap (primepOps) ;
 	int initfail { obslist.do_fermiinit () } ;
@@ -100,7 +107,7 @@ void Build::mk_obs (int target)			// Build observables
     Canon::cache.freeze = true ;
     ObsList::freeze = true ;
     obslist.approx = global.approx ;
-    obslist.shrink_to_fit() ;
+    obslist.shrink() ;
 
     if (blab) cout << "Total # Obs:\t" << ObsList::obs.size() << "\n" << flush ;
     }
@@ -109,7 +116,7 @@ void Build::mk_loops ()				// Build Loop's
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
@@ -142,6 +149,7 @@ void Build::mk_loops ()				// Build Loop's
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
 		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
+	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Loops     (" << maxord << "):  \t"
@@ -154,7 +162,7 @@ void Build::mk_Eloops ()			// Build Eloop's
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
@@ -188,6 +196,7 @@ void Build::mk_Eloops ()			// Build Eloop's
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
 		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
+	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Eloops    (" << maxord << "):  \t"
@@ -200,7 +209,7 @@ void Build::mk_EEloops ()			// Build EEloop's
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
@@ -233,6 +242,7 @@ void Build::mk_EEloops ()			// Build EEloop's
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
 		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
+	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "EEloops   (" << maxord << "):  \t"
@@ -245,7 +255,7 @@ void Build::mk_fermions ()			// Build Fermion's
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	bckt	{ global.info(1).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
@@ -278,6 +288,7 @@ void Build::mk_fermions ()			// Build Fermion's
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
 		 << "# fermion obs = " << obslist.nobsF << "\n" << flush ;
+	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Fermions  (" << maxord << "):  \t"
@@ -290,7 +301,7 @@ void Build::mk_Efermions ()			// Build Efermion's
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	bckt	{ global.info(1).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
@@ -323,6 +334,7 @@ void Build::mk_Efermions ()			// Build Efermion's
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
 		 << "# fermion obs = " << obslist.nobsF << "\n" << flush ;
+	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Efermions (" << maxord << "):  \t"
@@ -341,7 +353,7 @@ void Build::mk_grad()				// Build gradient
     const auto&	Hterms	{ info.Hterms } ;
     ushort	ngens	{ info.neven.front() } ;
     ushort	nterms	( Hterms.size() ) ;
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     PolyMap	ans	{ ObsList::obs } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
@@ -361,6 +373,7 @@ void Build::mk_grad()				// Build gradient
 		}
 	    grad.add (Poly {GradHdr {j,i}}, ans.negate()) ;
 	    ans.clear() ;
+	    if (global.interrupt) return ;
 	    }
 	}
     if (grad.entry().id != RecordID::Grad) fatal ("mk_grad: bad record ID!") ;
@@ -383,12 +396,12 @@ void Build::mk_curv (uint repnum)			// Build curvature
 
     auto&	info	{ global.info() } ;
     auto&	curv	{ global.data().curv[repnum] } ;
-    const auto& repnam	{ Rep::list[repnum].name } ;
+    const auto&	repnam	{ Rep::list[repnum].name } ;
     const auto&	gens	{ info.gens[repnum] } ;
     const auto&	Hterms	{ info.Hterms } ;
     ushort	nterms	( Hterms.size() ) ;
     ushort	ngens   ( gens.size() ) ;
-    uint	blab    { Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab    { Blab::level(Blab::BUILD) } ;
     ObsList	tmplist { "CurvTemp", repnum == 0 } ;
     PolyMap	tmp	{ tmplist } ;
     PolyMap	ans	{ ObsList::obs } ;
@@ -420,6 +433,7 @@ void Build::mk_curv (uint repnum)			// Build curvature
 		curv.add (Poly {CurvHdr {k,j,i}}, ans) ;
 		ans.clear() ;
 		tmp.clear() ;
+		if (global.interrupt) return ;
 		}
 	    }
 	}
@@ -442,15 +456,15 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     {
     if (global.interrupt) return ;
 
-    const auto& repnam	{ Rep::list[repnum].name } ;
+    const auto&	repnam	{ Rep::list[repnum].name } ;
     const auto&	gens	{ global.info().gens[repnum] } ;
     auto&	lagr	{ global.data().lagr[repnum] } ;
     auto&	oplist	{ global.info().ops } ;
     auto	opnum	{ oplist.size() } ;
     ushort	ngens	( gens.size() ) ;
-    PolyMap	ans	{ ObsList::obs } ;
     short	trunc	{ SHRT_MAX } ;
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
+    PolyMap	ans	{ ObsList::obs } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
 
@@ -469,6 +483,7 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
 		trunc = std::min(trunc, newgen.order) ;
 	    lagr.add (Poly {LagrHdr {k,j}}, ans) ;
 	    ans.clear() ;
+	    if (global.interrupt) return ;
 	    }
 	}
     if (lagr.entry().id != RecordID::Lagr) fatal ("mk_lagr: bad record ID!") ;
@@ -489,7 +504,7 @@ void Build::mk_geos()				// Build geodesic equations
     if (global.interrupt) return ;
 
     const auto&	bckt	{ global.info().bckt } ;
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
 
     if (blab && blab < 3) cout << "geodesics:\t" << flush;
     if (!global.maxord()) gripe ("Make some observables first!") ;
@@ -508,7 +523,7 @@ void Build::do_Loop_bckt (const uint3& bckt)		// Do loop build bucket
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
@@ -523,7 +538,6 @@ void Build::do_Loop_bckt (const uint3& bckt)		// Do loop build bucket
     ObsList::freeze = false ;
     for (uint i(first) ; i <= last ; ++i)
 	{
-	if (global.interrupt) break ;
 	if (obslist(i).type != ObsType::Loop)	continue ;
 
 	Obs a	{ obslist(i) } ;
@@ -540,6 +554,7 @@ void Build::do_Loop_bckt (const uint3& bckt)		// Do loop build bucket
 		     << "] (" << op.order << "+" << a.corder << ")\n" << flush ;
 		}
 	    Commute::do_commute (op, a, zero, obslist, tmp) ;
+	    if (global.interrupt) break ;
 	    }
 	}
     ObsList::freeze = true ;
@@ -560,7 +575,7 @@ void Build::do_Eloop_bckt (const uint3& bckt)		// Do Eloop build bucket
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
@@ -597,6 +612,7 @@ void Build::do_Eloop_bckt (const uint3& bckt)		// Do Eloop build bucket
 		    cout << "do_Eloop_bckt " << bcktnum << " inbox.size "
 			 << inbox.size() << "\n" << flush ;
 		    }
+		if (global.interrupt) return ;
 		}
 	    }
 	else if (obslist(i).is_Eloop())
@@ -621,6 +637,7 @@ void Build::do_Eloop_bckt (const uint3& bckt)		// Do Eloop build bucket
 		    cout << "do_Eloop_bckt " << bcktnum << " inbox.size "
 			 << inbox.size() << "\n" << flush ;
 		    }
+		if (global.interrupt) return ;
 		}
 	    }
 	}
@@ -642,7 +659,7 @@ void Build::do_EEloop_bckt (const uint3& bckt)		// Do EEloop build bckt
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
@@ -674,6 +691,7 @@ void Build::do_EEloop_bckt (const uint3& bckt)		// Do EEloop build bckt
 		     << "] (" << op.order << "+" << a.corder << ")\n" << flush ;
 		}
 	    Commute::do_commute (op, a, zero, obslist, tmp) ;
+	    if (global.interrupt) return ;
 	    }
 	}
     ObsList::freeze = true ;
@@ -694,7 +712,7 @@ void Build::do_Fermion_bckt (const uint3& bckt)		// Do Fermion build bckt
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
@@ -726,6 +744,7 @@ void Build::do_Fermion_bckt (const uint3& bckt)		// Do Fermion build bckt
 		     << "] (" << op.order << "+" << a.corder << ")\n" << flush ;
 		}
 	    Commute::do_commute (op, a, zero, obslist, tmp) ;
+	    if (global.interrupt) return ;
 	    }
 	}
     ObsList::freeze = true ;
@@ -746,7 +765,7 @@ void Build::do_Efermion_bckt (const uint3& bckt)	// Do Efermion build bckt
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	oplist	{ global.info(1).ops } ;
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
@@ -777,6 +796,7 @@ void Build::do_Efermion_bckt (const uint3& bckt)	// Do Efermion build bckt
 			 << "] (" << op.order << "+" << EE->corder << ")\n" << flush ;
 		    }
 		Commute::do_commute (op, *EE, zero, obslist, tmp) ;
+		if (global.interrupt) return ;
 		}
 	    }
 	else if (obslist(i).is_Efermion())
@@ -796,6 +816,7 @@ void Build::do_Efermion_bckt (const uint3& bckt)	// Do Efermion build bckt
 		    Commute::do_commute  (op, a, zero, obslist, tmp) ;
 		else
 		    Commute::do_commuteE (op, a, zero, obslist, tmp) ;
+		if (global.interrupt) return ;
 		}
 	    }
 	}
@@ -817,7 +838,7 @@ void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
     {
     if (global.interrupt) return ;
 
-    uint	blab	{ Blab::blablevel[BLAB::BUILD] } ;
+    uint	blab	{ Blab::level(Blab::BUILD) } ;
     auto&	info	{ global.info() } ;
     auto&	list	{ ObsList::obs } ;
     const auto&	gens	{ info.gens.front() } ;
@@ -863,6 +884,7 @@ void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
 	    ++ngeo ;
 	    geos.add (Poly {GeoHdr {i,k}}, ans) ;
 	    ans.clear() ;
+	    if (global.interrupt) return ;
 	    }
 	}
     if (geos.entry().id != RecordID::Geos) fatal ("mk_geos_bckt: bad record ID!") ;
@@ -889,6 +911,8 @@ void Build::check_xorder (uint i, const Gen& g, const PolyMap& ans)
     // check expectation orders
     //
     {
+    if (global.interrupt) return ;
+
     const auto&	list	{ ans.obslist() } ;
     const auto&	obs	{ list(i) } ;
     short	minord	{ SHRT_MAX } ;
@@ -958,6 +982,7 @@ void Build::do_geostat_bckt (const uint3& bckt)	// Evaluate geo bucket statistic
 	    ++nterms ;
 	    }
 	++ngeos ;
+	if (global.interrupt) return ;
 	}
     if (global.geoswap) Save::read_geo_bckt (-bcktnum-1) ;
     global.count().ngeos      += ngeos ;

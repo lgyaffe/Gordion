@@ -8,35 +8,40 @@
 #include <regex>
 
 Obs::Obs(const Op& a)						// Convert Op -> Obs
-    : SymbStr(a), corder(a.order), xorder(-1)
+    :
+    Str(a), corder(a.order), xorder(-1)
     {
     type = a.is_Fermion() ? ObsType::Fermion :
 	   a.is_Eloop()   ? ObsType::Eloop : ObsType::Loop ;
     }
 
 Obs::Obs(const string& s)					// Construct Obs
-    : SymbStr(to_symb(s)), type(obstype(s)), corder(-1), xorder(-1)
+    :
+    Str(s), type(obstype(s)), corder(-1), xorder(-1)
     {
-    if (Blab::blablevel[BLAB::OBS] > 3)
+    if (Blab::level(Blab::OBS) > 3)
 	{
 	cout << "Obs(string&) " << s << "\n" << flush ;
 	}
+    joinends() ;
     validate() ;
     }
 
-Obs::Obs(const string&  s, ObsType t, short cord, short xord)	// Construct Obs
-    : SymbStr(to_symb(s)), type(t), corder(cord), xorder(xord)
+Obs::Obs(const string& s, ObsType t, short cord, short xord)	// Construct Obs
+    :
+    Str(s), type(t), corder(cord), xorder(xord)
     {
-    if (Blab::blablevel[BLAB::OBS] > 3)
+    if (Blab::level(Blab::OBS) > 3)
 	{
 	cout << "Obs(string&,short,short) " << s << "\n" << flush ;
 	}
+    joinends() ;
     validate() ;
     }
 
 void Obs::validate () const					// Test if valid Obs
     {
-    if (Blab::blablevel[BLAB::OBS] > 1)
+    if (Blab::level(Blab::OBS) > 1)
 	{
 	cout << "Obs::validate " << *this << "\n" << flush ;
 	}
@@ -156,7 +161,7 @@ int Obs::findstart() noexcept				// Rotate to preferred start
 	}
     else if (is_EEloop() && !EEorEElink(front()))
 	{
-	uint	blab { Blab::blablevel[BLAB::OBS] } ;
+	uint	blab { Blab::level(Blab::OBS) } ;
 	int	a(0), b(middleE()), k(0) ;
 	int	len ( size() ) ;
 	auto	s { c_str() } ;
@@ -183,7 +188,7 @@ int Obs::trans (const Symm& symm, int start) noexcept	// Symmetry transform Obs
     if (!start && symm.is_id())			return 1 ;
 
     bool neg	{ false } ;
-    uint blab	{ Blab::blablevel[BLAB::SYMM] } ;
+    uint blab	{ Blab::level(Blab::SYMM) } ;
     if (blab > 1) cout << "Symm " << symm.name << " on " << *this
 		       << " at " << start << " -> " ;
     if (symm.isCodd())
@@ -218,7 +223,7 @@ int Obs::trans (const Symm& symm, int start) noexcept	// Symmetry transform Obs
 ObsList::ObsList (const string s, bool can, bool clsfy)		// Construct ObsList
     : name(s), canonicalize(can), classify (clsfy)
     {
-    store (Obs(SymbStr(), ObsType::Loop, 0, 0)) ;
+    store (Obs(Str(), ObsType::Loop, 0, 0)) ;
     }
 
 PolyTerm ObsList::is_known (Obs&& a) const			// Find in ObsList
@@ -244,7 +249,7 @@ PolyTerm ObsList::is_known (Obs&& a, Obs&& b) const		// Find in ObsList
 
 PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
     {							// N.B. pass by value
-    uint blab { Blab::blablevel[BLAB::OBS] } ;
+    uint blab { Blab::level(Blab::OBS) } ;
     if (blab > 1) cout << "catalog " << name << ": " << a << "\n" ;
     if (Obs::check) a.validate() ;
 
@@ -263,7 +268,9 @@ PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
 	    fatal (format("Failed classify: {} ({},{}) in {}",
 		a.print(), a.corder, a.xorder, name)) ;
 	}
-    if (freeze) gripe (format("Cannot catalog {} into frozen list ()", a.print(), name)) ;
+    if (frozen())
+	gripe (format("Cannot catalog {} into frozen list {}",
+		a.print(), name)) ;
     PolyTerm ans (store(a), sgn) ;
     if (blab > 1)
 	{
@@ -275,7 +282,7 @@ PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
 
 PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
     {							// N.B. pass by value
-    uint blab { Blab::blablevel[BLAB::OBS] } ;
+    uint blab { Blab::level(Blab::OBS) } ;
     if (blab > 1) cout << "catalog " << name << ": " << a << ", " << b << "\n" ;
     if (Obs::check) { a.validate() ; b.validate() ; }
 
@@ -292,7 +299,8 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
 		 << b << " at " << indxb << "\n" ;
 	return PolyTerm (Polyindx (indxa,indxb), sgna * sgnb) ;
 	}
-    if (freeze) gripe (format("Cannot catalog {} {} into frozen list ()",
+    if (frozen())
+	gripe (format("Cannot catalog {} {} into frozen list ()",
 		    a.print(), b.print(), name)) ;
     if (classify && !a.known_xord())
 	{
@@ -317,7 +325,7 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
 
 uint ObsList::store (const Obs& o)			// Store Obs in ObsList
     {
-    uint blab { Blab::blablevel[BLAB::OBS] } ;
+    uint blab { Blab::level(Blab::OBS) } ;
     if (classify)
 	{
 	if (o.bilinear() && !o.is_coord())
@@ -352,16 +360,16 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 	{
 	if (iseuc)				// gauge entropy
 	    {
-	    SymbStr entG ( EntrG ) ;
+	    Str entG ( EntrG ) ;
 	    catalog (Obs(entG,ObsType::Entropy,0,0)) ;
 	    }
 	if (!iseuc)				// E & EE
 	    {
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
-		SymbStr E ( justE + i ) ;
+		Str E ( justE + i ) ;
 		catalog (Obs(E,ObsType::Eloop,0,4)) ;
-		SymbStr EE ( KinG + i ) ;
+		Str EE ( KinG + i ) ;
 		catalog (Obs(EE,ObsType::EEloop,0,4)) ;
 		}
 	    }
@@ -392,14 +400,14 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 	{
 	if (iseuc)				// fermionic entropy
 	    {
-	    SymbStr entF ( EntrF ) ;
+	    Str entF ( EntrF ) ;
 	    catalog (Obs(entF,ObsType::Entropy,0,0)) ;
 	    }
 	if (!iseuc)				// gauge kinetic, fermion contrib
 	    {
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
-		SymbStr ee ( KinF + i ) ;
+		Str ee ( KinF + i ) ;
 		catalog (Obs(ee,ObsType::EEloop,0,2)) ;
 		}
 	    }
@@ -434,7 +442,7 @@ int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
     {
     uint	initfail  ( 0 ) ;
     uint	beg	  { nobsG } ;
-    uint	blab	  { Blab::blablevel[BLAB::OBS] } ;
+    uint	blab	  { Blab::level(Blab::OBS) } ;
     if (blab > 3) cout << "do_fermiinit start\n" << flush ;
 
     fermiinit.clear () ;
@@ -472,14 +480,14 @@ ostream& ObsList::print (ostream& stream, uint indx) const	// Print indexed Obs
 
 ostream& operator<< (ostream& stream, const Obs& obs)		// Print Obs -> stream
     {
-    if (Blab::blablevel[BLAB::OBS])
+    if (Blab::level(Blab::OBS))
 	{
 	stream  << "(" << obs.corder << "," << obs.xorder ;
 	stream << "," << Obs::type_name [(int)obs.type] ;
 	stream << ") " ;
 	}
     if (obs.imag()) stream << "i " ;
-    stream << (SymbStr) obs ;
+    stream << (Str) obs ;
     return stream ;
     }
 
@@ -506,12 +514,16 @@ ObsStats::ObsStats (const ObsList& list)			 // Construct ObsStats
     ulong	lengthsum (0) ;
     auto&	vevs { numerics.vev } ;
     auto	nvev { vevs.size() } ;
-    for (int indx(0) ; indx < list.size() ; ++indx)
+    auto 	beg  { list.begin() } ;
+    auto 	end  { list.end()   } ;
+
+    for (auto ptr { beg } ; ptr < end ; ++ptr)
 	{
-	auto	p { list.at(indx) } ;
-	int	t { (int) p->type } ;
-	short	c ( std::max (p->corder, (short) 0) ) ;
-	short	x ( std::max (p->xorder, (short) 0) ) ;
+	int	indx	( ptr - beg ) ;
+	auto	obs	{ list(indx) } ;
+	int	t	{ (int) obs.type } ;
+	short	c	( std::max (obs.corder, (short) 0) ) ;
+	short	x	( std::max (obs.xorder, (short) 0) ) ;
 	
 	if (c >= (*this)[t].size())	(*this)[t].resize (c+1) ;
 	if (x >= (*this)[t][c].size())	(*this)[t][c].resize (x+1) ;
@@ -520,8 +532,8 @@ ObsStats::ObsStats (const ObsList& list)			 // Construct ObsStats
 	if (x > (*this).maxx) (*this).maxx = x ;
 
 	++(*this)[t][c][x] ;
-	lengthsum += p->size() ;
-	if (p->is_Loop() && indx && indx < nvev)
+	lengthsum += obs.size() ;
+	if (obs.is_Loop() && indx && indx < nvev)
 	    {
 	    if (std::abs(vevs[indx]) > maxloopvev)
 		{

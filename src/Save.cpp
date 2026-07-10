@@ -66,7 +66,7 @@ void Save::save_vev (string vevfile)			// Save vev data
     {
     alignas (PAGESIZE) char mybuf [512*1024] ;
 
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Saving vev's\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Saving vev's\n" << flush ;
 
     if (vevfile.size())
 	{
@@ -164,7 +164,7 @@ void Save::write_op (int stage)				// Write Op record
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_op: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Saved Op\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Saved Op\n" << flush ;
     }
 
 void Save::write_obs (int stage)			// Write Obs record
@@ -201,7 +201,7 @@ void Save::write_obs (int stage)			// Write Obs record
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_obs: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Saved Obs\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Saved Obs\n" << flush ;
     }
 
 void Save::write_gen (int stage)			// Write Gen record
@@ -231,7 +231,7 @@ void Save::write_gen (int stage)			// Write Gen record
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_gen: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Saved Gen\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Saved Gen\n" << flush ;
     }
 
 void Save::write_grad (int stage)			// Write Grad record
@@ -244,7 +244,7 @@ void Save::write_grad (int stage)			// Write Grad record
 
     record.writerec (stream) ;
     if (stream.fail()) ioerror ("write_grad: I/O error!") ;
-    if (record.size() && Blab::blablevel[BLAB::SAVE])
+    if (record.size() && Blab::level(Blab::SAVE))
 	cout << "Saved Grad\n" << flush ;
     }
 
@@ -262,7 +262,7 @@ void Save::write_curv (int stage)			// Write Curv records
 	record.writerec (stream) ;
 	if (stream.fail())
 	    ioerror (format("write_curv {}: I/O error!", repname)) ;
-	else if (record.size() && Blab::blablevel[BLAB::SAVE])
+	else if (record.size() && Blab::level(Blab::SAVE))
 	    cout << "Saved Curv " << repname << "\n" << flush ;
 	}
     }
@@ -281,7 +281,7 @@ void Save::write_lagr (int stage)			// Write Lagr records
 	record.writerec (stream) ;
 	if (stream.fail())
 	    ioerror (format("write_lagr {}: I/O error!",repname)) ;
-	else if (record.size() && Blab::blablevel[BLAB::SAVE])
+	else if (record.size() && Blab::level(Blab::SAVE))
 	    cout << "Saved Lagr " << Rep::list[rep].name << "\n" << flush ;
 	}
     }
@@ -301,7 +301,7 @@ void Save::write_geos (int stage)			// Write Geo records
 	record.writerec (stream) ;
 	if (stream.fail())
 	    ioerror ("write_geos: I/O error!") ;
-	else if (record.size() && Blab::blablevel[BLAB::SAVE])
+	else if (record.size() && Blab::level(Blab::SAVE))
 	    cout << "Saved Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
 	}
     for (; bcktnum < global.data(stage).geos.size() ; ++bcktnum)
@@ -327,7 +327,7 @@ void Save::write_geo_bckt (int bcktnum)			// Write single Geo bucket
     record.writerec (stream) ;
     if (stream.fail())
 	ioerror (format("write_geo_bckt [{}]: I/O error!",bcktnum)) ;
-    if (Blab::blablevel[BLAB::SAVE])
+    if (Blab::level(Blab::SAVE))
 	cout << "Saved Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
     write_sysindex () ;
     rewrite_stat () ;
@@ -350,7 +350,7 @@ void Save::write_stat (int stage)			// Write Stat record
 
     stream.write (cast_to<const char*>(&count), nelem * sizeof (Counter)) ;
     if (stream.fail()) ioerror ("write_stat: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Saved Stat\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Saved Stat\n" << flush ;
     }
 
 void Save::rewrite_stat ()				// Rewrite Stat record
@@ -366,7 +366,7 @@ void Save::rewrite_stat ()				// Rewrite Stat record
     stream.seekg (record.entry().filepos, ios_base::beg) ;
     stream.write (cast_to<const char*>(&count), nelem * sizeof (Counter)) ;
     if (stream.fail()) ioerror ("rewrite_stat: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Rewrote Stat\n" ;
+    if (Blab::level(Blab::SAVE)) cout << "Rewrote Stat\n" ;
     }
 
 void Save::write_sysindex ()				// Write SysIndex
@@ -384,7 +384,7 @@ void Save::write_sysindex ()				// Write SysIndex
     stream.flush() ;
     if (stream.fail()) ioerror ("write_sysindex: I/O error!") ;
     std::filesystem::resize_file (syspath,stream.tellp()) ;
-    if (Blab::blablevel[BLAB::SAVE] > 1) cout << "Wrote SysIndex\n" ;
+    if (Blab::level(Blab::SAVE) > 1) cout << "Wrote SysIndex\n" ;
     }
 
 void Save::write_coup ()				// Write Coupling's
@@ -397,7 +397,7 @@ void Save::write_coup ()				// Write Coupling's
     stream.write (cast_to<const char*>(ptr), ncoup * sizeof (Coupling)) ;
 
     if (stream.fail()) ioerror ("write_coup: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Wrote Couplings\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Wrote Couplings\n" << flush ;
     }
 
 void Save::write_vev ()					// Write Vev's
@@ -409,7 +409,7 @@ void Save::write_vev ()					// Write Vev's
     stream.seekp (0, ios::end) ;
     stream.write (cast_to<const char*>(ptr), nvev * sizeof (real)) ;
     if (stream.fail()) ioerror ("write_vev: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Wrote Vevs\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Wrote Vevs\n" << flush ;
     }
 
 void Save::load_save (int set, string file)		// Load save file
@@ -510,7 +510,7 @@ void Save::read_sysindex ()				// Load SysIndex
     stream.seekg (-sizeof index, ios_base::end) ;
     stream.read (cast_to<char*>(ptr), sizeof index) ;
     if (stream.fail()) ioerror ("read_sysindex: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Read Index\n" ;
+    if (Blab::level(Blab::SAVE)) cout << "Read Index\n" ;
     }
 
 void Save::read_op (int stage)				// Read Op record
@@ -536,7 +536,7 @@ void Save::read_op (int stage)				// Read Op record
 	{
 	OpHdr	hdr	( *recptr++ ) ;
 	symb*	ptr	{ cast_to<symb*> (recptr) } ;
-	SymbStr	s	{ ptr, ptr + hdr.len } ;
+	Str	s	{ ptr, ptr + hdr.len } ;
 	Op	o	{ s, hdr } ;
 	auto	k	{ oplist.store(o) } ;
 
@@ -548,7 +548,7 @@ void Save::read_op (int stage)				// Read Op record
     if (indx != nop)
 	gripe ("read_op: Inconsistent save record!") ;
 
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Op\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Loaded Op\n" << flush ;
     }
 
 void Save::read_obs (int stage)				// Read Obs record
@@ -568,14 +568,13 @@ void Save::read_obs (int stage)				// Read Obs record
     RecHdr*	recptr	{ record.data() } ;
     RecHdr*	recend	{ recptr + record.size() } ;
 
-    ObsList::obs.purge (start) ;
-    ObsList::obs.map.reserve (start + nobs) ;
-    ObsList::obs.reserve     (start + nobs) ;
+    ObsList::obs.purge   (start) ;
+    ObsList::obs.reserve (start + nobs) ;
     while (recptr < recend)
 	{
 	ObsHdr	hdr	( *recptr++ ) ;
 	symb*	ptr	{ cast_to<symb*> (recptr) } ;
-	SymbStr	s	{ ptr, ptr + hdr.len } ;
+	Str	s	{ ptr, ptr + hdr.len } ;
 	Obs	o	{ s, hdr } ;
 
 	if (ObsList::obs.store (o) != indx++)
@@ -594,7 +593,7 @@ void Save::read_obs (int stage)				// Read Obs record
     global.mk_bcktlist (stage) ;
     numerics.initialize (stage) ;
     Canon::cache.reload() ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Obs\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Loaded Obs\n" << flush ;
     }
 
 void Save::read_gen (int stage)				// Read Gen record
@@ -638,7 +637,7 @@ void Save::read_gen (int stage)				// Read Gen record
     if (nelem != record.entry().nelem)
 	gripe ("read_gen: Inconsistent save record!") ;
 
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Gen\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Loaded Gen\n" << flush ;
     }
 
 void Save::read_grad (int stage)			// Read Grad record
@@ -651,7 +650,7 @@ void Save::read_grad (int stage)			// Read Grad record
     record.readrec (stream) ;
     if (stream.fail())
 	ioerror ("read_grad: I/O error!") ;
-    else if (record.size() && Blab::blablevel[BLAB::SAVE])
+    else if (record.size() && Blab::level(Blab::SAVE))
 	cout << "Loaded Grad\n" << flush ;
     }
 
@@ -669,7 +668,7 @@ void Save::read_curv (int stage)			// Read Curv records
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_curv {}: I/O error!", repname)) ;
-	else if (record.size() && Blab::blablevel[BLAB::SAVE])
+	else if (record.size() && Blab::level(Blab::SAVE))
 	    cout << "Loaded Curv " << repname << "\n" << flush ;
 	}
     }
@@ -688,7 +687,7 @@ void Save::read_lagr (int stage)			// Read Lagr records
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_lagr {}: I/O error!", repname)) ;
-	else if (record.size() && Blab::blablevel[BLAB::SAVE])
+	else if (record.size() && Blab::level(Blab::SAVE))
 	    cout << "Loaded Lagr " << repname << "\n" << flush ;
 	}
     }
@@ -708,7 +707,7 @@ void Save::read_geos (int stage)			// Read Geo records
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_geos [{}]: I/O error!",bcktnum)) ;
-	else if (record.size() && Blab::blablevel[BLAB::SAVE])
+	else if (record.size() && Blab::level(Blab::SAVE))
 	    cout << "Loaded Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
 	}
     }
@@ -752,7 +751,7 @@ void Save::read_geo_bckt (int bcktnum)			// Read Geo bucket
 	record.readrec (mystream) ;
 	if (mystream.fail())
 	    ioerror (format("read_geo_bckt [{}]: I/O error!", bcktnum)) ;
-	if (Blab::blablevel[BLAB::SAVE])
+	if (Blab::level(Blab::SAVE))
 	    cout << "Loaded Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
 	}
     else if (checkout)
@@ -776,7 +775,7 @@ void Save::read_stat (int stage)			// Read Stat record
     stream.seekg (record.entry().filepos, ios_base::beg) ;
     stream.read (cast_to<char*>(ptr), nelem * sizeof (Counter)) ;
     if (stream.fail()) ioerror ("read_stat: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Stat\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Loaded Stat\n" << flush ;
     }
 
 bool Save::read_coup (int set, Couplings* ptr)		// Read Coupling set
@@ -791,7 +790,7 @@ bool Save::read_coup (int set, Couplings* ptr)		// Read Coupling set
     stream.read (cast_to<char*>(list.data()), filehdr.coupsize()) ;
     if (stream.eof()) { stream.clear() ; return false ; }
     if (stream.fail()) ioerror ("read_coup: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Coup\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Loaded Coup\n" << flush ;
     return true ;
     }
 
@@ -806,5 +805,5 @@ void Save::read_vev (int set)				// Read Vev data
 
     stream.read (cast_to<char*>(ptr), filehdr.nvev * sizeof (real)) ;
     if (stream.fail()) ioerror ("read_vev: I/O error!") ;
-    if (Blab::blablevel[BLAB::SAVE]) cout << "Loaded Vev\n" << flush ;
+    if (Blab::level(Blab::SAVE)) cout << "Loaded Vev\n" << flush ;
     }

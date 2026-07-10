@@ -42,7 +42,12 @@ Version history:
     Added "stage" member to Coupling class, and made setting of coupling value
 	automatically switch to associated minimization stage.
     Fixed initial setting of fermion maxord to 1 in obsinit, else GAxf misclassified.
-    Fixed critical error in spec obs addition to Canon::cache.
+    Fixed critical error affecting fermions additions to Canon::cache.
+
+1.5 July 10, 2026
+    Changed SymbStr -> Str for consistency with master field program Delphi.
+    Obs.cpp: Fixed test for attempt to catalog into frozen list.
+    Nuerics.cpp: Improved error message for unbuilt geodesic equations.
 */
 
 class Version					// Program version

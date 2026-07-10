@@ -93,9 +93,9 @@ class PolyMap : public hash<Polyindx,doub,Polyhash>	// PolyTerm hash table
 
 class ObsPoly : public Polyvec			// Cubic polynomial of Obs
     {
-    public:
     std::reference_wrapper<ObsList> list ;		// Observable list
 
+    public:
     void	push_map (PolyMap&) ;			// Add terms in map
     void	sort() ;				// Sort terms
     ObsPoly&	negate() ; 				// Negate poly

@@ -3,33 +3,35 @@
 #include "Gordion.h"
 #include <map>
 
-enum BLAB			// Enum distinguishing major .cpp files
-    {				// N.B.: want implicit conversion to int
-    ASSESS,
-    BUILD,
-    CANON,
-    COMMUTE,
-    EVALUATE,
-    GEN,
-    NUMERICS,
-    OBS,
-    ODE,
-    POLY,
-    SAVE,
-    SYMB,
-    SYMM,
-    _BLABNUM_
-    } ;
-
 class Blab
     {
     public:
+
+    enum BLAB			// Enum distinguishing major .cpp files
+	{			// N.B.: want implicit conversion to int
+	ASSESS,
+	BUILD,
+	CANON,
+	COMMUTE,
+	EVALUATE,
+	GEN,
+	NUMERICS,
+	OBS,
+	ODE,
+	POLY,
+	SAVE,
+	SYMB,
+	SYMM,
+	_BLABNUM_
+	} ;
     using Blabmap = std::map<string,BLAB> ;
     using Blabvec = array<uint,_BLABNUM_> ;
 
-    static void	setblab(string,uint) ;		// set verbosity level
-    static void	resetblab() ;			// reset verbosity levels
-    static inline Blabvec blablevel ;		// verbosity levels
+    static void	setblab(string,uint) ;			// set level
+    static void	resetblab() ;				// reset levels
+    static uint level (enum BLAB file)
+		    { return blablevel[file] ; }	// return level
+
     static inline Blabmap blabmap		// file name -> Blab enum
 	{
 	{"Assess",	BLAB::ASSESS},
@@ -45,6 +47,9 @@ class Blab
 	{"Symb",	BLAB::SYMB},
 	{"Symm",	BLAB::SYMM}
 	} ;
+
+    private:
+    static inline Blabvec blablevel ;		// verbosity levels
     } ;
 
 #endif

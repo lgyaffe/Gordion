@@ -29,7 +29,7 @@ static constexpr ulong spectblsize (int len = specchunksize)	// Special table si
 static_assert (ipow(2,loopbits*loopchunksize) < UINT_MAX, "loopchunksize too big") ;
 static_assert (ipow(2,specbits*specchunksize) < UINT_MAX, "specchunksize too big") ;
 
-class CanonCache : public hash<string,int>		// Short Obs cache
+class CanonCache : public hash<Str,int,Strhash,Str_eq>	// Short Obs cache
     {
     public:
     bool freeze { true } ;
@@ -58,8 +58,8 @@ class Canon						// Canonicalization tables
     friend Obs ;
 
     static uint speccode(const Obs&, int, bool) ;
-    static bool loopchunk(uint, SymbStr&) ;
-    static bool specchunk(uint, SymbStr&) ;
+    static bool loopchunk(uint, Str&) ;
+    static bool specchunk(uint, Str&) ;
 
     public:
     static inline vector<Node>		looptable { looptblsize() } ;

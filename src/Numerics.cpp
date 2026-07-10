@@ -23,6 +23,7 @@ void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
 	cout << coupling << format(" = {:6.3f}:", value) << flush ;
 	try {
 	    do_minimize () ;
+	    if (global.interrupt) return ;
 	    write_data (value) ;
 	    }
 	catch (const Abort& e)
@@ -75,7 +76,7 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
 
     auto&	obslist	{ ObsList::obs } ;
     uint	nvev	{ global.nobs() } ;
-    uint	blab	{ Blab::blablevel[BLAB::NUMERICS] } ;
+    uint	blab	{ Blab::level(Blab::NUMERICS) } ;
     Ode		ode	{ do_dvev, err_norm, odetol, rk, maxode } ;
     doub	dnorm	{ eval_delta() } ;
     doub	s (0) ;
@@ -343,7 +344,7 @@ doub Numerics::eval_delta (bool print)		// Evaluate delta vector
 
     check_curv (curv) ;
     if (svdcut)	del = -pinv (curv,svdcut) * grad ;
-    else	del = -linsolve (curv, grad) ;
+    else	del = -linsolve (curv,grad) ;
 
     set_zero (delta, ngens) ;
     delta(use) = del ;
@@ -401,7 +402,7 @@ void Numerics::eval_geos (int printlim)			// Evaluate observable derivatives
 
 void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     {
-    uint	blab	{ Blab::blablevel[BLAB::NUMERICS] } ;
+    uint	blab	{ Blab::level(Blab::NUMERICS) } ;
     uint	offset	{ global.stage ? ObsList::obs.nobsG : 0 } ;
     const auto&	geos	{ global.data().geos } ;
     const auto&	bckt	{ global.info().bckt } ;
@@ -412,7 +413,10 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 //	{ return geos[a[0]].entry().filepos < geos[b[0]].entry().filepos ; }) ;
 
     if (global.interrupt) return ;
-    if (nelem(numerics.delta) != ngens) gripe ("\nNeed to (re)evaluate delta!"); 
+    if (nelem(numerics.delta) != ngens) gripe ("Need to (re)evaluate delta!"); 
+    if (geos[0].entry().nrow != ngens || !geos[0].entry().ncol)
+	gripe ("Need to (re)build geodesic equations!") ;
+
     if (blab > 2) cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,nelem(v)) ;
 
     set_zero (dv, nobs) ;
@@ -482,6 +486,8 @@ void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
     if (global.geoswap) Save::read_geo_bckt (bcktnum) ;
     for (const auto& poly : geos)
 	{
+	if (global.interrupt) return ;
+
 	const GeoHdr&	info ( poly ) ;
 	real		val  ( 0.0 ) ;
 	doub		coef { delta[info.gen] } ;
@@ -507,7 +513,7 @@ doub Numerics::err_norm (const Rvec& err, const Rvec& y)	// ODE error vector nor
     {
     if (global.interrupt) return 0 ;
 
-    uint	blab { Blab::blablevel[BLAB::NUMERICS] } ;
+    uint	blab { Blab::level(Blab::NUMERICS) } ;
 //    auto&	eps  { numerics.odetol } ;
 //    ulong	maxi { index_max (abs (err)) } ;
 //    doub	norm { l2norm  (err) / sqrt (nelem(err)) } ;
@@ -530,7 +536,8 @@ void Numerics::status_rpt (uint iters, uint steps)
     else if (unphys) cout << format(" unphys (#{}={:3.1f})", maxi, maxv) ;
     cout << " " << iters << "/" << steps << " iters/steps\n" << flush ;
 
-    if (!euclidF && !okneg && mostneg < -svdcut) abort ("Negative curvature eigenvalues") ;
+    if (!euclidF && !okneg && mostneg < -svdcut)
+	abort ("Negative curvature eigenvalues") ;
     }
 
 void Numerics::write_data (doub value)				// Write data to MMAfile
@@ -580,10 +587,8 @@ void Numerics::write_data (doub value)				// Write data to MMAfile
 	{
 	for (int i(0) ; i < Rep::list.size() ; ++i)
 	    {
-	    if (built_rep(i))
-		{
-		data_write (out, Rep::list[i].name, value, eval_spectra(i)) ;
-		}
+	    if (!built_rep(i)) continue ;
+	    data_write (out, Rep::list[i].name, value, eval_spectra(i)) ;
 	    }
 	}
     out << flush ;
@@ -591,14 +596,18 @@ void Numerics::write_data (doub value)				// Write data to MMAfile
 
 bool Numerics::check_loops ()						// Loop vevs < 1?
     {
+    const auto	obslist { ObsList::obs } ;
+    auto 	beg  { obslist.begin() } ;
+    auto 	end  { obslist.end()   } ;
     doub	maxv (0.0) ;
     uint	maxi (0) ;
     auto	nvev { vev.size() } ;
 
-    for (int indx(1) ; indx < nvev ; ++indx)
+    for (auto ptr { beg } ; ptr < end ; ++ptr)
 	{
-	auto p { ObsList::obs.at(indx) } ;
-	if (p->is_Loop() && std::abs(vev[indx]) > maxv)
+	int	indx ( ptr - beg ) ;
+	auto	obs  { obslist(indx) } ;
+	if (obs.is_Loop() && std::abs(vev[indx]) > maxv)
 	    {
 	    maxv = std::abs(vev[indx]) ;
 	    maxi = indx ;
@@ -741,7 +750,7 @@ string Numerics::MMAform (doub x)				// Convert to MMA input form
 
 void Numerics::initialize (int stage)			// Initialize expectation values
     {
-    uint blab { Blab::blablevel[BLAB::NUMERICS] } ;
+    uint blab { Blab::level(Blab::NUMERICS) } ;
     resize (vev, ObsList::obs.size()) ;
     vev[0] = 1.0 ;
 
