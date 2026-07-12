@@ -109,11 +109,6 @@ class OpList : public Index<Op>
 	std::erase_if (map, [&](const auto& p) { return p.second >= limit ; }) ;
 	resize (limit) ;
 	}
-    void clear ()				// Clear list
-	{
-	map.clear () ;
-	clear () ;
-	}
 
     ostream& print (ostream&, uint) const ;	// Print indexed Op
     ostream& print (ostream&) const ;		// Print Op list

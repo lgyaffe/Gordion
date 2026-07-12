@@ -32,7 +32,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	{
 	Coupling::list.emplace_back (lambda) ;
 	lamindx = Coupling::indx (lambda) ;
-	Coupling::list[lamindx].value = 1000 ;
+	Coupling::list[lamindx].value = Coupling::dfltval ;
 	Coupling::list[lamindx].stage = 0 ;
 	}
     Coeff lamcoeff	{{lamindx,1}} ;
@@ -129,7 +129,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    {
 	    Coupling::list.emplace_back (mass) ;
 	    massindx  = Coupling::indx (mass) ;
-	    Coupling::list[massindx].value = 1 ;
+	    Coupling::list[massindx].value = 1000 ;
 	    Coupling::list[massindx].stage = 1 ;
 	    }
 	Coeff masscoeff {{massindx,1},{lamindx,MASSSCALE}} ;

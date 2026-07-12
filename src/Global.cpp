@@ -5,18 +5,22 @@ void Global::stageinit (uint i)			// Stage initialization
     {
     if (i && !theory.nf) gripe ("No fermions!!!") ;
     stage = i ? Global::Fermi : Global::Gauge ;
-    if (!okfermivev) numerics.initialize (1) ;
+    //if (!fermivev) numerics.initialize (1) ;
     }
 
 string Global::dfltfilename (const string&& ext) // Make default file name
     {
-    const char*	name   { theory.name.data() } ;
-    int		approx { approx } ;
-    int		obsord { info().maxord } ;
-    int		maxgen { info().maxgen } ;
+    const char*	thynam	{ theory.name.data() } ;
+    int		obs_g	{ info(0).maxord } ;
+    int		obs_f	{ info(1).maxord } ;
+    int		gen_g	{ info(0).maxgen } ;
+    int		gen_f	{ info(1).maxgen } ;
 
-    return format ("{}{}{}{}a{}.{}",
-		name, maxgen, fg(), obsord, approx, ext) ;
+    string		filenam { format ("{}{}g{}", thynam, gen_g, obs_g) } ;
+    if (gen_f && obs_f)	filenam += format ("_{}f{}", gen_f, obs_f) ;
+    if (approx)		filenam += format ("a{}", approx) ;
+			filenam += format (".{}", ext) ;
+    return filenam ;
     }
 
 void Global::mk_bcktlist (uint stage)		// Make Obs bucket list
@@ -29,7 +33,7 @@ void Global::mk_bcktlist (uint stage)		// Make Obs bucket list
 
     if (count >= MAXBCKT * chunk) chunk = 1 + (count - 1)/MAXBCKT ;
 
-    bckt.resize (1 + (count - 1)/chunk) ;
+    bckt.resize (count ? 1 + (count - 1)/chunk : 0) ;
     for (uint i(start), k(0) ; i < end ; i += chunk, ++k)
 	{
 	bckt[k] = uint3 { k, i, std::min(i+chunk, end) - 1 } ;

@@ -143,7 +143,7 @@ int Gen::project (Op& op)			// Project onto all reps
 		else gens.insert (gens.begin() + neven++, tmp) ;
 		++added ;
 
-		if (tmp.order > global.maxgen()) global.maxgen() = tmp.order ;
+		if (tmp.order > info.maxgen) info.maxgen = tmp.order ;
 
 		if (Blab::level(Blab::GEN))
 		    {
@@ -179,7 +179,7 @@ int Gen::project (OpSum&& s)			// Project onto all reps
 		else gens.insert (gens.begin() + neven++, tmp) ;
 		++added ;
 
-		if (tmp.order > global.maxgen()) global.maxgen() = tmp.order ;
+		if (tmp.order > info.maxgen) info.maxgen = tmp.order ;
 
 		if (Blab::level(Blab::GEN) > 1)
 		    {
@@ -408,6 +408,7 @@ int Gen::addgen (OpSum&& s)			// Add new generator
 	{
 	list.setprimary () ;
 	global.clearpolys (op1.is_Fermion()) ;
+	global.streamclose () ;
 	}
     return added ;
     }

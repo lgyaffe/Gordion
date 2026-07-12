@@ -504,7 +504,7 @@ void Print::print_geodesic (uint i, uint j)	// Print specified geodesic equation
 		{
 		cout << " geo (" << i << "," << j << ") = d<"
 		     << list(i) << ">/d("
-		     << global.fg() << j << ") = "
+		     << global.fg(stage) << j << ") = "
 		     << geos(j,pos) << "\n" ;
 		}
 	    if (global.geoswap) Save::read_geo_bckt (-bckt-1) ;
@@ -535,17 +535,20 @@ void Print::print_geodesic ()			// Print all geodesic equations
 	auto& geos { global.data().geos[bcktnum] } ;
 	if (global.geoswap) Save::read_geo_bckt (bcktnum) ;
 
+int m (0) ;
 	for (const auto& poly : geos)
 	    {
-	    const GeoHdr&	info ( poly ) ;
-	    auto		i    { info.indx } ;
-	    auto		j    { info.gen } ;
+	    const GeoHdr&	info  ( poly ) ;
+	    auto		i     { info.indx } ;
+	    auto		j     { info.gen } ;
+	    int			stage ( i >= ObsList::obs.nobsG ) ;
 
+// cout << " bckt " << bcktnum << " m " << m++ << " i " << i << " j " << j << " offset " << (RecHdr*) &poly - &geos.front() << "\n" ;
 	    if (info.len)
 		{
 		cout << " geo (" << i << "," << j << ") = "
 		     << "d<" << ObsList::obs(i) << ">/d("
-		     << global.fg() << j << ") = " << poly << "\n" ;
+		     << global.fg (stage) << j << ") = " << poly << "\n" ;
 		}
 	    }
 	if (global.geoswap) Save::read_geo_bckt (-bcktnum-1) ;
@@ -628,8 +631,10 @@ void Print::print_stats ()			// Print global statistics
     {
     try { cout.imbue (std::locale("en_US.UTF-8")) ; }
     catch (const std::exception&) {}
+    cout << "  Basic obs:            " << ObsList::base.size()      << "\n" ;
     cout << "  Canonical obs:        " << ObsList::obs.size()       << "\n" ;
-    cout << "      basic obs:        " << ObsList::base.size()      << "\n" ;
+    cout << "      gauge:            " << ObsList::obs.nobsG        << "\n" ;
+    cout << "      fermi:            " << ObsList::obs.nobsF        << "\n" ;
     cout << "  Operators:            " << global.info(0).ops.size()
     					+ global.info(1).ops.size() << "\n" ;
     cout << "      gauge:            " << global.info(0).ops.size() << "\n" ;
@@ -694,11 +699,11 @@ void Print::print_state ()			// Print global state variables
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
     cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
     cout << " Save directory:     " << global.savedir    << "\n" ;
+    cout << " MMA directory:      " << global.MMAdir        << "\n" ;
     cout << " Sys info file:      " << global.sysfilename() << "\n" ;
     cout << " Vev data file:      " << global.vevfilename() << "\n" ;
-    cout << " Vev file append:    " << global.vevappend     << "\n" ;
-    cout << " MMA directory:      " << global.MMAdir        << "\n" ;
     cout << " MMA result file:    " << global.MMAfilename() << "\n" ;
+    cout << " Vev file append:    " << global.vevappend     << "\n" ;
     cout << " MMA file append:    " << global.MMAappend     << "\n" ;
     cout << " MMA save limit:     " << global.info().MMAlimit << "\n" ;
     cout << " MMA addl save list: " << global.info().MMAlist  << "\n" ;

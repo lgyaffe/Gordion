@@ -12,10 +12,13 @@ void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
     {
     auto&	coupling { Coupling::list[indx] } ;
     doub&	value    { coupling.value } ;
+    int  	stage    { coupling.stage } ; 
     auto	prevprec { cout.precision(12) } ;
 
     if (!inc) gripe ("Must have non-zero coupling increment!") ;
     if ((v1 - v0)/inc < 0) inc *= -1 ;
+    if (stage != global.stage) global.stageinit (stage) ;
+    if (!stage && global.fermivev) initialize (1) ;
 
     cout << std::scientific ;
     for (value = v0 ;;)
@@ -24,7 +27,7 @@ void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
 	try {
 	    do_minimize () ;
 	    if (global.interrupt) return ;
-	    write_data (value) ;
+	    write_data () ;
 	    }
 	catch (const Abort& e)
 	    {
@@ -100,7 +103,8 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
 	}
     else ok = ode.integrate (s, 1.0, vev) ;
 
-    if (global.stage == Global::Gauge) global.okfermivev = false ;
+    if (global.stage == Global::Fermi) global.fermivev = true ;
+    else if (global.fermivev) initialize (1) ;
 
     if (blab > 1) cout << ode.steps << " step(s) "
 		       << ode.rejects << " rejects "
@@ -540,33 +544,51 @@ void Numerics::status_rpt (uint iters, uint steps)
 	abort ("Negative curvature eigenvalues") ;
     }
 
-void Numerics::write_data (doub value)				// Write data to MMAfile
+void Numerics::open_MMA ()				// Open MMA output file
     {
-    ofstream& out { global.MMAstream } ;
-
     if (!global.MMAfile.size())
 	 global.MMAfile = global.dfltfilename("m") ;
-    if (!out.is_open())
+
+    auto	mode	{ std::ios::out } ;
+    string	okmsg	{ "Writing results to " } ;
+    string	path	{ global.MMAfile } ;
+    ofstream&	stream	{ global.MMAstream } ;
+
+    if (global.MMAappend)
 	{
-	auto	mode	{ std::ios::out } ;
-	string	okmsg	{ "Writing results to " } ;
-	string	path	{ global.MMAfile } ;
-
-	if (global.MMAappend)
-	    {
-	    mode |= std::ios::app ;
-	    okmsg = "Appending results to " ;
-	    }
-	if (path.find ('/') == path.npos)
-	    path = global.MMAdir + '/' + path ;
-
-	out.open (path, mode) ;
-	string msg { out.good() ? okmsg : "Cannot write to " } ;
-	cout << msg << path << "\n" ;
+	mode |= std::ios::app ;
+	okmsg = "Appending results to " ;
 	}
-    if (!out.good()) gripe ("Cannot write MMA results file!") ;
+    if (path.find ('/') == path.npos)
+	path = global.MMAdir + '/' + path ;
 
-    data_write (out, theory.euclid ? "F" : "H", value, eval_ham()) ;
+    stream.open (path, mode) ;
+    if (stream.good())
+	{
+	string sep {""} ;
+	cout << okmsg << path << "\n" ;
+	stream << "coupling = { " ;
+	for (const auto& c : Coupling::list)
+	    {
+	    stream << sep << '"' << c << '"' ;
+	    sep = ", " ;
+	    }
+	stream << " } ;\n" ;
+	}
+    else cout << "Cannot write to " << path << "\n" ;
+    }
+
+void Numerics::write_data ()				// Write data to MMAfile
+    {
+    if (!global.MMAstream.is_open()) open_MMA () ;
+
+    char	FG	{ global.fg() } ;
+    char	HorF	{ theory.euclid ? 'F' : 'H' } ;
+    auto&	out	{ global.MMAstream } ;
+    auto	Hname	{ format ("{}{}", HorF, FG) } ;
+
+    if (!out.good()) gripe ("Cannot write MMA results file!") ;
+    data_write (out, Hname, eval_ham()) ;
 
     uint beg { global.stage ? ObsList::obs.nobsG : 1 } ;
     uint end { global.info().MMAlimit + (global.stage ? beg : 1) } ;
@@ -575,12 +597,12 @@ void Numerics::write_data (doub value)				// Write data to MMAfile
 
     for (uint i(beg) ; i < end ; ++i)
 	{
-	data_write (out, ObsList::obs(i).print(), value, vev[i]) ;
+	data_write (out, ObsList::obs(i).print(), vev[i]) ;
 	}
     for (auto i : global.info().MMAlist)
 	{
 	if (i >= beg && i < end) continue ;
-	data_write (out, ObsList::obs(i).print(), value, vev[i]) ;
+	data_write (out, ObsList::obs(i).print(), vev[i]) ;
 	}
 
     if (!theory.euclid)
@@ -588,7 +610,8 @@ void Numerics::write_data (doub value)				// Write data to MMAfile
 	for (int i(0) ; i < Rep::list.size() ; ++i)
 	    {
 	    if (!built_rep(i)) continue ;
-	    data_write (out, Rep::list[i].name, value, eval_spectra(i)) ;
+	    auto pname { format("M{}{}", FG, Rep::list[i].name) } ;
+	    data_write (out, pname, eval_spectra(i)) ;
 	    }
 	}
     out << flush ;
@@ -702,13 +725,15 @@ bool Numerics::built_rep (uint repnum)					// Is irrep built?
 	    curv.entry().nslice == Hterms && ngens > 0 ;
     }
 
-void Numerics::data_write (ofstream& out, const string s, doub c, doub v)		// Save data value
+void Numerics::data_write (ofstream& out, const string s, doub v)		// Save data value
     {
+    string c { Coupling::values() } ;
     out << s << "[" << c << "] = " << MMAform(v) << " ;\n" ;
     }
 
-void Numerics::data_write (ofstream& out, const string s, doub c, const Rvec& vec)	// Save data vector
+void Numerics::data_write (ofstream& out, const string s, const Rvec& vec)	// Save data vector
     {
+    string c { Coupling::values() } ;
     if (vec.size())
 	{
 	string delim { "{ " } ;
@@ -722,8 +747,9 @@ void Numerics::data_write (ofstream& out, const string s, doub c, const Rvec& ve
 	}
     }
 
-void Numerics::data_write (ofstream& out, const string s, doub c, const Cvec& vec)	// Save data vector
+void Numerics::data_write (ofstream& out, const string s, const Cvec& vec)	// Save data vector
     {
+    string c { Coupling::values() } ;
     if (vec.size())
 	{
 	string delim { "{ " } ;
@@ -758,14 +784,16 @@ void Numerics::initialize (int stage)			// Initialize expectation values
 	{
 	set_zero (vev) ;
 	vev[0] = 1.0 ;
-	global.okfermivev = false ;
-	if (blab) cout << "(Re)initialized all vev's\n" ;
+	if (blab) cout << "(Re)initialized gauge vev's\n" ;
 	}
-    else // (stage == 1)			// fermion vev's
+    if (theory.nf)				// fermion vev's
 	{
 	char8	mass { "mass" } ;
-	auto	m    { Coupling::list[Coupling::indx (mass)].value } ;
+	int	indx { Coupling::indx (mass) } ;
+	auto&	m    { Coupling::list[indx].value } ;
 	doub	condensate ;
+
+	m = Coupling::dfltval ;
 	if (theory.euclid)	condensate = -1.0 / m ;
 	else			condensate = m > 0 ? -0.5 : 0.5 ;
 
@@ -774,7 +802,7 @@ void Numerics::initialize (int stage)			// Initialize expectation values
 	    {
 	    vev[indx_f] = vev[indx_g] * condensate ;
 	    }
-	global.okfermivev = true ;
 	if (blab) cout << "(Re)initialized fermion vev's\n" ;
 	}
+    global.fermivev = false ;
     }

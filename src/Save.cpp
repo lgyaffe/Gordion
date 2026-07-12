@@ -290,7 +290,7 @@ void Save::write_geos (int stage)			// Write Geo records
     {
     int	 bcktnum (0) ;
     auto nbckts	{ global.info(stage).bckt.size() } ;
-    for (; bcktnum < global.info(stage).bckt.size() ; ++bcktnum)
+    for (; bcktnum < nbckts ; ++bcktnum)
 	{
 	auto&	stream	{ global.sysstream } ;
 	auto&	record	{ global.data(stage).geos[bcktnum] } ;
@@ -694,12 +694,12 @@ void Save::read_lagr (int stage)			// Read Lagr records
 
 void Save::read_geos (int stage)			// Read Geo records
     {
+    auto nbckts	{ global.info(stage).bckt.size() } ;
     if (global.geoswap) return ;
-    for (int bcktnum(0) ; bcktnum < global.info(stage).bckt.size() ; ++bcktnum)
+    for (int bcktnum(0) ; bcktnum < nbckts ; ++bcktnum)
 	{
 	auto&	stream	{ global.sysstream } ;
 	auto&	record	{ global.data(stage).geos[bcktnum] } ;
-	auto	nbckts	{ global.info(stage).bckt.size() } ;
 
 	if (record.entry().id != RecordID::Geos)
 	    gripe (format("read_geos [{}]: bad record ID!",bcktnum)) ;

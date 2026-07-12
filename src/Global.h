@@ -54,8 +54,7 @@ using atombool = std::atomic<bool> ;
 class Global					// Global data
     {
     public:
-    enum { Gauge=0, Fermi=1 } stage ;		// Minimization stage
-
+    enum Stage { Gauge = 0, Fermi = 1 } stage ;	// Minimization stage
     SysIndex	sysindex ;			// System data index
     SerialData	stagedata  [2] ;		// Serialized stage data
     StageInfo	stageinfo  [2] ;		// Stage-specific info
@@ -66,7 +65,7 @@ class Global					// Global data
     bool	geoswap    { false } ;		// Swap geo bckts to disk
     bool	massreinit { true } ;		// Auto reinit on new mass?
     bool	symcurv    { true } ;		// Symmetrize curvature?
-    bool	okfermivev { false } ;		// Fermi vev's initialized?
+    bool	fermivev   { false } ;		// Non-base fermi vev's?
     bool	oknegeig   { false } ;		// Negative curvature OK?
     bool	vevappend  { false } ;		// Append to vev data file?
     bool	MMAappend  { false } ;		// Append to MMA file?
@@ -89,13 +88,14 @@ class Global					// Global data
     auto&	maxord	()	{ return info().maxord ; }
     auto&	count	()	{ return info().count  ; }
     uint	nobs	()	{ return ObsList::obs.nobs (stage) ; }
-    char	fg () const	{ return stage == Fermi ? 'f' : 'g' ; }
 
     string	dfltfilename (const string&&) ;	// Default file names
     uint3	bckt_pos     (uint) ;		// Obs bucket position
     void	mk_bcktlist  (uint) ;		// Make bucket list
     void	clearpolys   (int) ;		// Clear polys
     void	stageinit    (uint) ;		// Stage initialization
+    char	fg (int stage)	const { return stage ? 'f' : 'g' ; }
+    char	fg ()		const { return fg (this->stage) ; }
 
     string sysfilename ()			// Sys info file name
 	{
@@ -109,9 +109,16 @@ class Global					// Global data
 	{
 	return MMAfile.size() ? MMAfile : dfltfilename("m") ;
 	}
+    void streamclose ()				// Close output streams
+	{
+	sysstream.close() ;
+	vevstream.close() ;
+	MMAstream.close() ;
+	}
     } ;
 
 extern Global global ;
+
 
 inline DataRec::DataRec (RecordID id)		// DataRec Constructor
     : indexref {global.sysindex.next()}

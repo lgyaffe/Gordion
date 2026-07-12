@@ -26,6 +26,8 @@ class Coupling : public char8		// Adjustable coupling constant
     Coupling () {}
 
     static vector<Coupling> list ;		// Coupling list
+    inline static doub	dfltval = 1000 ;	// Default initial value
+    static string	values() ;		// Printable values
 
     friend ostream& operator<< (ostream& stream, const Coupling& coup)
 	{ return stream << coup.data() ; }

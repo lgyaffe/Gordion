@@ -1,5 +1,17 @@
 #include "Coupling.h"
 
+string Coupling::values ()			// Return comma-separated coupling values
+    {
+    std::stringstream buf ;
+    string sep {""} ;
+    for (const auto& c : Coupling::list)
+	{
+	buf << sep << c.value ;
+	sep = ',' ;
+	}
+    return string { buf.str() } ;
+    }
+
 ostream& operator<< (ostream& stream, const vector<AdjTerm>& vec)	// Print AdjTerm list
     {
     string	plus { " + " } ;

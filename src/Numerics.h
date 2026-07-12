@@ -65,9 +65,10 @@ class Numerics
     const Cvec&	eval_spectra	(uint,bool=false) ;	// Evaluate spectrum
     const Cvec&	eval_spectra	(string,bool=false) ;	// Evaluate spectrum
     void	initialize	(int = global.stage) ;	// Initialize
-    void	write_data	(doub) ;		// Write to datafile
     void	status_rpt	(uint,uint) ;		// Report status
     bool	check_loops	() ;			// Loop vevs < 1?
+    void	write_data	() ;			// Write to MMA file
+    void	open_MMA	() ;			// Open MMA output file
 
     doub termvalue (const PolyTerm& t) const		// Evaluate PolyTerm
 	{
@@ -98,9 +99,9 @@ class Numerics
     static void	do_dvev_bckt (const uint3&) ;			// Do dvev bucket
     static doub	err_norm     (const Rvec&, const Rvec&) ;	// ODE error norm
 
-    static void	data_write   (ofstream&, const string, doub, doub) ;
-    static void	data_write   (ofstream&, const string, doub, const Rvec&) ;
-    static void	data_write   (ofstream&, const string, doub, const Cvec&) ;
+    static void	data_write   (ofstream&, const string, doub) ;
+    static void	data_write   (ofstream&, const string, const Rvec&) ;
+    static void	data_write   (ofstream&, const string, const Cvec&) ;
     } ;
 
 inline Numerics numerics ;				// Numerical data

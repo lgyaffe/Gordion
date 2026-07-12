@@ -14,6 +14,11 @@ class Index : public vector<T>		// vector<T> plus index with string keys
 	if (isnew) vector<T>::push_back (t) ;
 	return iter->second ;
 	}
+    void clear ()				// Clear index'd list
+	{
+	map.clear () ;
+	vector<T>::clear () ;
+	}
     } ;
 
 #endif

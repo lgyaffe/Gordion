@@ -141,19 +141,20 @@ class PolyRec : public DataRec				// Polynomial data record
 	{						// N.B. slice/col major!
 	if (offset.empty()) slice_n_dice () ;
 	auto dataptr { begin().ptr } ;
-	return dataptr[offset [(i * entry().ncol + j) * entry().nrow + k]] ;
+	return dataptr [offset [(i * entry().ncol + j) * entry().nrow + k]] ;
 	}
 
     void slice_n_dice () const				// Initialize offset array
 	{
 	auto n { entry().items() } ;
+	auto m { n } ;
 
 	offset.reserve (n) ;
 	for (const auto& poly : *this)
 	    {
-	    offset.push_back (&poly - begin().ptr) ; --n ;
+	    offset.push_back (&poly - begin().ptr) ; --m ;
 	    }
-	if (n) gripe ("Corrupted data block!") ;
+	if (m) gripe (format("Corrupted data block: expected {}, got {}",n,n-m)) ;
 	}
 
     struct PolyIter					// Packed Poly iterator

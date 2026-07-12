@@ -29,7 +29,7 @@ void Build::clearobs (int stage)		// Clear prior observables
 	ObsList::obs.purge (ObsList::obs.nobsG) ;
 	global.clearpolys (1) ;
 	}
-    global.okfermivev = false ;
+    global.streamclose() ;
     }
 
 void Build::mk_obs (int target)			// Build observables
@@ -63,6 +63,7 @@ void Build::mk_obs (int target)			// Build observables
 	    global.clearpolys   (0) ;
 	    global.mk_bcktlist  (0) ;
 	    numerics.initialize (0) ;
+	    global.streamclose() ;
 	    }
 	}
     else if (theory.nf) // stage == Global::Fermi
@@ -97,9 +98,10 @@ void Build::mk_obs (int target)			// Build observables
 	    }
 	if (obslist.size() != numobs)
 	    {
-	    global.clearpolys (1) ;
-	    global.mk_bcktlist (1) ;
+	    global.clearpolys   (1) ;
+	    global.mk_bcktlist  (1) ;
 	    numerics.initialize (1) ;
+	    global.streamclose() ;
 	    }
 	}
     Obsset().swap (newobs) ;
@@ -861,27 +863,28 @@ void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
 	if (list(i).is_fermi() != global.stage)
 	    fatal ("do_geo_bckt: bad obs stage") ;
 
-	if (list(i).type == ObsType::Eloop) continue ;
 	for (ushort k(0) ; k < ngens ; ++k)
 	    {
-	    if (gens[k].T_odd)	  continue ;
 	    if (global.interrupt) break ;
-	    if (blab > 4) cout << "\ndo_geo_bckt " << bcktnum << " [gen " << k
-			       << ", " << list(i) << "]\n" << flush ;
-
-	    Commute::commute_poly (gens[k], ObsPoly(i,list).negate(), ans) ;
-	    if (theory.euclid && gens[k].imag && list(i).imag()) ans.negate() ;
-	    if (ans.size())
+	    if (list(i).type != ObsType::Eloop && !gens[k].T_odd)
 		{
-		check_xorder (i, gens[k], ans) ;
-		for (auto& [indx,coeff] : ans)
+		if (blab > 4) cout << "\ndo_geo_bckt " << bcktnum << " [gen " << k
+				   << ", " << list(i) << "]\n" << flush ;
+
+		Commute::commute_poly (gens[k], ObsPoly(i,list).negate(), ans) ;
+		if (theory.euclid && gens[k].imag && list(i).imag()) ans.negate() ;
+		if (ans.size())
 		    {
-		    if (!coeff) continue ;
-		    ++geotermord[indx.order()] ;
-		    ++nterms ;
+		    check_xorder (i, gens[k], ans) ;
+		    for (auto& [indx,coeff] : ans)
+			{
+			if (!coeff) continue ;
+			++geotermord[indx.order()] ;
+			++nterms ;
+			}
 		    }
+		++ngeo ;
 		}
-	    ++ngeo ;
 	    geos.add (Poly {GeoHdr {i,k}}, ans) ;
 	    ans.clear() ;
 	    if (global.interrupt) return ;
