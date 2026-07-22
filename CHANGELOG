@@ -1,10 +1,22 @@
+Jan 28, 2026:
+    Initial version 1.0 release
+
+Feb 20, 2026:
+    Version 1.1 release.
+    Added version numbers to save file headers.
+    Added VEV32 preprocessor symbol & real typedef
+	for selecting 32 bit vev's and poly coeffs.
+
 Feb 9, 2026:
     Added Version.h.
-    Added VEV32 preprocessor symbol & real typedef for selecting 32 bit vev's and poly coeffs.
-    Added version numbers to save file headers, incompatibility checking in Save::read_header.
+    Added VEV32 preprocessor symbol & real typedef for selecting 32 bit vev's
+    and poly coeffs.
+    Added version numbers to save file headers, incompatibility checking in
+    Save::read_header.
 
 Feb 27, 20206:
-    Added PAGESIZE preprocessor definitions in Save.cpp, used in I/O buffer alignas specifications.
+    Added PAGESIZE preprocessor definitions in Save.cpp, used in I/O buffer
+    alignas specifications.
     Enclosed std::locale("en_US.UTF-8") statements in Print.cpp in try/catch block.
 
 Mar 1, 2026:
@@ -13,23 +25,43 @@ Mar 1, 2026:
 Mar 7, 2026:
     Fixed definition of is_coord() in Obs.h
 
+Apr 11, 2026: Version 1.2.
+    Fixed Version::arith and added Version::rsize.
+    Removed installation of even-length fermion generators in Gen::geninit.
+    Changed autoEgens to autoToddgens, and added Op::flipT to auto-create
+	T-odd fermion generators from T-even generator definitions.
+    Added Numerics::tikhanov to allow adjustment of Lagrange matrix regularization.
+
 Apr 14, 2026:
     Modified Coupling.{h,cpp} and Theory.cpp to allow products of powers of adjustable
     coupling constants as coefficients in Hamiltonian (or free energy) terms.
     Modified Makefile with commend about possible definition of MASSSCALE symbol.
 
-May 29, 2026:
-    Uploaded version 1.3.  See Version.h.  Changes include reducing spectrum
-    evaluation to small second order eigensystem, and allowing use of Eigen
-    instead of Armadillo for linear algebra operations (used for testing).
+May 24, 2026:
+    Version 1.3 release.
+    Fixed bogus Gauss law use in 1D Efermion canonicalizations.
+    Changed spectrum eigensystem to use smaller second order form.
+    Removed Numerics::tikhanov shift as not useful.
+    Added 'active' boolean to Gen's.
+    Added generator add, suspend & activate commands.
+    Deprecated previous "add generator" command.
+    Support use for Eigen library instead of Armadillo for linear algebra,
+	intended just for testing with 80-bit precision on Intel processors.
+    Fixed Global::stageinit and related routines so that observable lists and
+	polynomials scripts are not unnecessarily cleared upon a change of stage.
 
 June 16, 2026:
-    Uploaded version 1.4.  See Version.h.  Changes made to disentangle initialization
-    and generator definition from minimization stage, enabling definition of both
-    gauge and fermi generators at any time, and flipping back and forth between
-    minimization stages without unnecessary rebuilding of observables or polys.
-    Made setting of coupling value automatically switch to related minimization stage.
-    Fixed critical error in addition of spec Obs to Canon::cache.
+    Version 1.4 release.
+    Revamped initialization routines to disentangle initialization and generator
+	definition from minimization stage. Changes include creating the OpList class
+	and splitting Op::list into separate gauge and fermion OpList's held in
+	global.stageinfo.ops.
+    Moved nobsG and nobsF members from Global into associated ObsList.
+    Ensure that Obs::catalog does not store into a frozen list.
+    Added "stage" member to Coupling class, and made setting of coupling value
+	automatically switch to associated minimization stage.
+    Fixed initial setting of fermion maxord to 1 in obsinit, else GAxf misclassified.
+    Fixed critical error affecting fermions additions to Canon::cache.
 
 June 20, 2026:
     Minor code cleanup: merged conversion of printable characters into Symb's
@@ -37,8 +69,49 @@ June 20, 2026:
     Make ObsList internals private, but expose const_iterator.
     Moved global defs from Init.cpp into inline defs in appropriate .h files.
 
-July 10, 2026:
-    Changed SymbStr -> Str throught for consistency with master field program Delphi.
-    Obs.cpp: Fixed test for attempt to catalog into frozen list.
-    Nuerics.cpp: Improved error message for unbuilt geodesic equations.
+July 10-24, 2026:
+    Version 1.5 release.
+    Changed SymbStr -> Str throughout for consistency with master field program delphi.
+    Build.cpp: Added mk_ham, called at conclusion of mk_obs, to store
+	canonicalized form of H (or F) in cpoly entries of global.info().Hterms.
+    Coupling.h: Added Coupling::ncoupG item to track number of gauge couplings.
+    Coupling.cpp: Added Coupling::values to return comma separated list of
+	coupling values (used for output MMA files).
+    Data.h: Added HamHdr struct and associated functions for ham record.
+	Changed DataRec constructor to require SysIndex ref.
+    Global.h: Moved SysIndex into stage specific StageInfo entry.
+	Moved all output path & stream items to stage specific StageInfo entries.
+	Moved ObsList::nobs[GF] in StageInfo nobs.
+	Added StageInfo::obshash to hold Obs list checksums.
+	Added SerialData constructor taking SysIndex ref.
+	Added ham entry to Serial Data for hamiltonian/free energy.
+	Added PolyArr constructor taking SysIndex ref.
+    Global.cpp: Renamed dfltfilename to mk_filename and reworked to
+	construct standard YM* and QCD* file names.
+	Added stageabbrev for constructing part of standard file names.
+    Init.cpp: Moved definitions of global and ObsList's into Init.cpp
+	to ensure proper ordering of initializations depending on global.
+    Numerics.cpp: Improved error message for unbuilt geodesic equations.
+    Obs.cpp: Fixed test in ObsList::catalog for attempt to catalog into frozen list.
+	Added code to ObsList::store to update obshash and nobs entries
+	in global.info() upon addition to ObsList::obs.
+	Added ObsList::rehash, ObsList::hasher and changed ObsList::purge
+	to update obshash entries in global.info.
+    Parse.cpp: Removed "set sysfile" and "set vevfile" commands.
+	Added parsing of "load <coupling> <value>" command.
+    Poly.h: Added public & private constructors for PolyArr to pass
+	SysIndex ref to non-default DataRec constructor.
+    Poly.cpp: Added ObsPoly::add to convert Poly to ObsPoly.
+    Print.cpp: Added ObsList hash values to stats report.
+	Merged print_hamiltonian and print_freeenergy into print_ham_or_free.
+    Save.h: Added Obs list hash codes to FileHdr, with consistency testing
+	added in Save::read_header.
+    Save.cpp: Reworked Save::save_sys, save_vev and load_save to fully separate
+	gauge information in YM* files and fermi information in QCD* files.
+	Added write_ham and read_ham to include canonicalized form of hamiltonian
+	(or free energy) in save files.
+	Removed all support for user-provided save files names.
+	Added test to prevent rewriting sys-info file with swapped-out geodesics.
+    Theory.cpp: Removed initialization of canonicalized forms of H or F, to
+	await construction of ObsList::obs.
 
