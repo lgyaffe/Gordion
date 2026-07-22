@@ -81,7 +81,7 @@ July 10-24, 2026:
 	Changed DataRec constructor to require SysIndex ref.
     Global.h: Moved SysIndex into stage specific StageInfo entry.
 	Moved all output path & stream items to stage specific StageInfo entries.
-	Moved ObsList::nobs[GF] in StageInfo nobs.
+	Moved ObsList::nobs[GF] to StageInfo nobs.
 	Added StageInfo::obshash to hold Obs list checksums.
 	Added SerialData constructor taking SysIndex ref.
 	Added ham entry to Serial Data for hamiltonian/free energy.
@@ -89,6 +89,7 @@ July 10-24, 2026:
     Global.cpp: Renamed dfltfilename to mk_filename and reworked to
 	construct standard YM* and QCD* file names.
 	Added stageabbrev for constructing part of standard file names.
+	Added addsubdir for creating & appending theory specific subdirs.
     Init.cpp: Moved definitions of global and ObsList's into Init.cpp
 	to ensure proper ordering of initializations depending on global.
     Numerics.cpp: Improved error message for unbuilt geodesic equations.
