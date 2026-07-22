@@ -326,9 +326,9 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"savedir") && parse_args (line,word))
 	    {
-	    global.info().savedir = word ;
-	    global.info().sysstream.close() ;
-	    global.info().vevstream.close() ;
+	    if (word.empty() || word.back() != '/') word += '/' ;
+	    global.savedir = word ;
+	    global.close_streams (4) ;
 	    }
 	else if (isword(word,"svdcutoff") && parse_args (line,value))
 	    {
@@ -352,8 +352,9 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"MMAdir") && parse_args (line,word))
 	    {
-	    global.info().MMAdir = word ;
-	    global.info().MMAstream.close() ;
+	    if (word.empty() || word.back() != '/') word += '/' ;
+	    global.MMAdir = word ;
+	    global.close_streams (2) ;
 	    }
 	else if (isword(word,"MMAobs") && line >> word)
 	    {

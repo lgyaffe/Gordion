@@ -537,11 +537,11 @@ void Numerics::status_rpt (uint iters, uint steps)
 
 bool Numerics::open_MMA ()				// Open MMA output file
     {
-    auto&	MMAdir		{ global.info().MMAdir  } ;
+    const auto&	MMAdir		{ global.MMAdir  } ;
     auto&	MMApath		{ global.info().MMApath } ;
     auto&	MMAstream	{ global.info().MMAstream } ;
     string	file		{ global.mk_filename("m") } ;
-    string	path		{ MMAdir + "/" + file } ;
+    string	path		{ global.addsubdir (MMAdir) + file } ;
     auto	mode		{ std::ios::out } ;
     string	okmsg		{ "Writing results to " } ;
     ofstream	stream ;

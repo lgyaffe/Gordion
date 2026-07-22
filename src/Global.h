@@ -67,12 +67,10 @@ struct StageInfo				// Stage-specific info
     array<ushort,NREP>	neven ;	 		// # T-even generators
     vector<AdjTerm>	Hterms ; 		// Hamiltonian/free energy
     vector<uint3>	bckt ;	 		// Obs bucket list
-    string		savedir { "./save/" } ;	// Save file directory
     string		syspath ;		// Sys info path
     fstream		sysstream ; 		// Sys info stream
     string		vevpath ;		// Vev data path
     fstream		vevstream ; 		// Vev data stream
-    string		MMAdir  { "./MMA/"  } ;	// MMA result directory
     string		MMApath ;		// MMA results path
     ObsSubset		MMAobs ;		// MMA Obs list
     ofstream		MMAstream ; 		// MMA results stream
@@ -103,6 +101,8 @@ class Global					// Global data
     bool	vevappend  { false } ;		// Append to vev data file?
     bool	MMAappend  { false } ;		// Append to MMA file?
     atombool	interrupt  { false } ;		// Interrupt flag
+    string	savedir    { "./save/" } ;	// Save file directory
+    string	MMAdir	   { "./MMA/"  } ;	// MMA result directory
     Version	version    ;			// Program version
 
     auto&	info	(int i)	{ return stageinfo[i] ; }
@@ -116,10 +116,13 @@ class Global					// Global data
 
     string	stageabbrev (int, const string&) ; // File name info
     string	mk_filename (const string&&) ;	// Default file names
-    void	mk_bcktlist () ;		// Make bucket list
-    uint3	bckt_pos    (uint) ;		// Obs bucket position
-    void	clearpolys  (int) ;		// Clear polys
-    void	stageinit   (uint) ;		// Stage initialization
+    string	addsubdir     (string, int) ;	// Add theory subdir
+    string	addsubdir     (string) ;	// Add theory subdir
+    void	mk_bcktlist   ()    ;		// Make bucket list
+    void	close_streams (int) ;		// Close output streams
+    void	clearpolys    (int) ;		// Clear polys
+    uint3	bckt_pos      (uint) ;		// Obs bucket position
+    void	stageinit     (uint) ;		// Stage initialization
     char	fg (int stage)	const { return stage ? 'f' : 'g' ; }
     char	fg ()		const { return fg (this->stage) ; }
     } ;

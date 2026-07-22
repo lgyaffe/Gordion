@@ -1,5 +1,6 @@
 #include "Global.h"
 #include "Numerics.h"
+#include <filesystem>
 
 void Global::stageinit (uint i)			// Stage initialization
     {
@@ -16,6 +17,30 @@ string Global::mk_filename (const string&& ext)	// Make data file names
     if (approx)	filenam += format ("a{}", approx) ;
 		filenam += format (".{}", ext) ;
     return filenam ;
+    }
+
+string Global::addsubdir (string dir, int stag)	// Return save sub-directory
+    {
+    dir.append (stag ? theory.name.data() : theory.parent().data() ) ;
+    dir += '/' ;
+    if (std::filesystem::create_directory (dir))
+	cout << "Created subdirectory " << dir << "\n" ;
+    return dir ;
+    }
+
+string Global::addsubdir (string dir)		// Reteurn save sub-directory
+    {
+    return addsubdir (dir, stage) ;
+    }
+
+void Global::close_streams (int keep)		// Close output streams
+    {
+    for (int stage (keep & 1) ; stage < 2 ; ++stage)
+	{
+	if (!(keep & 2))  { global.info(stage).sysstream.close() ;
+			    global.info(stage).vevstream.close() ; }
+	if (!(keep & 4))    global.info(stage).MMAstream.close() ;
+	}
     }
 
 string Global::stageabbrev (int stage, const string& ext)

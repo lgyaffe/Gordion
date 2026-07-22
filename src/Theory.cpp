@@ -8,10 +8,6 @@
 
 void Theory::theoryinit()			// Report theory & version
     {
-    global.info(0).savedir.append (theory.parent().data()) ;
-    global.info(1).savedir.append (theory.name.data()) ;
-    global.info(0).MMAdir.append  (theory.parent().data()) ;
-    global.info(1).MMAdir.append  (theory.name.data()) ;
     Print::print_theory() ;
     Print::print_version() ;
     }

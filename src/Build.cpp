@@ -31,19 +31,6 @@ void Build::clear_obs (int stage)		// Clear prior observables
 	}
     }
 
-void Build::close_streams ()			// Close output streams
-    {
-    if (!global.stage)
-	{
-	global.info(0).sysstream.close() ;
-	global.info(0).vevstream.close() ;
-	global.info(0).MMAstream.close() ;
-	}
-    global.info(1).sysstream.close() ;
-    global.info(1).vevstream.close() ;
-    global.info(1).MMAstream.close() ;
-    }
-
 void Build::mk_obs (int target)			// Build observables
     {
     if (global.interrupt) return ;
@@ -72,10 +59,10 @@ void Build::mk_obs (int target)			// Build observables
 	    }
 	if (obslist.size() != numobs)
 	    {
-	    global.clearpolys   (0) ;
-	    numerics.initialize (0) ;
-	    global.mk_bcktlist  () ;
-	    close_streams	() ;
+	    global.clearpolys    (0) ;
+	    numerics.initialize  (0) ;
+	    global.close_streams (0) ;
+	    global.mk_bcktlist   ()  ;
 	    }
 	}
     else if (theory.nf) // stage == Global::Fermi
@@ -110,10 +97,10 @@ void Build::mk_obs (int target)			// Build observables
 	    }
 	if (obslist.size() != numobs)
 	    {
-	    global.clearpolys   (1) ;
-	    numerics.initialize (1) ;
-	    global.mk_bcktlist  () ;
-	    close_streams	() ;
+	    global.clearpolys    (1) ;
+	    numerics.initialize  (1) ;
+	    global.close_streams (1) ;
+	    global.mk_bcktlist   ()  ;
 	    }
 	}
     Obsset().swap (newobs) ;

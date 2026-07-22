@@ -695,14 +695,14 @@ void Print::print_state ()			// Print global state variables
     cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
     cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
-    cout << " Save directory:     " << global.info().savedir << "\n" ;
-    cout << " MMA directory:      " << global.info().MMAdir  << "\n" ;
+    cout << " Save directory:     " << global.savedir    << "\n" ;
+    cout << " Vev file append:    " << global.vevappend      << "\n" ;
+    cout << " MMA directory:      " << global.MMAdir     << "\n" ;
+    cout << " MMA file append:    " << global.MMAappend      << "\n" ;
     cout << " Sys info file:      " << global.info().syspath << "\n" ;
     cout << " Vev data file:      " << global.info().vevpath << "\n" ;
     cout << " MMA result file:    " << global.info().MMApath << "\n" ;
     cout << " MMA obs subset:     " << global.info().MMAobs  << "\n" ;
-    cout << " Vev file append:    " << global.vevappend      << "\n" ;
-    cout << " MMA file append:    " << global.MMAappend      << "\n" ;
     }
 
 void Print::print_blab ()			// Print blab levels

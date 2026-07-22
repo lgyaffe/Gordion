@@ -13,6 +13,7 @@ namespace Save
     void load_save	(string) ;	// Load save file
     void load_save	(int,string) ;	// Load vev file
     void load_vev	(int) ;		// Load vev set
+    string addsubdir	(string,int) ;	// Add subdirectory
 
     void write_header	(fstream&,uint=0,uint=0) ; // Write file header
     int  read_header	(fstream&) ;	// Read file header

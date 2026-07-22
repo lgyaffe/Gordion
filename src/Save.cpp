@@ -24,11 +24,11 @@ static symb		symbbuf [rhdrsiz] ;		// alignment buffer
 
 void Save::save_sys ()					// Save sys info
     {
-    auto&	savedir		{ global.info().savedir } ;
+    const auto& savedir		{ global.savedir } ;
     auto&	syspath		{ global.info().syspath } ;
     auto&	sysstream	{ global.info().sysstream } ;
     string	file		{ global.mk_filename("sys") } ;
-    string	path		{ savedir + "/" + file } ;
+    string	path		{ global.addsubdir (savedir) + file } ;
     auto	mode		{ ios::out | ios::trunc | ios::binary } ;
 
     if (sysstream.is_open() && path == syspath)
@@ -62,11 +62,11 @@ void Save::save_sys ()					// Save sys info
 void Save::save_vev ()					// Save vev data
     {
     const auto&	nvev		{ global.info().nobs } ;
-    auto&	savedir		{ global.info().savedir } ;
+    const auto& savedir		{ global.savedir } ;
     auto&	vevpath		{ global.info().vevpath } ;
     auto&	vevstream	{ global.info().vevstream } ;
     string	file		{ global.mk_filename("vev") } ;
-    string	path		{ savedir + "/" + file } ;
+    string	path		{ global.addsubdir (savedir) + file } ;
     uint	ncoup		{ Coupling::ncoup() } ;
     uint	blab		{ Blab::level(Blab::SAVE) } ;
 
@@ -431,10 +431,11 @@ void Save::write_vev ()					// Write Vev's
 
 void Save::load_save (int set, string file)		// Load save file
     {
-    string path	{ global.info().savedir + "/" + file } ;
+    const auto& savedir { global.savedir } ;
+    string	path	{ global.addsubdir (savedir) + file } ;
 
     if (!std::filesystem::exists (path))
-	path = global.info(!global.stage).savedir + "/" + file ;
+	path = global.addsubdir (savedir, !global.stage) + file ;
 
     if (!std::filesystem::exists (path))
 	gripe (format("Cannot find save file {}", file)) ;
