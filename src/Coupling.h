@@ -25,9 +25,13 @@ class Coupling : public char8		// Adjustable coupling constant
     Coupling (char8 name) : char8(name) {}	// Constructor
     Coupling () {}
 
-    static vector<Coupling> list ;		// Coupling list
-    inline static doub	dfltval = 1000 ;	// Default initial value
-    static string	values() ;		// Printable values
+    inline static doub		dfltval = 1000; // Default initial value
+    inline static int		ncoupG ;	// # gauge couplings
+    static vector<Coupling>	list ;		// Coupling list
+
+    static string values () ;			// Printable values
+    static uint   ncoup  () ;			// # couplings for stage
+    static uint   ncoup  (int) ;		// # couplings for stage
 
     friend ostream& operator<< (ostream& stream, const Coupling& coup)
 	{ return stream << coup.data() ; }
@@ -64,7 +68,7 @@ class AdjTerm                           // ObsPoly times adjustable coupling
     ObsPoly	cpoly {ObsList::obs} ;		// Canonicalized form
 
     AdjTerm (Coeff& c, ObsPoly& p, ObsPoly &can, bool img = false)
-	: coeff(c), poly(p), cpoly(can), imag(img) {}
+	: coeff(c), poly(p), imag(img) {}
 
     friend ostream& operator<< (ostream&, const vector<AdjTerm>&) ;
     } ;

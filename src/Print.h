@@ -43,8 +43,7 @@ namespace Print
     void print_mode (uint) ;
     void print_mode () ;
 
-    void print_hamiltonian () ;
-    void print_freeenergy  () ;
+    void print_ham_or_free () ;
     void print_spectrum    () ;
 
     void print_geodesic (uint,uint) ;

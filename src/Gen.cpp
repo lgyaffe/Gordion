@@ -243,7 +243,7 @@ void Gen::normalize (int repnum)			// Normalize generator
 
     for (ushort i(0) ; i < Hterms.size() ; ++i)
 	{
-	const ObsPoly&	poly { repnum ? Hterms[i].poly : Hterms[i].cpoly } ;
+	const ObsPoly&	poly { Hterms[i].poly } ;
 	const ObsList&	list { poly.obslist() } ;
 
 	for (const auto& term : poly)
@@ -408,7 +408,6 @@ int Gen::addgen (OpSum&& s)			// Add new generator
 	{
 	list.setprimary () ;
 	global.clearpolys (op1.is_Fermion()) ;
-	global.streamclose () ;
 	}
     return added ;
     }

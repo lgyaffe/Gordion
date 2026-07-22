@@ -145,8 +145,6 @@ class ObsList: vector<const Obs*>
     bool		canonicalize ;		// Canonicalize entries?
     bool		classify ;		// Classify entries?
     bool		approx {false} ;	// Approximate exclusions?
-    uint		nobsG  {1} ;		// # gauge entries
-    uint		nobsF  {0} ;		// # fermi entries
 
     using vector::const_iterator ;	// Expose base const_iterator
     const_iterator begin() const { return vector::cbegin() ; }
@@ -170,22 +168,6 @@ class ObsList: vector<const Obs*>
 			if (p2 != inbox.end()) return UINT_MAX-1 ;
 			}
 		    return UINT_MAX ;
-		    }
-    void	purge (uint limit)		// Purge entries
-		    {
-		    resize (limit) ;
-		    nobsG -= std::erase_if (map, [&](const auto& p)
-			    { return p.second >= limit && p.second <  nobsG; }) ;
-		    nobsF -= std::erase_if (map, [&](const auto& p)
-			    { return p.second >= limit && p.second >= nobsG; }) ;
-		    }
-    void	empty ()			// Empty list
-		    {
-		    clear () ;
-		    map.clear () ;
-		    store (Obs(Str(), ObsType::Loop, 0, 0)) ;
-		    nobsG = 1 ;
-		    nobsF = 0 ;
 		    }
     void	reserve (int len)		// Reserve space
 		    {
@@ -218,9 +200,7 @@ class ObsList: vector<const Obs*>
 			ObsList::freeze = prev ;
 			}
 		    }
-
-    uint& nobs (int stage)   	  	{ return stage ? nobsF : nobsG ; }
-    bool  neq  (const ObsList& l) const { return this != &l ; }
+    bool	 neq  (const ObsList& l) const { return this != &l ; }
 
     int		do_fermiinit () ;		// Load Fermion -> Loop map
     void	obsinit	(int) ;			// Load basic Obs
@@ -228,6 +208,10 @@ class ObsList: vector<const Obs*>
     ostream&	print	(ostream&) const ;	// Print list
 
     uint	store	 (const Obs&) ;		// Store in list
+    void	purge	 (uint)	;		// Purge entries
+    void	empty	 () ;			// Empty list
+    void	rehash	 () const ; 		// Recalculate hashes
+    void	hasher	 (ulong&,const Obs&) const ; // List hasher
     PolyTerm	catalog  (Obs) ;		// Catalog Obs
     PolyTerm	catalog  (Obs, Obs) ;		// Catalog Obs
     PolyTerm	is_known (Obs&&) const ;	// Find in list
@@ -245,12 +229,12 @@ class ObsList: vector<const Obs*>
 	{ inbox.insert (o) ; }
     } ;
 
-class ObsSet : public std::set<uint>				// Obs index set
+class ObsSubset : public std::map<uint,Obs>		// Obs subset
     {
     public:
-    friend ostream& operator<< (ostream& stream, const ObsSet& s)
+    friend ostream& operator<< (ostream& stream, const ObsSubset& s)
 	{
-	for (auto i : s) stream << ObsList::obs(i) << " " ;
+	for (auto& [i,o] : s) stream << o << " " ;
 	return stream ;
 	}
     } ;
@@ -284,9 +268,5 @@ class ObsStats : public array<vector<vector<uint>>,nobstype>	// Obs statistics
     float avglen ;
     uint  maxloop ;
     } ;
-
-inline ObsList ObsList::obs  {"Canonical",true,true} ;	// Canonical Obs
-inline ObsList ObsList::base {"Basic"} ;		// Basic defined Obs
-inline ObsList ObsList::redu {"Reduction"} ;		// Gen reduction Obs
 
 #endif

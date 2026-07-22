@@ -34,6 +34,7 @@ void Parse::read_input (istream& in, bool prompt)	// Read input
 	bool gotline { getline (in,buf) } ;
 	awaiting = false ;
 	if (!gotline) break ;
+	if (buf.back() == '\r') buf.pop_back() ;
 	if (echo) cout << ": " << buf << "\n" << flush ;
 	try { parse_line (buf) ; }
 	catch (const BadInput& e)
@@ -173,28 +174,49 @@ bool Parse::parse_write (istringstream& line)		// Parse "write" command
 
 bool Parse::parse_load (istringstream& line)		// Parse "load" command
     {
+    bool	valid { true } ;
     int		set (-1) ;
+    doub	value ;
     string	word ;
 
     if	    (parse_args (line,set))		Save::load_vev  (set) ;
     else if (parse_args (line,set,word))	Save::load_save (set,word) ;
-    else if (parse_args (line,word))		Save::load_save (-1, word) ;
+    else if (line >> word)
+	{
+	int indx { Coupling::indx (word) } ;
+	if (indx >= 0 && parse_args (line,value))
+	    {
+	    const auto&	info { global.info(Coupling::list[indx].stage) } ;
+	    if (info.vevstream.is_open())
+		{
+		Couplings tmplist { Coupling::list.size() } ;
+		for (int i(0) ; Save::read_coup (i,&tmplist) ; ++i)
+		    {
+		    if (tmplist[indx].value == value) set = i ;
+		    }
+		if (set >= 0)			Save::load_vev (set) ;
+		else
+		    gripe (format("No vev record with {} = {}", word, value)) ;
+		}
+	    else gripe ("No suitable open vev data file") ;
+	    }
+	else if (eos(line))			Save::load_save (-1, word) ;
+	else valid = false ;
+	}
     else gripe ("Load what info?") ;
-    return true ;
+    return valid ;
     }
 
 bool Parse::parse_save (istringstream& line)		// Parse "save" command
     {
     bool	valid { true } ;
-    string	word, word2 ;
+    string	word ;
 
     if (eos(line)) gripe ("Save which information?") ;
-    else if (parse_args (line,word,word2) || parse_args(line,word))
+    else if (parse_args(line,word))
 	{
-	if      (isword(word,"sys"))
-	    Save::save_sys (word2.empty() ? global.sysfile : word2) ;
-	else if (isword(word,"vev"))
-	    Save::save_vev (word2.empty() ? global.vevfile : word2) ;
+	if      (isword(word,"sys")) Save::save_sys () ;
+	else if (isword(word,"vev")) Save::save_vev () ;
 	else valid = false ;
 	}
     else valid = false ;
@@ -304,9 +326,9 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"savedir") && parse_args (line,word))
 	    {
-	    global.savedir = word ;
-	    global.sysstream.close() ;
-	    global.vevstream.close() ;
+	    global.info().savedir = word ;
+	    global.info().sysstream.close() ;
+	    global.info().vevstream.close() ;
 	    }
 	else if (isword(word,"svdcutoff") && parse_args (line,value))
 	    {
@@ -316,17 +338,6 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    global.symcurv = flag ;
 	    }
-	else if (isword(word,"sysfile") && parse_args (line,word))
-	    {
-	    auto pos { word.find_last_of ('/') } ;
-	    if (pos != word.npos)
-		{
-		global.savedir.assign (word, 0, pos) ;
-		global.sysfile.assign (word, pos+1) ;
-		}
-	    else global.sysfile = word ;
-	    global.sysstream.close() ;
-	    }
 	else if (isword(word,"timing") && parse_args (line,flag))
 	    {
 	    timing = flag ;
@@ -335,50 +346,25 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    global.vevappend = flag ;
 	    }
-	else if (isword(word,"vevfile") && parse_args (line,word))
-	    {
-	    auto pos { word.find_last_of ('/') } ;
-	    if (pos != word.npos)
-		{
-		global.savedir.assign  (word, 0, pos) ;
-		global.vevfile.assign (word, pos+1) ;
-		}
-	    else global.vevfile = word ;
-	    global.vevstream.close() ;
-	    }
 	else if (isword(word,"MMAappend") && parse_args (line,flag))
 	    {
 	    global.MMAappend = flag ;
 	    }
 	else if (isword(word,"MMAdir") && parse_args (line,word))
 	    {
-	    global.MMAdir = word ;
-	    global.MMAstream.close() ;
+	    global.info().MMAdir = word ;
+	    global.info().MMAstream.close() ;
 	    }
-	else if (isword(word,"MMAfile") && parse_args (line,word))
-	    {
-	    auto pos { word.find_last_of ('/') } ;
-	    if (pos != word.npos)
-		{
-		global.MMAdir.assign  (word, 0, pos) ;
-		global.MMAfile.assign (word, pos+1) ;
-		}
-	    else global.MMAfile = word ;
-	    global.MMAstream.close() ;
-	    }
-	else if (isword(word,"MMAlimit") && parse_args (line,i))
-	    {
-	    global.info().MMAlimit = i ;
-	    }
-	else if (isword(word,"MMAlist") && line >> word)
+	else if (isword(word,"MMAobs") && line >> word)
 	    {
 	    do  {
 		Obs	o	{ word } ;
 		int	sgn	{ o.canon() } ;
+		int	stage	{ o.is_fermi() } ;
 		uint	indx	{ ObsList::obs.find (o) } ;
 		if (indx != UINT_MAX)
 		    {
-		    global.info().MMAlist.insert (indx) ;
+		    global.info(stage).MMAobs.emplace (indx,o) ;
 		    }
 		else gripe ("Unknown Obs " + word) ;
 		}
@@ -419,29 +405,14 @@ bool Parse::parse_reset (istringstream& line)		// Parse "reset" commands
 	{
 	if (isword(word,"representation"))	global.repnum = 0 ;
 	else if (isword(word,"maxthread"))	global.maxthread = 0 ;
-	else if (isword(word,"MMAlist"))	global.info().MMAlist.clear() ;
 	else if (isword(word,"stage"))		global.stageinit (0) ;
+	else if (isword(word,"MMAobs"))		global.info().MMAobs.clear() ;
 	else if (isword(word,"blab"))		Blab::resetblab () ;
 	else if (isword(word,"numerics"))	numerics.initialize () ;
 	else if (isword(word,"mintol"))		numerics.mintol = numerics.dflttol ;
 	else if (isword(word,"odetol"))		numerics.odetol = numerics.dflttol ;
 	else if (isword(word,"svdcutoff"))	numerics.svdcut = 0 ;
 	else if (isword(word,"rkmethod"))	numerics.rk = RKdef::list.front() ;
-	else if (isword(word,"sysfile"))
-	    {
-	    global.sysfile.clear() ;
-	    global.sysstream.close() ;
-	    }
-	else if (isword(word,"vevfile"))
-	    {
-	    global.vevfile.clear() ;
-	    global.vevstream.close() ;
-	    }
-	else if (isword(word,"MMAfile"))
-	    {
-	    global.MMAfile.clear() ;
-	    global.MMAstream.close() ;
-	    }
 	else valid = false ;
 	}
     else valid = false ;
@@ -870,8 +841,8 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    else if (parse_args (line,i))	 print_mode (i) ;
 	    else valid = false ;
 	    }
-	else if (isword(word,"freeenergy")  && eos(line) && !isH) print_freeenergy  () ;
-	else if (isword(word,"hamiltonian") && eos(line) &&  isH) print_hamiltonian () ;
+	else if (isword(word,"freeenergy")  && eos(line) && !isH) print_ham_or_free () ;
+	else if (isword(word,"hamiltonian") && eos(line) &&  isH) print_ham_or_free () ;
 	else if (isword(word,"spectrum")    && eos(line) &&  isH) print_spectrum    () ;
 	else if (isword(word,"baseobs")     && eos(line))	print_base      () ;
 	else if (isword(word,"blablevels")  && eos(line))	print_blab      () ;
@@ -1096,6 +1067,7 @@ generator	add		[(<order>)] [<coeff>] <op> [...]
 load		<sys_infofile>
 		[<vev_set_#>] <vev_datafile>	
 		<vev_set_#>
+		<coupling> <value>
 
 print		baseobs
 		blablevels
@@ -1136,10 +1108,7 @@ reset		blab
 		rkmethod
 		stage
 		svdcutoff
-		sysfile
-		vevfile
-		MMAfile
-		MMAlist
+		MMAobs
 
 save		sys		[<filename>]
 		vev		[<filename>]
@@ -1166,14 +1135,10 @@ set		stage		gauge | fermi
 		savedir		<directory>
 		svdcutoff	<value>
 		symcurv		true | false
-		sysfile		<filename>
 		timing		true | false
-		vevfile		<filename>
 		MMAappend	true | false
 		MMAdir		<directory>
-		MMAfile		<filename>
-		MMAlimit	<integer>
-		MMAlist		<obs> [<obs> [...]]
+		MMAobs		<obs> [<obs> [...]]
 		<coupling>	<value>
 
 test	 	irreps

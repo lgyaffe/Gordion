@@ -62,7 +62,7 @@ class Theory					// Basic theory info
 	string	tmp { name.begin(), name.end() } ;
 	if (tmp.find ("QCD",0) == 0)
 	    {
-	    char8 YMthy ;
+	    char8 YMthy {} ;
 	    tmp.replace (0,3,"YM") ;
 	    std::copy (tmp.begin(), tmp.end(), YMthy.begin()) ;
 	    return YMthy ;

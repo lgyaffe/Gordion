@@ -345,8 +345,64 @@ uint ObsList::store (const Obs& o)			// Store Obs in ObsList
     if (blab > 1) cout << "Storing in " << name << ": " << o << "\n" ;
     auto [iter, isnew] { map.try_emplace (o, (*this).size()) } ;
     uint indx { iter->second } ;
-    if (isnew) push_back (&(iter->first)) ;
+    if (isnew)
+	{
+	push_back (&(iter->first)) ;
+	if (!neq (ObsList::obs))
+	    {
+	    auto& info { global.info(o.is_fermi()) } ;
+	    hasher (info.obshash, o) ;
+	    ++info.nobs ;
+	    }
+	}
     return indx ;
+    }
+
+void ObsList::empty ()					// Empty list
+    {
+    if (!neq (ObsList::obs))
+	{
+	global.info(0).nobs = 0 ;
+	global.info(1).nobs = 0 ;
+	global.info(0).obshash = 0 ;
+	global.info(1).obshash = 0 ;
+	}
+    clear () ;
+    map.clear () ;
+    store (Obs(Str(), ObsType::Loop, 0, 0)) ;
+    }
+
+void ObsList::purge (uint limit)			// Purge entries
+    {
+    resize (limit) ;
+    if (!neq (ObsList::obs))
+	{
+	auto& nobsG { global.info(0).nobs } ;
+	auto& nobsF { global.info(1).nobs } ;
+	nobsG -= std::erase_if (map, [&](const auto& p)
+	    { return p.second >= limit && p.second <  nobsG; }) ;
+	nobsF -= std::erase_if (map, [&](const auto& p)
+	    { return p.second >= limit && p.second >= nobsG; })  ;
+	if (nobsG + nobsF != size())
+	    abort ("purge: Inconsistent ObsList size") ;
+	rehash () ;
+	}
+    }
+
+void ObsList::rehash () const			// Recalculate list hashes
+    {
+    global.info(0).obshash = 0 ;
+    global.info(1).obshash = 0 ;
+    for (const auto& ptr : *this)
+	{
+	hasher (global.info(ptr->is_fermi()).obshash, *ptr) ;
+	}
+    }
+
+void ObsList::hasher (ulong& hash, const Obs& o) const	// List hasher
+    {
+    ulong x { std::hash<string>{}(o) } ;
+    hash ^= x + 0x9e3779b9 + (hash << 6) + (hash >> 2) ;
     }
 
 void ObsList::obsinit (int stage)		// Load basic Obs
@@ -393,7 +449,6 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 		catalog (Obs(Polyakov,ObsType::Loop,2,2)) ;
 		}
 	    }
-	nobsG = size() ;
 	if (!neq (ObsList::obs)) global.info(0).maxord = 2 ;
 	}
     else if (theory.nf)
@@ -428,7 +483,6 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 		catalog (Obs(FXf,ObsType::Fermion,1,1)) ;
 		}
 	    }
-	nobsF = size() - nobsG ;
 	if (!neq (ObsList::obs))
 	    {
 	    global.info(1).maxord = 1 ;
@@ -436,12 +490,16 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 	    }
 	}
     freeze = true ;
+
+    if (!neq (ObsList::obs) && global.info(0).nobs + global.info(1).nobs != size())
+	abort (format("Inconsistent ObsList size: {} + {} != {}",
+	    global.info(0).nobs, global.info(1).nobs, size())) ;
     }
 
 int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
     {
     uint	initfail  ( 0 ) ;
-    uint	beg	  { nobsG } ;
+    uint	beg	  { global.info(0).nobs } ;
     uint	blab	  { Blab::level(Blab::OBS) } ;
     if (blab > 3) cout << "do_fermiinit start\n" << flush ;
 

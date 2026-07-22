@@ -284,15 +284,10 @@ void Print::print_couplings ()			// Print Coupling::couplings
 	}
     }
 
-void Print::print_hamiltonian ()		// Print Hamiltonian
-    {
-    cout << "  H_" << global.fg() << " = "
-	 << global.info().Hterms << "\n" ;
-    }
-
-void Print::print_freeenergy ()			// Print free energy
-    {
-    cout << "  F_" << global.fg() << " = "
+void Print::print_ham_or_free ()		// Print Hamiltonian
+    {						// or free energy
+    string name { theory.euclid ? "  F_" : "  H_" } ;
+    cout << name << global.fg() << " = "
 	 << global.info().Hterms << "\n" ;
     }
 
@@ -302,7 +297,7 @@ void Print::print_grad (uint i, uint j)		// Print gradient element
 
     if (i < grad.entry().ncol)
 	{
-	const auto& term { global.info().Hterms[i].cpoly } ;
+	const auto& term { global.data().ham(i) } ;
 
 	if (j < grad.entry().nrow)
 	    {
@@ -337,7 +332,7 @@ void Print::print_grad ()			// Print gradient
 	const GradHdr&	info ( poly ) ;
 	auto		i    { info.Hterm } ;
 	auto		j    { info.gen   } ;
-	const auto&	term { global.info().Hterms[i].cpoly } ;
+	const auto&	term { global.data().ham(i) } ;
 
 	if (info.len)
 	    {
@@ -354,7 +349,7 @@ void Print::print_curv (uint i, uint j, uint k)	// Print curvature element
 
     if (i < curv.entry().nslice)
 	{
-	const auto& term { global.info().Hterms[i].cpoly } ;
+	const auto& term { global.data().ham(i) } ;
 
 	if (j < curv.entry().ncol && k < curv.entry().nrow)
 	    {
@@ -407,7 +402,7 @@ void Print::print_curv ()			// Print curvature
 	auto		i    { info.Hterm } ;
 	auto		j    { info.gen1  } ;
 	auto		k    { info.gen2  } ;
-	const auto&	term { global.info().Hterms[i].cpoly } ;
+	const auto&	term { global.data().ham(i) } ;
 
 	if (info.len)
 	    {
@@ -535,15 +530,13 @@ void Print::print_geodesic ()			// Print all geodesic equations
 	auto& geos { global.data().geos[bcktnum] } ;
 	if (global.geoswap) Save::read_geo_bckt (bcktnum) ;
 
-int m (0) ;
 	for (const auto& poly : geos)
 	    {
 	    const GeoHdr&	info  ( poly ) ;
 	    auto		i     { info.indx } ;
 	    auto		j     { info.gen } ;
-	    int			stage ( i >= ObsList::obs.nobsG ) ;
+	    int			stage ( i >= global.info(0).nobs ) ;
 
-// cout << " bckt " << bcktnum << " m " << m++ << " i " << i << " j " << j << " offset " << (RecHdr*) &poly - &geos.front() << "\n" ;
 	    if (info.len)
 		{
 		cout << " geo (" << i << "," << j << ") = "
@@ -562,12 +555,13 @@ void Print::print_cache ()			// Print canonicalization cache
 
 void Print::print_sysindex ()			// Print sys data index
     {
-    if (global.sysfile.size())
+    auto& info { global.info() } ;
+    if (info.syspath.size())
 	{
 	cout << "RecID  nslice  ncol      nrow     reclen      filebeg      fileend\n" ;
-	for (auto& entry : global.sysindex)
+	for (auto& entry : info.sysindex)
 	    {
-	    if (!entry.reclen) continue ;
+	    //if (!entry.reclen) continue ;
 	    ulong fileend { entry.filepos + entry.reclen * sizeof (RecHdr) } ;
 	    cout << RecIndx::idname[(int) entry.id] << "\t"
 		 << std::setw(3)  << (int) entry.nslice << " "
@@ -583,21 +577,22 @@ void Print::print_sysindex ()			// Print sys data index
 
 void Print::print_vevindex ()			// Print vev data index
     {
-
-    if (global.vevstream.is_open())
+    auto& info { global.info() } ;
+    if (info.vevstream.is_open())
 	{
-	Couplings list { Coupling::list.size() } ;
-	for (int i(0) ; Save::read_coup (i,&list) ; ++i)
+	Couplings tmplist { Coupling::ncoup() } ;
+	cout << "Vev data sets in " << info.vevpath << ":\n" ;
+	for (int i(0) ; Save::read_coup (i,&tmplist) ; ++i)
 	    {
-	    if (!i) cout << "Vev data sets in " << global.vevfile << ":\n" ;
 	    cout << "  #" << i ;
 	    auto sep { ": " } ;
-	    for (auto& c : list)
+	    for (auto& c : tmplist)
 		{
 		cout << sep << c << " = " << c.value ;
 		sep = ", " ;
 		}
 	    cout << "\n" ;
+	    if (i > 5) break ;
 	    }
 	}
     else gripe ("No open vev data file") ;
@@ -633,8 +628,10 @@ void Print::print_stats ()			// Print global statistics
     catch (const std::exception&) {}
     cout << "  Basic obs:            " << ObsList::base.size()      << "\n" ;
     cout << "  Canonical obs:        " << ObsList::obs.size()       << "\n" ;
-    cout << "      gauge:            " << ObsList::obs.nobsG        << "\n" ;
-    cout << "      fermi:            " << ObsList::obs.nobsF        << "\n" ;
+    cout << "      # gauge obs:      " << global.info(0).nobs       << "\n" ;
+    cout << "      # fermi obs:      " << global.info(1).nobs       << "\n" ;
+    cout << "      gauge obs hash:   " << global.info(0).obshash    << "\n" ;
+    cout << "      fermi obs hash:   " << global.info(1).obshash    << "\n" ;
     cout << "  Operators:            " << global.info(0).ops.size()
     					+ global.info(1).ops.size() << "\n" ;
     cout << "      gauge:            " << global.info(0).ops.size() << "\n" ;
@@ -698,15 +695,14 @@ void Print::print_state ()			// Print global state variables
     cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
     cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
-    cout << " Save directory:     " << global.savedir    << "\n" ;
-    cout << " MMA directory:      " << global.MMAdir        << "\n" ;
-    cout << " Sys info file:      " << global.sysfilename() << "\n" ;
-    cout << " Vev data file:      " << global.vevfilename() << "\n" ;
-    cout << " MMA result file:    " << global.MMAfilename() << "\n" ;
-    cout << " Vev file append:    " << global.vevappend     << "\n" ;
-    cout << " MMA file append:    " << global.MMAappend     << "\n" ;
-    cout << " MMA save limit:     " << global.info().MMAlimit << "\n" ;
-    cout << " MMA addl save list: " << global.info().MMAlist  << "\n" ;
+    cout << " Save directory:     " << global.info().savedir << "\n" ;
+    cout << " MMA directory:      " << global.info().MMAdir  << "\n" ;
+    cout << " Sys info file:      " << global.info().syspath << "\n" ;
+    cout << " Vev data file:      " << global.info().vevpath << "\n" ;
+    cout << " MMA result file:    " << global.info().MMApath << "\n" ;
+    cout << " MMA obs subset:     " << global.info().MMAobs  << "\n" ;
+    cout << " Vev file append:    " << global.vevappend      << "\n" ;
+    cout << " MMA file append:    " << global.MMAappend      << "\n" ;
     }
 
 void Print::print_blab ()			// Print blab levels

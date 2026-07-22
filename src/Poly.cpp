@@ -42,21 +42,6 @@ PolyTerm PolyTerm::operator* (const PolyTerm& fac) const // Multiply PolyTerms
 	}
     }
 
-PolyTerm PolyTerm::reindex (ObsList& listb, const ObsList& lista) const
-    {
-    PolyTerm ans { *this } ;
-    for (int k(0) ; k < PSIZ ; ++k)
-	{
-	if (!ans[k]) break ;
-
-	Obs	o	{ lista (ans[k]) } ;
-	auto	tmp	{ listb.is_known (std::move(o)) } ;
-	if (tmp.coeff)	{ ans[k] = tmp[0] ; ans.coeff *= tmp.coeff ; }
-	else gripe (format("Observable {} missing in list {}!",o.print(),listb.name)) ;
-	}
-    return ans ;
-    }
-
 void PolyTerm::print (ostream& stream, const ObsList& l) const	// Print PolyTerm
     {
     Print::coeffprt (stream, coeff) ;
@@ -77,8 +62,20 @@ ObsPoly& ObsPoly::negate ()				// Negate ObsPoly
     return *this ;
     }
 
-void ObsPoly::push_map (PolyMap& map)			// Add map terms to ObsPoly
+void ObsPoly::add (const Poly& poly)			// Add Poly
     {
+    if (obslist().neq (ObsList::obs)) abort ("Bad ObsPoly::add call") ;
+    for (const auto& t : poly)
+	{
+	if (t.coeff) emplace_back (t.item, t.coeff) ;
+	}
+    shrink_to_fit() ;
+    sort() ;
+    }
+
+void ObsPoly::push_map (PolyMap& map)			// Add PolyMap
+    {
+    if (obslist().neq (map.obslist())) abort ("Bad ObsPoly::push_map call") ;
     reserve (map.size()) ;
     for (const auto& [indx,coeff] : map)
 	{
@@ -103,17 +100,22 @@ bool PolyMap::add_gen (const Gen& gen)			// Add Gen to PolyMap
     return true ;
     }
 
-void PolyRec::add (RecHdr hdr, PolyMap& map)		// Add PolyMap to PolyRec
+void PolyRec::add (RecHdr hdr, ObsPoly& poly)	// Add ObsPoly to PolyRec
     {
-    ObsPoly tmp { ObsList::obs } ;
-    tmp.push_map (map) ;			// copy to ObsPoly for sorting
-    hdr.len = tmp.size() ;
+    hdr.len = poly.size() ;
     push_back (hdr) ;
-    for (auto& term : tmp)
+    for (auto& term : poly)
 	{
 	auto ptr  { cast_to<const Poly*> (&term) } ;
 	insert (DataRec::end(), ptr, ptr + Poly::ptermsize) ;
 	}
+    }
+
+void PolyRec::add (RecHdr hdr, PolyMap& map)	// Add PolyMap to PolyRec
+    {
+    ObsPoly poly { ObsList::obs } ;
+    poly.push_map (map) ;			// copy to ObsPoly for sorting
+    add (hdr, poly) ;
     }
 
 ostream& operator<< (ostream& stream, const Polyindx& t)	// Print Polyindx

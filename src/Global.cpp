@@ -5,29 +5,38 @@ void Global::stageinit (uint i)			// Stage initialization
     {
     if (i && !theory.nf) gripe ("No fermions!!!") ;
     stage = i ? Global::Fermi : Global::Gauge ;
-    //if (!fermivev) numerics.initialize (1) ;
     }
 
-string Global::dfltfilename (const string&& ext) // Make default file name
+string Global::mk_filename (const string&& ext)	// Make data file names
     {
-    const char*	thynam	{ theory.name.data() } ;
-    int		obs_g	{ info(0).maxord } ;
-    int		obs_f	{ info(1).maxord } ;
-    int		gen_g	{ info(0).maxgen } ;
-    int		gen_f	{ info(1).maxgen } ;
-
-    string		filenam { format ("{}{}g{}", thynam, gen_g, obs_g) } ;
-    if (gen_f && obs_f)	filenam += format ("_{}f{}", gen_f, obs_f) ;
-    if (approx)		filenam += format ("a{}", approx) ;
-			filenam += format (".{}", ext) ;
+    auto	thyname	{ global.stage ? theory.name : theory.parent() } ;
+    string	filenam { thyname.data() } ;
+    		filenam += stageabbrev(0, ext) ;
+    if (stage)	filenam += stageabbrev(1, ext) ;
+    if (approx)	filenam += format ("a{}", approx) ;
+		filenam += format (".{}", ext) ;
     return filenam ;
     }
 
-void Global::mk_bcktlist (uint stage)		// Make Obs bucket list
+string Global::stageabbrev (int stage, const string& ext)
+    {
+    int		obsord	{ info(stage).maxord } ;
+    int		genord	{ info(stage).maxgen } ;
+    string	answer	{ format ("_{}{}{}", genord, fg(stage), obsord) } ;
+    if (ext != "m")
+	{
+	ulong	obshash	{ info(stage).obshash } ;
+	string	suffix	{ char('A' + obshash % 26), char('A' + (obshash * 7) % 26) } ;
+	answer += suffix ;
+	}
+    return answer ;
+    }
+
+void Global::mk_bcktlist ()			// Make Obs bucket list
     {
     auto&	bckt  { info(stage).bckt } ;
-    uint	count { ObsList::obs.nobs(stage) } ;
-    uint	start { stage ? ObsList::obs.nobsG : 0 } ;
+    uint	count { info(stage).nobs } ;
+    uint	start { stage ? info(0).nobs : 0 } ;
     uint	end   { start + count } ;
     uint	chunk ( 1024 ) ;
 
@@ -42,8 +51,8 @@ void Global::mk_bcktlist (uint stage)		// Make Obs bucket list
 
 uint3 Global::bckt_pos (uint i)			// Return stage/bucket/indx
     {
-    uint	stage { i >= ObsList::obs.nobsG } ;
-    uint	start { stage ? ObsList::obs.nobsG : 0 } ;
+    uint	stage { i >= info(0).nobs } ;
+    uint	start { stage ? info(0).nobs : 0 } ;
     const auto& bckt  { info(stage).bckt } ;
 
     if (bckt.size())

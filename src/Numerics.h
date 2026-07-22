@@ -67,8 +67,8 @@ class Numerics
     void	initialize	(int = global.stage) ;	// Initialize
     void	status_rpt	(uint,uint) ;		// Report status
     bool	check_loops	() ;			// Loop vevs < 1?
+    bool	open_MMA	() ;			// Open MMA output file
     void	write_data	() ;			// Write to MMA file
-    void	open_MMA	() ;			// Open MMA output file
 
     doub termvalue (const PolyTerm& t) const		// Evaluate PolyTerm
 	{

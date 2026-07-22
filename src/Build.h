@@ -8,13 +8,13 @@ class PolyMap ;
 namespace Build
     {
     void mk_obs		(int) ;
-    void mk_geos	() ;
+    void mk_ham		() ;
     void mk_grad	() ;
     void mk_curv	(uint) ;
     void mk_lagr	(uint) ;
     void mk_curv	(string) ;
     void mk_lagr	(string) ;
-
+    void mk_geos	() ;
     void mk_loops	() ;
     void mk_Eloops	() ;
     void mk_EEloops	() ;
@@ -30,7 +30,8 @@ namespace Build
     void do_Efermion_bckt (const uint3&) ;
     void do_geostat_bckt  (const uint3&) ;
     void check_xorder	  (uint, const Gen&, const PolyMap&) ;
-    void clearobs	  (int) ;
+    void clear_obs	  (int) ;
+    void close_streams	  () ;
     } ;
 
 #endif

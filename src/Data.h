@@ -34,6 +34,14 @@ struct GenHdr					// Generator record item header
     doub&	data()	{ return *cast_to<doub*>(this) ; }
     } ;
 
+struct HamHdr					// Hamiltonian record header
+    {
+    ushort	Hterm ;
+    ushort	pad[2] ;
+    ushort	len ;
+    doub&	data()	{ return *cast_to<doub*>(this) ; }
+    } ;
+
 struct GradHdr					// Gradient record poly header
     {
     ushort	gen ;
@@ -84,6 +92,7 @@ struct RecHdr				// Data record header
     operator const ObsHdr&  () const { return *cast_to<const ObsHdr*>(this)  ; }
     operator const OpHdr&   () const { return *cast_to<const OpHdr*>(this)   ; }
     operator const GenHdr&  () const { return *cast_to<const GenHdr*>(this)  ; }
+    operator const HamHdr&  () const { return *cast_to<const HamHdr*>(this)  ; }
     operator const GradHdr& () const { return *cast_to<const GradHdr*>(this) ; }
     operator const CurvHdr& () const { return *cast_to<const CurvHdr*>(this) ; }
     operator const LagrHdr& () const { return *cast_to<const LagrHdr*>(this) ; }
@@ -98,6 +107,8 @@ struct RecHdr				// Data record header
     RecHdr (ObsHdr&&  h) { data() = h.data() ; }
     RecHdr (GenHdr&   h) { data() = h.data() ; }
     RecHdr (GenHdr&&  h) { data() = h.data() ; }
+    RecHdr (HamHdr&   h) { data() = h.data() ; }
+    RecHdr (HamHdr&&  h) { data() = h.data() ; }
     RecHdr (GradHdr&  h) { data() = h.data() ; }
     RecHdr (GradHdr&& h) { data() = h.data() ; }
     RecHdr (CurvHdr&  h) { data() = h.data() ; }
@@ -110,18 +121,11 @@ struct RecHdr				// Data record header
 
 static_assert (sizeof (RecHdr) >= sizeof (real)) ;
 
-enum class RecordID : char			// Data record type
+enum class RecordID : char		// Data record type
     {
-    Null,
-    Op,
-    Obs,
-    Gen,
-    Grad,
-    Curv,
-    Lagr,
-    Geos,
-    Stat,
-    Indx
+    Null, Op,   Obs,  Gen,
+    Ham,  Grad, Curv, Lagr,
+    Geos, Stat, Indx
     } ;
 
 class RecIndx				// Data index entry
@@ -141,7 +145,7 @@ class RecIndx				// Data index entry
     ulong items () const		// total number of items
 	{ return nrow * ncol * (int) nslice ; }
 
-    inline static string idname[] { "Null", "Op", "Obs", "Gen", "Grad",
+    inline static string idname[] { "Null", "Op", "Obs", "Gen", "Ham", "Grad",
 				    "Curv", "Lagr", "Geos", "Stat", "Indx" } ;
     } ;
 
@@ -152,21 +156,21 @@ class RecIndxArr : public array<RecIndx,N>	// RecIndx array
     RecIndx& next()			// return next unused entry
 	{
 	for (auto& d : *this)
-	    {
 	    if (d.id == RecordID::Null) return d ;
-	    }
-	gripe ("No unused RecIndx entry!") ;
+	abort ("No unused RecIndx entry!") ;
 	}
     } ;
+
+class SysIndex ;
 
 class DataRec : public vector<RecHdr>		// Data record
     {
     public:
     std::reference_wrapper<RecIndx> indexref ;	// Data index entry
 
-    DataRec (RecordID = RecordID::Null) ;	// Constructor
+    DataRec (SysIndex&, RecordID) ;		// Constructor
 
-    RecIndx& entry() const { return indexref ;} // Data index entry
+    RecIndx& entry() const { return indexref ;} // Return index entry
 
     char* recptr()				// char* ptr to data
 	{

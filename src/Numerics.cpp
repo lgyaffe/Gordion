@@ -7,6 +7,7 @@
 #include "Save.h"
 #include "Blab.h"
 #include "Gripe.h"
+#include <filesystem>
 
 void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
     {
@@ -77,11 +78,10 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
     {
     if (global.interrupt) return 0 ;
 
-    auto&	obslist	{ ObsList::obs } ;
-    uint	nvev	{ global.nobs() } ;
     uint	blab	{ Blab::level(Blab::NUMERICS) } ;
     Ode		ode	{ do_dvev, err_norm, odetol, rk, maxode } ;
     doub	dnorm	{ eval_delta() } ;
+    uint	n	{ global.info().nobs } ;
     doub	s (0) ;
     bool	ok ;
 
@@ -90,15 +90,15 @@ int Numerics::do_step (doub tol)			// Do geodesic integration step
 
     if (tol && dnorm <= tol) return 0 ;			// converged?
 
-    if (nvev != obslist.size())				// integrate vev subvec
+    if (n != vev.size())				// integrate vev subvec
 	{
-	real*	vevptr { &vev [global.stage ? obslist.nobsG : 0] } ; 
-	Rvec	subvev { aliasvec (vevptr, nvev) } ;
+	real*	vevptr { &vev [global.stage ? global.info(0).nobs : 0] } ; 
+	Rvec	subvev { aliasvec (vevptr, n) } ;
 	ok = ode.integrate (s, 1.0, subvev) ;
 	if (memptr (subvev) != vevptr)			// just for Eigen (sigh)
 	    {
-	    if (global.stage)	vev.tail (nvev) = subvev ;
-	    else		vev.head (nvev) = subvev ;
+	    if (global.stage)	vev.tail (n) = subvev ;
+	    else		vev.head (n) = subvev ;
 	    }
 	}
     else ok = ode.integrate (s, 1.0, vev) ;
@@ -131,9 +131,32 @@ const Uvec& Numerics::eval_inuse (uint repnum, bool T_odd)
     return inuse ;
     }
 
+doub Numerics::eval_ham (bool print)			// Evaluate Hamiltonian/free energy
+    {
+    if (!global.maxord()) gripe ("Make observables first!") ;
+
+    H = 0 ;
+    for (const auto& Hterm : global.info().Hterms)
+	{
+	doub val (0.0) ;
+	for (const auto& term : Hterm.cpoly)
+	    {
+	    val += termvalue (term) ;
+	    }
+	H += Hterm.coeff() * val ;
+	}
+    if (print)
+	{
+	auto label { theory.euclid ? "Free energy" : "Hamiltonian" } ;
+	auto prevprec { cout.precision(12) } ;
+	cout << label << " = " << H << "\n" ;
+	cout << std::setprecision (prevprec) ;
+	}
+    return H ;
+    }
+
 const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
     {
-    const auto&	coup	{ Coupling::list } ;
     const auto&	use	{ eval_inuse (0, false) } ;
     const auto&	grad	{ global.data().grad } ;
     const auto&	Hterms	{ global.info().Hterms } ;
@@ -175,7 +198,6 @@ const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
 
 const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curvature
     {
-    const auto&	coup	{ Coupling::list } ;
     const auto&	use	{ eval_inuse (repnum, false) } ;
     const auto&	curv	{ global.data().curv[repnum] } ;
     const auto&	Hterms	{ global.info().Hterms } ;
@@ -221,7 +243,6 @@ const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curv
 
 const Dmtx& Numerics::eval_metr (uint repnum, int print)	// Evaluate T-odd curvature
     {
-    const auto&	coup	{ Coupling::list } ;
     const auto&	use	{ eval_inuse (repnum, true) } ;
     const auto&	curv	{ global.data().curv[repnum] } ;
     const auto&	Hterms	{ global.info().Hterms } ;
@@ -308,36 +329,6 @@ const Dmtx& Numerics::eval_lagr (uint repnum, int print)	// Evaluate Lagrange br
     return lagrange ;
     }
 
-doub Numerics::eval_ham (bool print)			// Evaluate Hamiltonian/free energy
-    {
-    auto	label	{ theory.euclid ? "Free energy" : "Hamiltonian" } ;
-    const auto& Hterms	{ global.info().Hterms } ;
-    const auto& coup	{ Coupling::list } ;
-    const auto& baslist	{ ObsList::base } ;
-    auto& obslist	{ ObsList::obs } ;
-
-    if (!global.maxord()) gripe ("Make observables first!") ;
-
-    H = 0 ;
-    for (const auto& Hterm : Hterms)
-	{
-	doub val (0.0) ;
-	for (const auto& tmp : Hterm.cpoly)
-	    {
-	    auto term { tmp.reindex (obslist, baslist) } ;
-	    val += termvalue (term) ;
-	    }
-	H += Hterm.coeff() * val ;
-	}
-    if (print)
-	{
-	auto prevprec { cout.precision(12) } ;
-	cout << label << " = " << H << "\n" ;
-	cout << std::setprecision (prevprec) ;
-	}
-    return H ;
-    }
-
 doub Numerics::eval_delta (bool print)		// Evaluate delta vector
     {
     const auto&	use   { eval_inuse (0, false) } ;
@@ -407,11 +398,11 @@ void Numerics::eval_geos (int printlim)			// Evaluate observable derivatives
 void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     {
     uint	blab	{ Blab::level(Blab::NUMERICS) } ;
-    uint	offset	{ global.stage ? ObsList::obs.nobsG : 0 } ;
+    uint	offset	{ global.stage ? global.info(0).nobs : 0 } ;
     const auto&	geos	{ global.data().geos } ;
     const auto&	bckt	{ global.info().bckt } ;
     int		ngens	{ global.info().neven.front() } ;
-    uint	nobs	{ global.nobs() } ;
+    uint	n	{ global.info().nobs } ;
 
 //    std::sort (bckt.begin(), bckt.end(), [geos](const uint3& a, const uint3& b)
 //	{ return geos[a[0]].entry().filepos < geos[b[0]].entry().filepos ; }) ;
@@ -423,7 +414,7 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 
     if (blab > 2) cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,nelem(v)) ;
 
-    set_zero (dv, nobs) ;
+    set_zero (dv, n) ;
     numerics.dvev_buf = memptr(dv) ;
 
     if (memptr(v) != &numerics.vev[offset])
@@ -471,7 +462,7 @@ void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
     uint	bcktnum	{ bucket[0] } ;
     uint	first	{ bucket[1] } ;
     uint	last	{ bucket[2] } ;
-    uint	offset	{ global.stage ? ObsList::obs.nobsG : 0 } ;
+    uint	offset	{ global.stage ? global.info(0).nobs : 0 } ;
     const auto&	delta	{ numerics.delta } ;
     const auto&	geos	{ global.data().geos[bcktnum] } ;
     real*	dv 	{ numerics.dvev_buf } ;
@@ -544,65 +535,59 @@ void Numerics::status_rpt (uint iters, uint steps)
 	abort ("Negative curvature eigenvalues") ;
     }
 
-void Numerics::open_MMA ()				// Open MMA output file
+bool Numerics::open_MMA ()				// Open MMA output file
     {
-    if (!global.MMAfile.size())
-	 global.MMAfile = global.dfltfilename("m") ;
+    auto&	MMAdir		{ global.info().MMAdir  } ;
+    auto&	MMApath		{ global.info().MMApath } ;
+    auto&	MMAstream	{ global.info().MMAstream } ;
+    string	file		{ global.mk_filename("m") } ;
+    string	path		{ MMAdir + "/" + file } ;
+    auto	mode		{ std::ios::out } ;
+    string	okmsg		{ "Writing results to " } ;
+    ofstream	stream ;
 
-    auto	mode	{ std::ios::out } ;
-    string	okmsg	{ "Writing results to " } ;
-    string	path	{ global.MMAfile } ;
-    ofstream&	stream	{ global.MMAstream } ;
-
-    if (global.MMAappend)
+    if (path != MMApath) MMAstream.close() ;
+    if (!MMAstream.is_open())
 	{
-	mode |= std::ios::app ;
-	okmsg = "Appending results to " ;
-	}
-    if (path.find ('/') == path.npos)
-	path = global.MMAdir + '/' + path ;
-
-    stream.open (path, mode) ;
-    if (stream.good())
-	{
-	string sep {""} ;
-	cout << okmsg << path << "\n" ;
-	stream << "coupling = { " ;
-	for (const auto& c : Coupling::list)
+	if (global.MMAappend)
 	    {
-	    stream << sep << '"' << c << '"' ;
-	    sep = ", " ;
+	    mode |= std::ios::app ;
+	    okmsg = "Appending results to " ;
 	    }
-	stream << " } ;\n" ;
+	stream.open (path, mode) ;
+	if (stream.is_open())
+	    {
+	    cout << okmsg << path << "\n" ;
+	    MMApath	  = std::move (path) ;
+	    MMAstream = std::move (stream) ;
+
+	    string sep {""} ;
+	    MMAstream << "coupling = { " ;
+	    for (const auto& c : Coupling::list)
+		{
+		if (c.stage > global.stage) continue ;
+		MMAstream << sep << '"' << c << '"' ;
+		sep = ", " ;
+		}
+	    MMAstream << " } ;\n" ;
+	    }
+	else gripe ("Cannot write MMA results file " + path) ;
 	}
-    else cout << "Cannot write to " << path << "\n" ;
+    return MMAstream.good() ;
     }
 
 void Numerics::write_data ()				// Write data to MMAfile
     {
-    if (!global.MMAstream.is_open()) open_MMA () ;
+    if (!open_MMA()) gripe ("Cannot write MMA results file!") ;
 
-    char	FG	{ global.fg() } ;
-    char	HorF	{ theory.euclid ? 'F' : 'H' } ;
-    auto&	out	{ global.MMAstream } ;
-    auto	Hname	{ format ("{}{}", HorF, FG) } ;
+    string	HorF	{ theory.euclid ? "F" : "H" } ;
+    auto&	stream	{ global.info().MMAstream } ;
 
-    if (!out.good()) gripe ("Cannot write MMA results file!") ;
-    data_write (out, Hname, eval_ham()) ;
+    data_write (stream, HorF, eval_ham()) ;
 
-    uint beg { global.stage ? ObsList::obs.nobsG : 1 } ;
-    uint end { global.info().MMAlimit + (global.stage ? beg : 1) } ;
-    if  (end > ObsList::obs.size())
-	 end = ObsList::obs.size() ;
-
-    for (uint i(beg) ; i < end ; ++i)
+    for (auto& [i,o] : global.info().MMAobs)
 	{
-	data_write (out, ObsList::obs(i).print(), vev[i]) ;
-	}
-    for (auto i : global.info().MMAlist)
-	{
-	if (i >= beg && i < end) continue ;
-	data_write (out, ObsList::obs(i).print(), vev[i]) ;
+	data_write (stream, o.print(), vev[i]) ;
 	}
 
     if (!theory.euclid)
@@ -610,26 +595,24 @@ void Numerics::write_data ()				// Write data to MMAfile
 	for (int i(0) ; i < Rep::list.size() ; ++i)
 	    {
 	    if (!built_rep(i)) continue ;
-	    auto pname { format("M{}{}", FG, Rep::list[i].name) } ;
-	    data_write (out, pname, eval_spectra(i)) ;
+	    data_write (stream, Rep::list[i].name, eval_spectra(i)) ;
 	    }
 	}
-    out << flush ;
+    stream << flush ;
     }
 
 bool Numerics::check_loops ()						// Loop vevs < 1?
     {
-    const auto	obslist { ObsList::obs } ;
-    auto 	beg  { obslist.begin() } ;
-    auto 	end  { obslist.end()   } ;
-    doub	maxv (0.0) ;
-    uint	maxi (0) ;
-    auto	nvev { vev.size() } ;
+    const auto&	obslist { ObsList::obs } ;
+    auto 	beg	{ obslist.begin() } ;
+    auto 	end	{ obslist.end()   } ;
+    doub	maxv	(0.0) ;
+    uint	maxi	(0) ;
 
     for (auto ptr { beg } ; ptr < end ; ++ptr)
 	{
 	int	indx ( ptr - beg ) ;
-	auto	obs  { obslist(indx) } ;
+	auto&	obs  { obslist(indx) } ;
 	if (obs.is_Loop() && std::abs(vev[indx]) > maxv)
 	    {
 	    maxv = std::abs(vev[indx]) ;
@@ -768,16 +751,18 @@ string Numerics::MMAform (doub x)				// Convert to MMA input form
     {
     std::stringstream buf ;
     buf << std::setprecision(12) << x ;
-    string s { buf.str() } ;
-    auto pos { s.find ("e") } ;
+    string	s   { buf.str() } ;
+    auto	pos { s.find ("e") } ;
     if (pos != s.npos) { s.replace(pos, 1, "*^") ; }
     return s ;
     }
 
 void Numerics::initialize (int stage)			// Initialize expectation values
     {
-    uint blab { Blab::level(Blab::NUMERICS) } ;
-    resize (vev, ObsList::obs.size()) ;
+    uint	blab	{ Blab::level(Blab::NUMERICS) } ;
+    const auto& nobsG	{ global.info(0).nobs } ;
+    const auto& nobsF	{ global.info(1).nobs } ;
+    resize (vev, nobsG + nobsF) ;
     vev[0] = 1.0 ;
 
     if (stage == 0)				// gauge vev's
@@ -786,8 +771,10 @@ void Numerics::initialize (int stage)			// Initialize expectation values
 	vev[0] = 1.0 ;
 	if (blab) cout << "(Re)initialized gauge vev's\n" ;
 	}
-    if (theory.nf)				// fermion vev's
+    if (nobsF)					// fermion vev's
 	{
+	set_zero (vev.tail (nobsF)) ;
+
 	char8	mass { "mass" } ;
 	int	indx { Coupling::indx (mass) } ;
 	auto&	m    { Coupling::list[indx].value } ;
@@ -797,8 +784,7 @@ void Numerics::initialize (int stage)			// Initialize expectation values
 	if (theory.euclid)	condensate = -1.0 / m ;
 	else			condensate = m > 0 ? -0.5 : 0.5 ;
 
-	set_zero (vev.tail (ObsList::obs.nobsF)) ;
-	for (const auto& [indx_f,indx_g] : ObsList::obs.fermiinit)
+	for (const auto& [indx_f,indx_g] : ObsList::fermiinit)
 	    {
 	    vev[indx_f] = vev[indx_g] * condensate ;
 	    }
