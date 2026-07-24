@@ -111,7 +111,7 @@ void Build::mk_obs (int target)			// Build observables
     obslist.shrink() ;
 
     if (blab) cout << "Total # Obs:\t" << ObsList::obs.size() << "\n" << flush ;
-    if (!global.data().ham.size()) mk_ham () ;
+    if (!global.info().Hterms[0].cpoly.size()) mk_ham () ;
     }
 
 void Build::mk_loops ()				// Build Loop's
