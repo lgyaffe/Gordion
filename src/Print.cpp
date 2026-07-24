@@ -297,7 +297,7 @@ void Print::print_grad (uint i, uint j)		// Print gradient element
 
     if (i < grad.entry().ncol)
 	{
-	const auto& term { global.data().ham(i) } ;
+	const auto& term { global.info().Hterms[i].cpoly } ;
 
 	if (j < grad.entry().nrow)
 	    {
@@ -332,7 +332,7 @@ void Print::print_grad ()			// Print gradient
 	const GradHdr&	info ( poly ) ;
 	auto		i    { info.Hterm } ;
 	auto		j    { info.gen   } ;
-	const auto&	term { global.data().ham(i) } ;
+	const auto&	term { global.info().Hterms[i].cpoly } ;
 
 	if (info.len)
 	    {
@@ -349,7 +349,7 @@ void Print::print_curv (uint i, uint j, uint k)	// Print curvature element
 
     if (i < curv.entry().nslice)
 	{
-	const auto& term { global.data().ham(i) } ;
+	const auto& term { global.info().Hterms[i].cpoly } ;
 
 	if (j < curv.entry().ncol && k < curv.entry().nrow)
 	    {
@@ -402,7 +402,7 @@ void Print::print_curv ()			// Print curvature
 	auto		i    { info.Hterm } ;
 	auto		j    { info.gen1  } ;
 	auto		k    { info.gen2  } ;
-	const auto&	term { global.data().ham(i) } ;
+	const auto&	term { global.info().Hterms[i].cpoly } ;
 
 	if (info.len)
 	    {
