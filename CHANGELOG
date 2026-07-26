@@ -116,3 +116,13 @@ July 10-24, 2026:
     Theory.cpp: Removed initialization of canonicalized forms of H or F, to
 	await construction of ObsList::obs.
 
+July 26, 2026:
+    Version 2.0 release.
+    Changed packed polynomial encoding to be more efficient: numerous changes
+	to Poly.{h,cpp}, Save.{h,cpp}, Build.cpp, Print.cpp, Data.h.
+	Note that sys-info files are not backwards compatible.
+    Removed redundant "add gen" command.
+    Gordion.h: introduced NUM32 typedef to select 32-bit integers and floats
+	for polynomial indices and coefficients, with default now being
+	64-bit indicies and coefficients.
+
