@@ -18,9 +18,15 @@
 using std::ios_base ;
 
 static constexpr int	indxsiz { sizeof (SysIndex) } ;
-static constexpr int	rhdrsiz { sizeof (RecHdr) } ;
-alignas (rhdrsiz)
-static symb		symbbuf [rhdrsiz] ;		// alignment buffer
+static constexpr int	elemsiz { sizeof (Element)  } ;
+
+union Buffer						// Alignment buffer
+    {
+    Element		elem ;
+    array<symb,elemsiz> symb ;
+    Buffer() {}
+    } ;
+static Buffer		buffer ;
 
 void Save::save_sys ()					// Save sys info
     {
@@ -127,33 +133,32 @@ void Save::write_op ()						// Write Op record
     auto&	record	{ global.data().op  } ;
     auto&	stream	{ global.info().sysstream } ;
     const auto&	oplist	( global.info().ops ) ;
-    uint	nelem	( oplist.size() ) ;
+    uint	nop	( oplist.size() ) ;
 
-    record.clear() ;
-    for (int indx(0) ; indx < nelem ; ++indx)
+    if (record.entry().id == RecordID::Op) record.clear() ;
+    else fatal ("write_op: bad record ID!") ;
+    for (int indx(0) ; indx < nop ; ++indx)
 	{
 	const Op& op	{ oplist[indx] } ;
-	OpHdr hdr {op.order, (char) op.type, op.primary, 0, (ushort) op.size()} ;
+	Element	  e	{ OpHdr ( op.order, (char) op.type, op.primary ) } ;
 
-	record.push_back (hdr) ;
-	if (hdr.len)
+	record.push_back (e) ;
+	auto	symbptr { op.data() } ;
+	auto	elemptr { cast_to<const Element*> (symbptr) } ;
+	auto	n       { op.size() / elemsiz } ;
+
+	record.insert (record.end(), elemptr, elemptr + n) ;
+	if (auto rem { op.size() % elemsiz })
 	    {
-	    auto	symbptr { op.data() } ;
-	    auto	recptr  { cast_to<const RecHdr*> (symbptr) } ;
-	    int		n       { hdr.len / rhdrsiz } ;
-
-	    record.insert (record.end(), recptr, recptr + n) ;
-	    if (int rem { hdr.len % rhdrsiz })
-		{
-		std::memcpy (symbbuf, symbptr + n * rhdrsiz, rem) ;
-		record.push_back (*cast_to<const RecHdr*>(symbbuf)) ;
-		}
+	    buffer.symb.fill (X) ;
+	    std::memcpy (buffer.symb.data(), symbptr + n * elemsiz, rem) ;
+	    record.push_back (buffer.elem) ;
+	    ++n ;
 	    }
+	(&record.back() - n)->hdr.len = n ;
 	}
-    if (record.entry().id != RecordID::Op)
-	fatal ("write_op: bad record ID!") ;
 
-    record.entry().nelem = nelem ;
+    record.entry().nelem = nop ;
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_op: I/O error!") ;
@@ -162,35 +167,35 @@ void Save::write_op ()						// Write Op record
 
 void Save::write_obs ()					// Write Obs record
     {
-    const auto&	nelem	{ global.info().nobs } ;
-    auto&	stream	{ global.info().sysstream } ;
     auto&	record	{ global.data().obs  } ;
-    uint	start	{ global.stage ? global.info(0).nobs : 0 } ;
+    auto&	stream	{ global.info().sysstream } ;
+    const auto&	nobs	{ global.info().nobs } ;
+    long	start	{ global.stage ? global.info(0).nobs : 0 } ;
 
-    record.clear() ;
-    for (uint indx(start) ; indx < start + nelem ; ++indx)
+    if (record.entry().id == RecordID::Obs) record.clear() ;
+    else fatal ("write_obs: bad record ID!") ;
+    for (long indx(start) ; indx < start + nobs ; ++indx)
 	{
-	const Obs& obs { ObsList::obs(indx) } ;
-	ObsHdr hdr {obs.corder, obs.xorder, (char) obs.type, 0, (ushort) obs.size()} ;
-	record.push_back (hdr) ;
-	if (hdr.len)
+	const Obs& obs	{ ObsList::obs(indx) } ;
+	Element	   e	{ ObsHdr ( obs.corder, obs.xorder, (char) obs.type ) } ;
+
+	record.push_back (e) ;
+	auto	symbptr { obs.data() } ;
+	auto	elemptr { cast_to<const Element*> (symbptr) } ;
+	auto	n       { obs.size() / elemsiz } ;
+
+	record.insert (record.end(), elemptr, elemptr + n) ;
+	if (auto rem { obs.size() % elemsiz })
 	    {
-	    auto	symbptr { obs.data() } ;
-	    auto	recptr  { cast_to<const RecHdr*> (symbptr) } ;
-	    int		n       { hdr.len / rhdrsiz } ;
-
-	    record.insert (record.end(), recptr, recptr + n) ;
-	    if (int rem { hdr.len % rhdrsiz })
-		{
-		std::memcpy (symbbuf, symbptr + n * rhdrsiz, rem) ;
-		record.push_back (*cast_to<const RecHdr*>(symbbuf)) ;
-		}
+	    buffer.symb.fill (X) ;
+	    std::memcpy (buffer.symb.data(), symbptr + n * elemsiz, rem) ;
+	    record.push_back (buffer.elem) ;
+	    ++n ;
 	    }
+	(&record.back() - n)->hdr.len = n ;
 	}
-    if (record.entry().id != RecordID::Obs)
-	fatal ("write_obs: bad record ID!") ;
 
-    record.entry().nelem  = nelem ;
+    record.entry().nelem = nobs ;
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_obs: I/O error!") ;
@@ -201,26 +206,28 @@ void Save::write_gen ()					// Write Gen record
     {
     auto&	record	{ global.data().gen } ;
     auto&	stream	{ global.info().sysstream } ;
-    int		optsiz	{ sizeof (OpTerm) / sizeof (RecHdr) } ;
-    uint	nelem	( 0 ) ;
+    int		optsiz	{ sizeof (OpTerm) / sizeof (Element) } ;
+    uint	ngen	( 0 ) ;
     
-    record.clear() ;
+    if (record.entry().id == RecordID::Gen) record.clear() ;
+    else fatal ("write_gen: bad record ID!") ;
     for (short rep(0) ; rep < theory.nrep ; ++rep)
 	{
 	for (const auto& gen : global.info().gens[rep])
 	    {
-	    GenHdr hdr {rep, gen.order, (char) gen.type, gen.T_odd, (ushort) gen.size()} ;
-	    record.push_back (hdr) ;
-	    record.push_back (*cast_to<const RecHdr*>(&gen.coeff)) ;
-	    auto genptr { cast_to<const RecHdr*> (gen.data()) } ;
-	    record.insert (record.end(), genptr, genptr + gen.size() * optsiz) ;
-	    ++nelem ;
+	    Element	e { GenHdr ( rep, gen.order, (char) gen.type, gen.T_odd ) } ;
+	    auto	n { 1 + gen.size() * optsiz }; 
+	    record.push_back (e) ;
+	    e.coeff = gen.coeff ;
+	    record.push_back (e) ;
+	    auto genptr { cast_to<const Element*> (gen.data()) } ;
+	    record.insert (record.end(), genptr, genptr + n - 1) ;
+	    (&record.back() - n)->hdr.len = n ;
+	    ++ngen ;
 	    }
 	}
-    if (record.entry().id != RecordID::Gen)
-	fatal ("write_gen: bad record ID!") ;
 
-    record.entry().nelem = nelem ;
+    record.entry().nelem = ngen ;
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_gen: I/O error!") ;
@@ -234,13 +241,9 @@ void Save::write_ham ()					// Write Ham record
     auto&	Hterms	{ global.info().Hterms } ;
     ushort	nterms	( Hterms.size() ) ;
 
-    record.clear() ;
-    for (ushort i(0) ; i < nterms ; ++i)
-	{
-	record.add (Poly {HamHdr {i}}, Hterms[i].cpoly) ;
-	}
-    if (record.entry().id != RecordID::Ham)
-	fatal ("write_ham: bad record ID!") ;
+    if (record.entry().id == RecordID::Ham) record.clear() ;
+    else fatal ("write_ham: bad record ID!") ;
+    for (ushort i(0) ; i < nterms ; ++i) record.add (Hterms[i].cpoly) ;
 
     record.entry().nelem = nterms ;
     record.writerec (stream) ;
@@ -266,7 +269,7 @@ void Save::write_grad ()				// Write Grad record
 
 void Save::write_curv ()				// Write Curv records
     {
-    auto&	stream	{ global.info().sysstream } ;
+    auto& stream { global.info().sysstream } ;
 
     for (int rep(0) ; rep < global.data().curv.size() ; ++rep)
 	{
@@ -286,7 +289,7 @@ void Save::write_curv ()				// Write Curv records
 
 void Save::write_lagr ()					// Write Lagr records
     {
-    auto&	stream	{ global.info().sysstream } ;
+    auto& stream { global.info().sysstream } ;
 
     for (int rep(0) ; rep < global.data().lagr.size() ; ++rep)
 	{
@@ -363,7 +366,7 @@ void Save::write_stat ()				// Write Stat record
 	fatal ("write_stat: bad record ID!") ;
 
     record.entry().nelem   = nelem ;
-    record.entry().reclen  = nelem * sizeof (Counter) / sizeof (RecHdr) ;
+    record.entry().reclen  = nelem * sizeof (Counter) / sizeof (Element) ;
     record.entry().filepos = static_cast<std::streamoff>(stream.tellp()) ;
 
     stream.write (cast_to<const char*>(&count), nelem * sizeof (Counter)) ;
@@ -396,7 +399,7 @@ void Save::write_sysindex ()				// Write SysIndex
 
     last.id	 = RecordID::Indx ;
     last.nelem   = 1 ;
-    last.reclen  = sizeof (index) / sizeof (RecHdr) ;
+    last.reclen  = sizeof (index) / sizeof (Element) ;
     last.filepos = static_cast<std::streamoff>(stream.tellp()) ;
     
     stream.write (cast_to<const char*>(index.data()), sizeof index) ;
@@ -419,9 +422,9 @@ void Save::write_coup ()				// Write Coupling's
 
 void Save::write_vev ()					// Write Vev's
     {
-    uint	start	{ global.stage ? global.info(0).nobs : 0 } ;
+    long	start	{ global.stage ? global.info(0).nobs : 0 } ;
     auto&	stream	{ global.info().vevstream } ;
-    auto	ptr	{ memptr(numerics.vev) + start } ;
+    auto	ptr	{ numerics.vev.memptr() + start } ;
 
     stream.seekp (0, ios::end) ;
     stream.write (cast_to<const char*>(ptr), vevsize()) ;
@@ -431,8 +434,11 @@ void Save::write_vev ()					// Write Vev's
 
 void Save::load_save (int set, string file)		// Load save file
     {
+    string	path	{ file } ;
     const auto& savedir { global.savedir } ;
-    string	path	{ global.addsubdir (savedir) + file } ;
+
+    if (!std::filesystem::exists (path))
+	path = global.addsubdir (savedir) + file ;
 
     if (!std::filesystem::exists (path))
 	path = global.addsubdir (savedir, !global.stage) + file ;
@@ -554,29 +560,30 @@ void Save::read_op ()						// Read Op record
 
     if (record.entry().id != RecordID::Op)
 	gripe ("read_op: bad record ID!") ;
-
     record.readrec (stream) ;
     if (stream.fail()) ioerror ("read_op: I/O error!") ;
 
     uint	indx	{ 0 } ;
-    uint	nop	{ record.entry().nelem } ;
-    RecHdr*	recptr	{ record.data() } ;
-    RecHdr*	recend	{ recptr + record.size() } ;
+    auto	nop	{ record.entry().nelem } ;
+    Element*	elemptr	{ record.data() } ;
+    Element*	recend	{ elemptr + record.size() } ;
     OpList&	oplist	{ global.info().ops } ;
 
     oplist.clear () ;
     oplist.reserve (nop) ;
-    while (recptr < recend)
+    while (elemptr < recend)
 	{
-	OpHdr	hdr	( *recptr++ ) ;
-	symb*	ptr	{ cast_to<symb*> (recptr) } ;
-	Str	s	{ ptr, ptr + hdr.len } ;
+	auto	len	{ elemptr->len() } ;
+	OpHdr	hdr	{ elemptr++->hdr.op } ;
+	symb*	ptr	{ cast_to<symb*> (elemptr) } ;
+	symb*	end	{ ptr + len * elemsiz  } ; while (*--end == X) ;
+	Str	s	{ ptr, end + 1 } ;
 	Op	o	{ s, hdr } ;
-	auto	k	{ oplist.store(o) } ;
 
-	if (k != indx++) gripe ("read_op: Inconsistent OpList") ;
+	if (oplist.store(o) != indx++)
+	    gripe ("read_op: Inconsistent OpList") ;
 
-	recptr += 1 + (hdr.len - 1) / sizeof (RecHdr) ;
+	elemptr += len ;
 	}
     record.free() ;
     if (indx != nop)
@@ -597,19 +604,21 @@ void Save::read_obs ()					// Read Obs record
     if (stream.fail())
 	ioerror ("read_obs: I/O error!") ;
 
-    uint	start	{ global.stage ? global.info(0).nobs : 0 } ;
-    uint	indx    { start } ;
-    uint	nobs	{ record.entry().nelem } ;
-    RecHdr*	recptr	{ record.data() } ;
-    RecHdr*	recend	{ recptr + record.size() } ;
+    long	start	{ global.stage ? global.info(0).nobs : 0 } ;
+    long	indx    { start } ;
+    long	nobs	( record.entry().nelem ) ;
+    Element*	elemptr	{ record.data() } ;
+    Element*	recend	{ elemptr + record.size() } ;
 
     obslist.purge   (start) ;
     obslist.reserve (start + nobs) ;
-    while (recptr < recend)
+    while (elemptr < recend)
 	{
-	ObsHdr	hdr	( *recptr++ ) ;
-	symb*	ptr	{ cast_to<symb*> (recptr) } ;
-	Str	s	{ ptr, ptr + hdr.len } ;
+	auto	len	{ elemptr->len() } ;
+	ObsHdr	hdr	{ elemptr++->hdr.obs } ;
+	symb*	ptr	{ cast_to<symb*> (elemptr) } ;
+	symb*	end	{ ptr + len * elemsiz  } ; while (*--end == X) ;
+	Str	s	{ ptr, end + 1 } ;
 	Obs	o	{ s, hdr } ;
 
 	if (obslist.store (o) != indx++)
@@ -618,7 +627,7 @@ void Save::read_obs ()					// Read Obs record
 	if (global.info().maxord < o.order() && o.corder == o.xorder)
 	    global.info().maxord = o.order() ;
 
-	recptr += 1 + (hdr.len - 1) / sizeof (RecHdr) ;
+	elemptr += len ;
 	}
     record.free() ;
     if (indx - start != nobs)
@@ -628,6 +637,7 @@ void Save::read_obs ()					// Read Obs record
 
     if (Blab::level(Blab::SAVE)) cout << "Loaded Obs\n" << flush ;
     global.mk_bcktlist  () ;
+    if (global.stage) ObsList::obs.do_fermiinit() ;
     numerics.initialize () ;
     Canon::cache.reload() ;
     global.info(0).obshash = filehdr.hashG ;
@@ -638,7 +648,7 @@ void Save::read_gen ()					// Read Gen record
     {
     auto&	stream	{ global.info().sysstream } ;
     auto&	record	{ global.data().gen } ;
-    int		optsiz	{ sizeof (OpTerm) / sizeof (RecHdr) } ;
+    int		optsiz	{ sizeof (OpTerm) / sizeof (Element) } ;
 
     if (record.entry().id != RecordID::Gen)
 	gripe ("read_gen: bad record ID!") ;
@@ -646,29 +656,33 @@ void Save::read_gen ()					// Read Gen record
     if (stream.fail())
 	ioerror ("read_gen: I/O error!") ;
 
-    RecHdr*	recptr	{ record.data() } ;
-    RecHdr*	recend	{ recptr + record.size() } ;
     uint	nelem   ( 0 ) ;
+    ulong	ngen	( record.entry().items() ) ;
+    Element*	elemptr	{ record.data() } ;
+    Element*	recend	{ elemptr + record.size() } ;
 
     for (auto& gens : global.info().gens)  gens.clear() ;
     for (auto& even : global.info().neven) even = 0 ;
 
-    while (recptr < recend)
+    while (elemptr < recend)
 	{
-	GenHdr	hdr	( *recptr++ ) ;
-	doub	coeff	{ *cast_to<doub*> (recptr++) } ;
-	OpTerm*	ptr	{ cast_to<OpTerm*> (recptr) } ;
-	OpList& list	{ global.info().ops } ;
-	OpSum	s	( ptr, ptr + hdr.len, list ) ;
-	Gen	gen	{ s, hdr, coeff } ;
+	Element	e	{ *elemptr++ } ;
+	real	coeff	{ elemptr++->coeff } ;
+	auto	len	{ e.len() } ;
+	auto	rep	{ e.hdr.gen.rep } ;
+	auto	nterm	{ (len - 1) / optsiz } ;
+	OpTerm*	ptr	{ cast_to<OpTerm*> (elemptr) } ;
+	OpSum	s	( ptr, ptr + nterm, global.info().ops ) ;
+	Gen	gen	{ s, e, coeff } ;
 
-	global.info().gens[hdr.rep].push_back (gen) ;
+	global.info().gens[rep].push_back (gen) ;
 
-	if (!gen.T_odd) ++global.info().neven[hdr.rep] ;
+	if (!gen.T_odd) ++global.info().neven[rep] ;
 	if (global.info().maxgen < gen.order)
 	    global.info().maxgen = gen.order ;
+
+	elemptr += len - 1 ;
 	++nelem ;
-	recptr += hdr.len * optsiz ;
 	}
     record.free() ;
 
@@ -683,6 +697,8 @@ void Save::read_ham ()				// Read Ham record
     auto&	stream	{ global.info().sysstream } ;
     auto& 	record	{ global.data().ham } ;
     auto&	Hterms	{ global.info().Hterms } ;
+    auto	nterms	{ Hterms.size() } ;
+    int		i(0) ;
 
     if (record.entry().id != RecordID::Ham)
 	gripe ("read_ham: bad record ID!") ;
@@ -695,11 +711,12 @@ void Save::read_ham ()				// Read Ham record
 
     for (const auto& poly : record)
 	{
-	const HamHdr& info ( poly ) ;
-	auto& Hterm { Hterms[info.Hterm] } ;
+	if (i >= nterms) gripe ("read_ham: Inconsistent save record!") ;
+	auto& Hterm { Hterms[i++] } ;
 	Hterm.cpoly.clear() ;
 	Hterm.cpoly.add (poly) ;
 	}
+    if (i != nterms) gripe ("read_ham: Inconsistent save record!") ;
     record.free() ;
     if (Blab::level(Blab::SAVE)) cout << "Loaded Ham\n" << flush ;
     }
@@ -729,7 +746,6 @@ void Save::read_curv ()				// Read Curv records
 
 	if (record.entry().id != RecordID::Curv)
 	    gripe (format("read_curv {}: bad record ID!", repname)) ;
-
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_curv {}: I/O error!", repname)) ;
@@ -749,7 +765,6 @@ void Save::read_lagr ()					// Read Lagr records
 
 	if (record.entry().id != RecordID::Lagr)
 	    gripe (format("read_lagr {}: bad record ID!", repname)) ;
-
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_lagr {}: I/O error!", repname)) ;
@@ -770,7 +785,6 @@ void Save::read_geos ()					// Read Geo records
 
 	if (record.entry().id != RecordID::Geos)
 	    gripe (format("read_geos [{}]: bad record ID!",bcktnum)) ;
-
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_geos [{}]: I/O error!",bcktnum)) ;
@@ -785,7 +799,7 @@ void Save::read_geo_bckt (int bcktnum)			// Read Geo bucket
     thread_local string			mypath   { syspath } ;
     thread_local bool			checkout { false } ;
     thread_local fstream		mystream ;
-    thread_local vector<RecHdr>		myvec ;
+    thread_local vector<Element>		myvec ;
 
     if (bcktnum >= 0)
 	{
@@ -837,12 +851,11 @@ void Save::read_stat ()					// Read Stat record
     {
     auto&	stream	{ global.info().sysstream } ;
     auto&	record	{ global.data().stat } ;
-    uint	nelem	{ record.entry().nelem } ;
+    auto	nelem	{ record.entry().nelem } ;
     auto	ptr	{ &global.info().count } ;
 
     if (record.entry().id != RecordID::Stat)
 	gripe ("read_stat: bad record ID!") ;
-
     stream.seekg (record.entry().filepos, ios_base::beg) ;
     stream.read (cast_to<char*>(ptr), nelem * sizeof (Counter)) ;
     if (stream.fail()) ioerror ("read_stat: I/O error!") ;
@@ -883,9 +896,9 @@ bool Save::read_coup (int set, Couplings* ptr)		// Read Coupling set
 void Save::read_vev (int set)				// Read Vev data
     {
     auto&	stream	{ global.info().vevstream } ;
-    uint	start	{ global.stage ? global.info(0).nobs : 0 } ;
+    long	start	{ global.stage ? global.info(0).nobs : 0 } ;
     ulong	offset	{ coupsize() + set * cvsetsize() } ;
-    auto	ptr	{ memptr(numerics.vev) + start } ;
+    auto	ptr	{ numerics.vev.memptr() + start } ;
 
     if (set < 0) stream.seekg (offset, ios_base::end) ;
     else	 stream.seekg (offset + sizeof filehdr, ios_base::beg) ;

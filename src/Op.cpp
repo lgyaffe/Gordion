@@ -5,20 +5,11 @@
 #include <numeric>
 #include <regex>
 
-OpSum::OpSum (OpList& oplist)			// Constructor
-    :
-    vector<OpTerm>::vector(), list (oplist)
-    {}
-
-OpSum::OpSum (OpTerm* beg, OpTerm* end, OpList& oplist)
-    :
-    vector<OpTerm>::vector(beg, end), list (oplist)
-    {}
-
 Op::Op(const string& s, OpType t, short ord)	// Construct from string
     :
     Str(s), type(t), order(ord)
     {
+    if (order > MAXORD) gripe ("Max Op order exceeded: recompile without NUM32") ;
     if (type == OpType::Loop) findstart() ;
     joinends() ;
     validate() ;
@@ -28,6 +19,7 @@ Op::Op(const string& s, short ord)		// Construct from string
     :
     Str(s), type(optype(s)), order(ord)
     {
+    if (order > MAXORD) gripe ("Max Op order exceeded: recompile without NUM32") ;
     joinends() ;
     if (type == OpType::Loop) findstart() ;
     validate() ;
@@ -108,6 +100,16 @@ void Op::findstart()				// Rotate to preferred start
     if (a) rotate (begin(), begin() + a, end()) ;
     }
 
+OpSum::OpSum (OpList& oplist)			// Constructor
+    :
+    vector<OpTerm>::vector(), list (oplist)
+    {}
+
+OpSum::OpSum (OpTerm* beg, OpTerm* end, OpList& oplist)
+    :
+    vector<OpTerm>::vector(beg, end), list (oplist)
+    {}
+
 OpSum OpSum::flipT () const		// Flip bilinear staggering
     {
     OpSum ans { oplist() } ;
@@ -144,8 +146,8 @@ OpSum OpSum::loop_dt (OpTerm t, OpSum& ans)	// Loop OpTerm -> Eloop OpSum
     for (auto ptr = op.begin() ; ptr < op.end() ; ++ptr)
 	{
 	op.front() += addE ;
-	uint	indx { ans.oplist().store (op) } ;
-	doub	coef { isrefl(op.front()) ? -t.coeff : t.coeff } ;
+	numb	indx { ans.oplist().store (op) } ;
+	real	coef { isrefl(op.front()) ? -t.coeff : t.coeff } ;
 	ans.emplace_back ( indx, coef ) ;
 	op.front() -= addE ;
 	rotate (op.begin(), op.begin() + 1, op.end()) ;
@@ -257,7 +259,7 @@ void OpList::setprimary ()			// Determine Op primacy
     purge (opnum) ;
     }
 
-ostream& OpList::print (ostream& stream, uint indx) const	// Print indexed Op
+ostream& OpList::print (ostream& stream, numb indx) const	// Print indexed Op
     {
     const Op& op { (*this)[indx] } ;
     return stream << " op #" << indx << " = " << op << "\n" ;

@@ -38,7 +38,7 @@ class Numerics
     real*	dvev_buf ;		// Pointer to dvev buffer data
 
     doub	svdcut  = 0 ;		// Singular value cutoff
-    doub	dflttol = 1.e-10 ;	// Default tolerance
+    doub	dflttol = DFLTTOL ;	// Default min & ODE tolerance
     doub	mintol  = dflttol ;	// Minimiization tolerance
     doub	odetol  = dflttol ;	// ODE integration tolerance
     uint	maxode	= Ode::dfltmax ;// Max ODE integration steps
@@ -70,22 +70,27 @@ class Numerics
     bool	open_MMA	() ;			// Open MMA output file
     void	write_data	() ;			// Write to MMA file
 
-    doub termvalue (const PolyTerm& t) const		// Evaluate PolyTerm
-	{
-	doub z { t.coeff } ;
-	for (int k(0) ; k < PSIZ ; ++k)
-	    if (t[k]) z *= vev[t[k]] ;
-	    else break ;
-	return z ;
-	}
+    doub termvalue (const PolyTerm& t)				// Evaluate PolyTerm
+	 { return termvalue (t, vev.memptr()) ; }
 
-    static doub	termvalue (const PolyTerm& t, const doub* v)	// Evaluate PolyTerm
+    static doub	termvalue (const PolyTerm& t, const real* v)	// Evaluate PolyTerm
 	{
 	doub z { t.coeff } ;
 	for (int k(0) ; k < PSIZ ; ++k)
 	    if (t[k]) z *= v[t[k]] ;
 	    else break ;
 	return z ;
+	}
+
+    doub termvalue (const Poly*& ptr)				// Evaluate Poly
+	 { return termvalue (ptr, vev.memptr()) ; }
+
+    static doub termvalue (const Poly*& ptr, const real* v)	// Evaluate Poly
+	{
+	doub z    { (ptr++)->coeff } ;
+	numb indx { (ptr++)->index } ;
+	for (; indx < 0 ; indx = (ptr++)->index) z *= v[-indx] ;
+	return z * v[indx] ;
 	}
 
     inline static Status status ;				// Status info
@@ -96,7 +101,7 @@ class Numerics
     static string MMAform    (doub) ;				// "E" -> "*^"
 
     static void	do_dvev      (doub, const Rvec&, Rvec&) ;	// Do vev derivs
-    static void	do_dvev_bckt (const uint3&) ;			// Do dvev bucket
+    static void	do_dvev_bckt (const numb3&) ;			// Do dvev bucket
     static doub	err_norm     (const Rvec&, const Rvec&) ;	// ODE error norm
 
     static void	data_write   (ofstream&, const string, doub) ;

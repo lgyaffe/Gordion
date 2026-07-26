@@ -9,14 +9,14 @@ namespace Print
 
     ostream& coeffprt (ostream&, doub) ;
 
-    void print_obs (uint,uint) ;
-    void print_obs (uint) ;
+    void print_obs (numb,numb) ;
+    void print_obs (numb) ;
     void print_obs () ;
     void print_obs (const string&) ;
     void print_obs_select (const string&) ;
 
-    void print_op (uint,uint) ;
-    void print_op (uint) ;
+    void print_op (numb,numb) ;
+    void print_op (numb) ;
     void print_op () ;
 
     void print_base () ;
@@ -46,8 +46,8 @@ namespace Print
     void print_ham_or_free () ;
     void print_spectrum    () ;
 
-    void print_geodesic (uint,uint) ;
-    void print_geodesic (uint) ;
+    void print_geodesic (numb,uint) ;
+    void print_geodesic (numb) ;
     void print_geodesic () ;
 
     void print_lagrange (uint, uint) ;

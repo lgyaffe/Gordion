@@ -4,8 +4,8 @@
 #include "Linalg.h"
 #include "RK.h"
 
-using OdeRhs  = void (*)(doub, const Dvec&, Dvec&) ;
-using OdeNorm = doub (*)(const Dvec&, const Dvec&) ;
+using OdeRhs  = void (*)(doub, const Rvec&, Rvec&) ;
+using OdeNorm = doub (*)(const Rvec&, const Rvec&) ;
 
 class Ode : public RKdef			// Runge-Kutta ODE integrator
     {
@@ -21,7 +21,7 @@ class Ode : public RKdef			// Runge-Kutta ODE integrator
     uint		rejects      = 0 ;		// # rejceted steps
     uint		maxstep ;			// Max # steps
 
-    bool		integrate (doub&, doub, Dvec&) ;	// Integrator
+    bool		integrate (doub&, doub, Rvec&) ;	// Integrator
 
     Ode (OdeRhs rhsfunc, OdeNorm normfunc, doub& tol, const RKdef& rk, uint max=dfltmax)
 	: rhs(rhsfunc), norm(normfunc), tolerance(tol), RKdef(rk), maxstep(max) {} ;

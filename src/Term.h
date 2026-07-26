@@ -14,7 +14,7 @@ template <typename C,typename T> class Term 	// T object w. C coefficient
     friend ostream& operator<< (ostream& stream, const Term<C,T>& x)
 	{
 	Print::coeffprt (stream, x.coeff) ;
-	return  stream << x.item ;
+	return stream << x.item ;
 	}
     } ;
 

@@ -60,13 +60,13 @@ struct StageInfo				// Stage-specific info
 
     short		maxgen  { 0 } ;		// Max Gen order
     short		maxord  { 0 } ;		// Max Obs sc order
-    uint		nobs    { 0 } ;		// # Obs
+    long		nobs    { 0 } ;		// # Obs
     ulong		obshash { 0 } ;		// Obs list hash
     OpList		ops ;			// Operators
     array<Genvec,NREP>	gens ;	 		// Generators
     array<ushort,NREP>	neven ;	 		// # T-even generators
     vector<AdjTerm>	Hterms ; 		// Hamiltonian/free energy
-    vector<uint3>	bckt ;	 		// Obs bucket list
+    vector<numb3>	bckt ;	 		// Obs bucket list
     string		syspath ;		// Sys info path
     fstream		sysstream ; 		// Sys info stream
     string		vevpath ;		// Vev data path
@@ -112,7 +112,7 @@ class Global					// Global data
     auto&	maxgen	()	{ return info().maxgen ; }
     auto&	maxord	()	{ return info().maxord ; }
     auto&	count	()	{ return info().count  ; }
-    uint	nobs	()	{ return info().nobs   ; }
+    numb	nobs	()	{ return info().nobs   ; }
 
     string	stageabbrev (int, const string&) ; // File name info
     string	mk_filename (const string&&) ;	// Default file names
@@ -121,7 +121,7 @@ class Global					// Global data
     void	mk_bcktlist   ()    ;		// Make bucket list
     void	close_streams (int) ;		// Close output streams
     void	clearpolys    (int) ;		// Clear polys
-    uint3	bckt_pos      (uint) ;		// Obs bucket position
+    numb3	bckt_pos      (numb) ;		// Obs bucket position
     void	stageinit     (uint) ;		// Stage initialization
     char	fg (int stage)	const { return stage ? 'f' : 'g' ; }
     char	fg ()		const { return fg (this->stage) ; }

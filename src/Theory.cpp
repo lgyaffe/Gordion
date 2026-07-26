@@ -49,7 +49,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    doub	coeff    { theory.dim > 1 ? 0.25 : 1.0 } ;
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
-		uint	indx	{ baslist.find (Str (KinG + i)) } ;
+		numb	indx	{ baslist.find (Str (KinG + i)) } ;
 		if (indx == UINT_MAX) fatal ("Baselist missing EE") ;
 		kinetic.push_back (PolyTerm (indx,  coeff)) ;
 		}
@@ -58,7 +58,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	else					// Euclidean gauge entropy
 	    {
 	    ObsPoly	gauge_ent (baslist) ;
-	    uint	indx	{ baslist.find (Str (EntrG)) } ;
+	    numb	indx	{ baslist.find (Str (EntrG)) } ;
 	    if (indx == UINT_MAX) fatal ("Baselist missing S") ;
 	    gauge_ent.push_back (PolyTerm (indx, -1.0)) ;
 	    global.info(1).Hterms.emplace_back (unitcoeff, gauge_ent, gauge_ent) ;
@@ -71,8 +71,8 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    plaquette.push_back  (PolyTerm(0, 2)) ;
 	    Str		lll	 { string (theory.box.comp[0], link[0]) } ;
 	    Str		LLL	 { string (theory.box.comp[0], Link[0]) } ;
-	    uint	indx	 { baslist.find (lll) } ;
-	    uint	Indx	 { baslist.find (LLL) } ;
+	    numb	indx	 { baslist.find (lll) } ;
+	    numb	Indx	 { baslist.find (LLL) } ;
 	    if (indx == UINT_MAX) fatal ("Baselist missing polyakov") ;
 	    if (Indx == UINT_MAX) fatal ("Baselist missing Polyakov") ;
 	    plaquette.push_back (PolyTerm (indx,  -1.0)) ;
@@ -90,8 +90,8 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 		    {
 		    Str		xyXY   { string{link[i],link[j],Link[i],Link[j]} } ;
 		    Str		xYXy   { string{link[i],Link[j],Link[i],link[j]} } ;
-		    uint	indx  { baslist.find (xyXY) } ;
-		    uint	Indx  { baslist.find (xYXy) } ;
+		    numb	indx  { baslist.find (xyXY) } ;
+		    numb	Indx  { baslist.find (xYXy) } ;
 		    if (indx == UINT_MAX) fatal ("Baselist missing plaq") ;
 		    if (Indx == UINT_MAX) fatal ("Baselist missing Plaq") ;
 		    plaquette.push_back (PolyTerm (indx,  -1.0)) ;
@@ -122,7 +122,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    ObsPoly ckinetic_F (obslist) ;
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
-		uint    indx	{ baslist.find (Str (KinF + i)) } ;
+		numb    indx	{ baslist.find (Str (KinF + i)) } ;
 		if (indx == UINT_MAX) fatal ("Baselist missing ee") ;
 		kinetic_F.push_back (PolyTerm (indx,  0.25)) ;
 		}
@@ -137,8 +137,8 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 		{
 		Str 	Fxf	{ string{Ferm[i],link[j],ferm[i]} } ;
 		Str 	FXf	{ string{Ferm[i],Link[j],ferm[i]} } ;
-		uint	indx	{ baslist.find (Fxf) } ;
-		uint	Indx	{ baslist.find (FXf) } ;
+		numb	indx	{ baslist.find (Fxf) } ;
+		numb	Indx	{ baslist.find (FXf) } ;
 		if (indx == UINT_MAX) fatal ("Baselist missing Fxf") ;
 		if (Indx == UINT_MAX) fatal ("Baselist missing FXf") ;
 		hop_term.push_back (PolyTerm (indx,  0.5)) ;
@@ -152,7 +152,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 
 	for (int i(0) ; i < theory.nf ; i+=2)
 	    {
-	    uint indx { baslist.find (string {Ferm[i+isham],ferm[i]}) } ;
+	    numb indx { baslist.find (string {Ferm[i+isham],ferm[i]}) } ;
 	    if (indx == UINT_MAX) fatal ("Baselist missing Ff/Gf") ;
 	    mass_term.push_back (PolyTerm (indx, 1.0)) ;
 	    }
@@ -161,7 +161,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	if (iseuc)
 	    {
 	    ObsPoly	fermi_ent (baslist) ;
-	    uint	indx	{ baslist.find (Str {EntrF}) } ;
+	    numb	indx	{ baslist.find (Str {EntrF}) } ;
 	    if (indx == UINT_MAX) fatal ("Baselist missing s") ;
 	    fermi_ent.push_back (PolyTerm (indx, -1.0)) ;
 	    global.info(1).Hterms.emplace_back (unitcoeff, fermi_ent, fermi_ent) ;

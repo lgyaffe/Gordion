@@ -13,14 +13,14 @@ class Gen : public OpSum		// Coherence algebra generator
     bool	T_odd ;				// Time reversal odd?
     bool	imag ;				// Imaginary coefficient?
     bool	active { true } ;		// Active generator?
-    doub	coeff { 1 } ;			// Overall coefficient
+    real	coeff { 1 } ;			// Overall coefficient
     ObsPoly	reduction { ObsList::redu } ;	// "inner" commutator
 
     Gen (OpList& l) : OpSum (l) {}		// Constructor
     Gen (const Op&) ;				// Constructor
     Gen (const Op&,    const Proj&) ;		// Constructor
     Gen (const OpSum&, const Proj&) ;		// Constructor
-    Gen (const OpSum&, GenHdr&, doub) ;		// Constructor
+    Gen (const OpSum&, Element&, real) ;	// Constructor
 
     Gen&	collect		() ;		// Collect terms
     void 	inner_commute	() ;		// Evaluate reduction

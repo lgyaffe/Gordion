@@ -44,7 +44,7 @@ void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
     cout << std::setprecision (prevprec) << std::defaultfloat ;
     }
 
-void Numerics::do_minimize ()				// Do minimization
+void Numerics::do_minimize ()			// Do minimization
     {
     int  steps ;
     doub tol   (0) ;
@@ -74,32 +74,27 @@ void Numerics::do_minimize ()				// Do minimization
     if (global.autosave && !global.interrupt) Save::save_vev () ;
     }
 
-int Numerics::do_step (doub tol)			// Do geodesic integration step
+int Numerics::do_step (doub tol)		// Do geodesic integration step
     {
     if (global.interrupt) return 0 ;
 
     uint	blab	{ Blab::level(Blab::NUMERICS) } ;
     Ode		ode	{ do_dvev, err_norm, odetol, rk, maxode } ;
     doub	dnorm	{ eval_delta() } ;
-    uint	n	{ global.info().nobs } ;
+    long	n	{ global.info().nobs } ;
     doub	s (0) ;
     bool	ok ;
 
     if (blab > 1) cout << "  |delta| = " << dnorm << ", " ;
-    if (blab > 2) raw_print (delta, "\n   delta =") ;
+    if (blab > 2) delta.raw_print ("\n   delta =") ;
 
     if (tol && dnorm <= tol) return 0 ;			// converged?
 
     if (n != vev.size())				// integrate vev subvec
 	{
 	real*	vevptr { &vev [global.stage ? global.info(0).nobs : 0] } ; 
-	Rvec	subvev { aliasvec (vevptr, n) } ;
+	Rvec	subvev ( vevptr, n, false, true ) ;
 	ok = ode.integrate (s, 1.0, subvev) ;
-	if (memptr (subvev) != vevptr)			// just for Eigen (sigh)
-	    {
-	    if (global.stage)	vev.tail (n) = subvev ;
-	    else		vev.head (n) = subvev ;
-	    }
 	}
     else ok = ode.integrate (s, 1.0, vev) ;
 
@@ -124,14 +119,14 @@ const Uvec& Numerics::eval_inuse (uint repnum, bool T_odd)
     int		end	{ T_odd ? ngen : neven } ;
     int		n(0) ;
 
-    set_size (inuse, end-beg) ;
+    inuse.set_size(end-beg) ;
     for (int i(beg) ; i < end ; ++i)
 	if (gens[i].active) inuse (n++) = i - beg ;
-    resize (inuse,n) ;
+    inuse.resize(n) ;
     return inuse ;
     }
 
-doub Numerics::eval_ham (bool print)			// Evaluate Hamiltonian/free energy
+doub Numerics::eval_ham (bool print)		// Evaluate Hamiltonian/free energy
     {
     if (!global.maxord()) gripe ("Make observables first!") ;
 
@@ -139,10 +134,7 @@ doub Numerics::eval_ham (bool print)			// Evaluate Hamiltonian/free energy
     for (const auto& Hterm : global.info().Hterms)
 	{
 	doub val (0.0) ;
-	for (const auto& term : Hterm.cpoly)
-	    {
-	    val += termvalue (term) ;
-	    }
+	for (const auto& term : Hterm.cpoly) val += termvalue (term) ;
 	H += Hterm.coeff() * val ;
 	}
     if (print)
@@ -163,7 +155,7 @@ const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
     const auto&	gens	{ global.info().gens[0] } ;
     int		neven	{ global.info().neven[0] } ;
     int		nterms	( Hterms.size() ) ;
-    int		Hterm   { -1 } ;
+    auto	recptr	{ grad.begin() } ;
 
     if (grad.entry().ncol != nterms ||
 	grad.entry().nrow != neven)
@@ -173,24 +165,29 @@ const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
 	    gripe ("Need to (re)build gradient!") ;
 	    }
 
-    set_zero (gradient, neven) ;
-    for (const auto& poly : grad)
+    gradient.zeros(neven) ;
+    for (int i(0) ; i < nterms ; ++i)
 	{
-	const GradHdr& info ( poly ) ;
-	if (gens[info.gen].active)
+	doub coeff { Hterms[i].coeff() } ;
+	for (int j(0) ; j < neven ; ++j, ++recptr)
 	    {
-	    doub val ( 0.0 ) ;
-	    for (const auto& term : poly) val += termvalue (term) ;
-	    if (Hterm != info.Hterm)
-		Hterm  = info.Hterm ;
-	    gradient [info.gen] += Hterms[Hterm].coeff() * val ;
+	    if (gens[j].active)
+		{
+		const Poly* ptr { &(*recptr) } ;
+		const Poly* end { ptr++->end() } ;
+		doub	    val ( 0.0 ) ;
+		while (ptr < end) val += termvalue (ptr) ;
+		gradient [j] += coeff * val ;
+		}
 	    }
 	}
+    if (recptr != grad.end()) fatal ("Inconsistent gradient record!") ;
+
     gradient = gradient (use) ;
     if (print)
 	{
 	auto prevprec { cout.precision(12) } ;
-	raw_print (gradient,"Gradient =") ;
+	gradient.raw_print ("Gradient =") ;
 	cout << std::setprecision (prevprec) ;
 	}
     return gradient ;
@@ -205,26 +202,34 @@ const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curv
     int		neven	{ global.info().neven[repnum] } ;
     int		ngen	( gens.size() ) ;
     int		nterms	( Hterms.size() ) ;
-    int		Hterm   { -1 } ;
+    auto	recptr	{ curv.begin() } ;
 
     if (curv.entry().nslice != nterms ||
 	curv.entry().ncol != ngen  ||
 	curv.entry().nrow != ngen) gripe ("Need to (re)build curvature!") ;
 
-    set_zero (curvature, neven, neven) ;
-    for (const auto& poly : curv)
+    curvature.zeros(neven, neven) ;
+    for (int i(0) ; i < nterms ; ++i)
 	{
-	const CurvHdr& info ( poly ) ;
-	if (info.gen1 < neven && gens[info.gen1].active &&
-	    info.gen2 < neven && gens[info.gen2].active)
+	doub coeff { Hterms[i].coeff() } ;
+	for (int j(0) ; j < ngen ; ++j)
 	    {
-	    doub val ( 0.0 ) ;
-	    for (const auto& term : poly) val += termvalue (term) ;
-	    if (Hterm != info.Hterm)
-		Hterm  = info.Hterm ;
-	    curvature (info.gen1,info.gen2) += Hterms[Hterm].coeff() * val ;
+	    for (int k(0) ; k < ngen ; ++k, ++recptr)
+		{
+		if (j < neven && gens[j].active &&
+		    k < neven && gens[k].active)
+		    {
+		    const Poly*	ptr { &(*recptr) } ;
+		    const Poly*	end { ptr++->end() } ;
+		    doub	val ( 0.0 ) ;
+		    while (ptr < end) val += termvalue (ptr) ;
+		    curvature (j,k) += coeff * val ;
+		    }
+		}
 	    }
 	}
+    if (recptr != curv.end()) fatal ("Inconsistent curvature record!") ;
+
     curvature = curvature (use,use) ;
     if (print)
 	{
@@ -232,10 +237,10 @@ const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curv
 	if (print > 1)
 	    {
 	    cout << Rep::list[repnum].name ;
-	    raw_print (curvature," T-even curvature =") ;
+	    curvature.raw_print (" T-even curvature =") ;
 	    }
 	cout << Rep::list[repnum].name ;
-	raw_print (sort (eig_gen (curvature))," T-even curvature eigenvalues =") ;
+	arma::sort (arma::eig_gen (curvature)).raw_print (" T-even curvature eigenvalues =") ;
 	cout << std::setprecision (prevprec) ;
 	}
     return curvature ;
@@ -251,27 +256,34 @@ const Dmtx& Numerics::eval_metr (uint repnum, int print)	// Evaluate T-odd curva
     int		neven	{ global.info().neven[repnum] } ;
     int		nodd	{ ngen - neven } ;
     int		nterms	( Hterms.size() ) ;
-    int		Hterm   { -1 } ;
-    doub	coeff ;
+    auto	recptr	{ curv.begin() } ;
 
     if (curv.entry().nslice != nterms ||
 	curv.entry().ncol != ngen  ||
 	curv.entry().nrow != ngen) gripe ("Need to (re)build curvature!") ;
 
-    set_zero (metric, nodd, nodd) ;
-    for (const auto& poly : curv)
+    metric.zeros(nodd, nodd) ;
+    for (int i(0) ; i < nterms ; ++i)
 	{
-	const CurvHdr&	info ( poly ) ;
-	if (info.gen1 < ngen && info.gen1 >= neven && gens[info.gen1].active &&
-	    info.gen2 < ngen && info.gen2 >= neven && gens[info.gen2].active)
+	doub coeff { Hterms[i].coeff() } ;
+	for (int j(0) ; j < ngen ; ++j)
 	    {
-	    doub val  ( 0.0 ) ;
-	    for (const auto& term : poly) val += termvalue (term) ;
-	    if (Hterm != info.Hterm)
-		Hterm  = info.Hterm ;
-	    metric (info.gen1-neven,info.gen2-neven) += Hterms[Hterm].coeff() * val ;
+	    for (int k(0) ; k < ngen ; ++k, ++recptr)
+		{
+		if (j < ngen && j >= neven && gens[j].active &&
+		    k < ngen && k >= neven && gens[k].active)
+		    {
+		    const Poly* ptr { &(*recptr) } ;
+		    const Poly* end { ptr++->end() } ;
+		    doub	val ( 0.0 ) ;
+		    while (ptr < end) val += termvalue (ptr) ;
+		    metric (j-neven,k-neven) += coeff * val ;
+		    }
+		}
 	    }
 	}
+    if (recptr != curv.end()) fatal ("Inconsistent curvature record!") ;
+
     metric = metric (use,use) ;
     if (print)
 	{
@@ -279,10 +291,10 @@ const Dmtx& Numerics::eval_metr (uint repnum, int print)	// Evaluate T-odd curva
 	if (print > 1)
 	    {
 	    cout << Rep::list[repnum].name ;
-	    raw_print (metric," T-odd curvature =") ;
+	    metric.raw_print (" T-odd curvature =") ;
 	    }
 	cout << Rep::list[repnum].name ;
-	raw_print (sort (eig_gen (metric))," T-odd curvature eigenvalues =") ;
+	arma::sort (arma::eig_gen (metric)).raw_print (" T-odd curvature eigenvalues =") ;
 	cout << std::setprecision (prevprec) ;
 	}
     return metric ;
@@ -297,22 +309,28 @@ const Dmtx& Numerics::eval_lagr (uint repnum, int print)	// Evaluate Lagrange br
     int		neven	{ global.info().neven[repnum] } ;
     int		ngen	( gens.size() ) ;
     int		nodd	{ ngen - neven } ;
+    auto	recptr	{ lagr.begin() } ;
 
-    if (lagr.entry().ncol != ngen ||
-	lagr.entry().nrow != ngen) gripe ("Need to build Lagrange matrix!") ;
+    if (lagr.entry().ncol != neven ||
+	lagr.entry().nrow != nodd) gripe ("Need to build Lagrange matrix!") ;
 
-    set_zero (lagrange, neven, nodd) ;
-    for (const auto& poly : lagr)
+    lagrange.zeros(neven, nodd) ;
+    for (int i(0) ; i < neven ; ++i)
 	{
-	const LagrHdr& info ( poly ) ;
-	if (info.gen1 < neven && gens[info.gen1].active &&
-	    info.gen2 < ngen  && gens[info.gen2].active && info.gen2 >= neven)
+	for (int j(neven) ; j < ngen ; ++j, ++recptr)
 	    {
-	    doub val ( 0.0 ) ;
-	    for (const auto& term : poly) val += termvalue (term) ;
-	    lagrange (info.gen1,info.gen2-neven) = val ;
+	    if (gens[i].active && gens[j].active)
+		{
+		const Poly* ptr { &(*recptr) } ;
+		const Poly* end { ptr++->end() } ;
+		doub	    val ( 0.0 ) ;
+		while (ptr < end) val += termvalue (ptr) ;
+		lagrange (i,j-neven) = val ;
+		}
 	    }
 	}
+    if (recptr != lagr.end()) fatal ("Inconsistent Lagrange bracket record!") ;
+
     lagrange = lagrange (evens,odds) ;
     if (print)
 	{
@@ -320,16 +338,16 @@ const Dmtx& Numerics::eval_lagr (uint repnum, int print)	// Evaluate Lagrange br
 	if (print > 1)
 	    {
 	    cout << Rep::list[repnum].name ;
-	    raw_print (lagrange," Lagrange bracket =") ;
+	    lagrange.raw_print (" Lagrange bracket =") ;
 	    }
 	cout << Rep::list[repnum].name ;
-	raw_print (svd(lagrange)," Lagrange bracket singular values =") ;
+	arma::svd(lagrange).raw_print (" Lagrange bracket singular values =") ;
 	cout << std::setprecision (prevprec) ;
 	}
     return lagrange ;
     }
 
-doub Numerics::eval_delta (bool print)		// Evaluate delta vector
+doub Numerics::eval_delta (bool print)			// Evaluate delta vector
     {
     const auto&	use   { eval_inuse (0, false) } ;
     const auto&	grad  { eval_grad  () } ;
@@ -338,18 +356,18 @@ doub Numerics::eval_delta (bool print)		// Evaluate delta vector
     Dvec	del ;
 
     check_curv (curv) ;
-    if (svdcut)	del = -pinv (curv,svdcut) * grad ;
-    else	del = -linsolve (curv,grad) ;
+    if (svdcut)	del = -arma::pinv (curv,svdcut) * grad ;
+    else	del = -arma::solve (curv,grad) ;
 
-    set_zero (delta, ngens) ;
+    delta.zeros(ngens) ;
     delta(use) = del ;
     if (print)
 	{
 	auto prevprec { cout.precision(12) } ;
-	raw_print (delta, "Delta =") ;
+	delta.raw_print ("Delta =") ;
 	cout << std::setprecision (prevprec) ;
 	}
-    return infnorm (delta) ;
+    return arma::norm (delta,"inf") ;
     }
 
 const Cvec& Numerics::eval_spectra (string word, bool print)	// Evaluate particle spectrum
@@ -363,24 +381,24 @@ const Cvec& Numerics::eval_spectra (uint repnum, bool print)	// Evaluate particl
     auto&	metr	{ eval_metr (repnum) } ;
     auto&	lagr	{ eval_lagr (repnum) } ;
     Dmtx	curv	{ eval_curv (repnum) } ;
-    Dmtx	inertia	{ lagr * inv(metr) * transpose(lagr) } ;
+    Dmtx	inertia	{ lagr * metr.i() * lagr.t() } ;
 
     status.reset() ;
-    if (global.symcurv) curv = (curv + transpose(curv)) / 2.0 ;
+    if (global.symcurv) curv = (curv + curv.t()) / 2.0 ;
     check_curv (curv) ;
 
-    if (!eig_pair (spectrum, modes, curv, inertia))
+    if (!arma::eig_pair (spectrum, modes, curv, inertia))
 	abort ("Cannot solve generalized eigensystem") ;
     if (curv_rpt (repnum)) cout << "\n" ;
 
     lastrep  = repnum ;
-    spectrum = sqrt (spectrum) ;
-    if (!has_nan (spectrum)) spectrum = sort (spectrum) ;
+    spectrum = arma::sqrt (spectrum) ;
+    if (!spectrum.has_nan()) spectrum = arma::sort (spectrum) ;
     if (print) Print::print_spectrum() ;
     return spectrum ;
     }
 
-void Numerics::eval_geos (int printlim)			// Evaluate observable derivatives
+void Numerics::eval_geos (int printlim)			// Evaluate vev derivatives
     {
     eval_delta () ;
     Numerics::do_dvev (0.0, vev, dvev) ;
@@ -398,33 +416,30 @@ void Numerics::eval_geos (int printlim)			// Evaluate observable derivatives
 void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     {
     uint	blab	{ Blab::level(Blab::NUMERICS) } ;
-    uint	offset	{ global.stage ? global.info(0).nobs : 0 } ;
+    long	offset	{ global.stage ? global.info(0).nobs : 0 } ;
     const auto&	geos	{ global.data().geos } ;
     const auto&	bckt	{ global.info().bckt } ;
     int		ngens	{ global.info().neven.front() } ;
-    uint	n	{ global.info().nobs } ;
-
-//    std::sort (bckt.begin(), bckt.end(), [geos](const uint3& a, const uint3& b)
-//	{ return geos[a[0]].entry().filepos < geos[b[0]].entry().filepos ; }) ;
+    long	n	{ global.info().nobs } ;
 
     if (global.interrupt) return ;
-    if (nelem(numerics.delta) != ngens) gripe ("Need to (re)evaluate delta!"); 
+    if (numerics.delta.n_elem != ngens) gripe ("Need to (re)evaluate delta!"); 
     if (geos[0].entry().nrow != ngens || !geos[0].entry().ncol)
 	gripe ("Need to (re)build geodesic equations!") ;
 
-    if (blab > 2) cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,nelem(v)) ;
+    if (blab > 2) cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,v.n_elem) ;
 
-    set_zero (dv, n) ;
-    numerics.dvev_buf = memptr(dv) ;
+    dv.zeros(n) ;
+    numerics.dvev_buf = dv.memptr() ;
 
-    if (memptr(v) != &numerics.vev[offset])
+    if (v.memptr() != &numerics.vev[offset])
 	{
 	numerics.vev_tmp = numerics.vev ;
-	if (global.stage)	numerics.vev_tmp.tail (nelem(v)) = v ;
-	else			numerics.vev_tmp.head (nelem(v)) = v ;
-	numerics.vev_buf = memptr(numerics.vev_tmp) ;
+	if (global.stage)	numerics.vev_tmp.tail (v.n_elem) = v ;
+	else			numerics.vev_tmp.head (v.n_elem) = v ;
+	numerics.vev_buf = numerics.vev_tmp.memptr() ;
 	}
-    else numerics.vev_buf = memptr(numerics.vev) ;
+    else numerics.vev_buf = numerics.vev.memptr() ;
 
     TASK_ARENA (global.maxthread, bckt,
 	FOR_EACH (bckt.begin(), bckt.end(), do_dvev_bckt)) ;
@@ -433,9 +448,9 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 	{
 	doub	maxv  (0.0) ;
 	doub	maxdv (0.0) ;
-	uint	maxi  (0) ;
-	uint	maxdi (0) ;
-	auto	nvev { nelem(v) } ;
+	numb	maxi  (0) ;
+	numb	maxdi (0) ;
+	auto	nvev { v.n_elem } ;
 
 	for (int indx(global.stage ? 0 : 1) ; indx < nvev ; ++indx)
 	    {
@@ -455,14 +470,14 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 	}
     }
 
-void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
+void Numerics::do_dvev_bckt (const numb3& bucket)		// Evaluate dvev bucket
     {
     if (global.interrupt) return ;
 
-    uint	bcktnum	{ bucket[0] } ;
-    uint	first	{ bucket[1] } ;
-    uint	last	{ bucket[2] } ;
-    uint	offset	{ global.stage ? global.info(0).nobs : 0 } ;
+    numb	bcktnum	{ bucket[0] } ;
+    numb	first	{ bucket[1] } ;
+    numb	last	{ bucket[2] } ;
+    long	offset	{ global.stage ? global.info(0).nobs : 0 } ;
     const auto&	delta	{ numerics.delta } ;
     const auto&	geos	{ global.data().geos[bcktnum] } ;
     real*	dv 	{ numerics.dvev_buf } ;
@@ -479,25 +494,24 @@ void Numerics::do_dvev_bckt (const uint3& bucket)		// Evaluate dvev bucket
 	}
 
     if (global.geoswap) Save::read_geo_bckt (bcktnum) ;
-    for (const auto& poly : geos)
+    auto recptr	{ geos.begin() } ;
+    for (int i(first) ; i <= last ; ++i)
 	{
-	if (global.interrupt) return ;
-
-	const GeoHdr&	info ( poly ) ;
-	real		val  ( 0.0 ) ;
-	doub		coef { delta[info.gen] } ;
-
-	if (info.indx < first || info.indx > last)
-	    fatal (format ("Inconsistent geo record: bucket {} indx {} first {} last {}!",
-		    bcktnum, info.indx, first, last)) ; 
-
-	if (global.interrupt) break ;
-	if (coef)
+	for (int j(0) ; j < ngens ; ++j, ++recptr)
 	    {
-	    for (const auto& term : poly) val += termvalue (term,v) ;
-	    dv [info.indx - offset] += coef * val ;
+	    if (global.interrupt) return ;
+	    if (doub coef { delta[j] })
+		{
+		const Poly* ptr  { &(*recptr) } ;
+		const Poly* end  { ptr++->end() } ;
+		doub	    val  ( 0.0 ) ;
+		while (ptr < end) val += termvalue (ptr,v) ;
+		dv [i - offset] += coef * val ;
+		}
 	    }
 	}
+    if (recptr != geos.end())
+	fatal ("Inconsistent geodesic record") ;
     if (global.geoswap) Save::read_geo_bckt (-bcktnum-1) ;
     }
 
@@ -510,10 +524,9 @@ doub Numerics::err_norm (const Rvec& err, const Rvec& y)	// ODE error vector nor
 
     uint	blab { Blab::level(Blab::NUMERICS) } ;
 //    auto&	eps  { numerics.odetol } ;
-//    ulong	maxi { index_max (abs (err)) } ;
-//    doub	norm { l2norm  (err) / sqrt (nelem(err)) } ;
-//    doub	norm { infnorm (err / (abs (err) + eps)) } ;
-    doub	norm { infnorm (err) } ;
+//    doub	norm { arma::norm (err / (arma::abs (y) + eps),"inf") } ;
+//    doub	norm { arma::norm (err,2) / sqrt (err.n_elem) } ;
+    doub	norm { arma::norm (err,"inf") } ;
     if (blab > 2) cout << "err_norm: " << norm << "\n" << flush ;
     return norm ;
     }
@@ -601,7 +614,7 @@ void Numerics::write_data ()				// Write data to MMAfile
     stream << flush ;
     }
 
-bool Numerics::check_loops ()						// Loop vevs < 1?
+bool Numerics::check_loops ()					// Loop vevs < 1?
     {
     const auto&	obslist { ObsList::obs } ;
     auto 	beg	{ obslist.begin() } ;
@@ -624,13 +637,13 @@ bool Numerics::check_loops ()						// Loop vevs < 1?
     return maxv > 1.0 ;
     }
 
-bool Numerics::check_curv (const Dmtx& curv)				// OK curvature eigs?
+bool Numerics::check_curv (const Dmtx& curv)			// OK curvature eigs?
     {
-    if (nrow(curv)) 
+    if (curv.n_rows) 
 	{
-	Cvec	eigs  { eig_gen(curv) } ;
-	Uvec	reals { sort_index (realpart (eigs)) } ;
-	Uvec	imags { sort_index (imagpart (eigs), false) } ;
+	Cvec	eigs  { arma::eig_gen(curv) } ;
+	Uvec	reals { arma::sort_index (arma::real (eigs),"ascent")  } ;
+	Uvec	imags { arma::sort_index (arma::imag (eigs),"descend") } ;
 	bool	negok { theory.euclid && global.stage } ;
 	uint	minr  ( reals[0] ) ;
 	uint	maxi  ( imags[0] ) ;
@@ -696,25 +709,27 @@ bool Numerics::curv_rpt (int repnum)
     return false ;
     }
 
-bool Numerics::built_rep (uint repnum)					// Is irrep built?
+bool Numerics::built_rep (uint repnum)				// Is irrep built?
     {
     const auto&	curv	{ global.data().curv[repnum] } ;
     const auto&	lagr	{ global.data().lagr[repnum] } ;
-    int		ngens	( global.info().gens[repnum].size() ) ;
     int		Hterms	( global.info().Hterms.size() ) ;
+    auto	ngens	{ global.info().gens[repnum].size() } ;
+    auto	neven	{ global.info().neven[repnum] } ;
+    auto	nodd	{ ngens - neven } ;
 
-    return  lagr.entry().nrow == ngens && lagr.entry().ncol == ngens &&
+    return  lagr.entry().nrow == neven && lagr.entry().ncol == nodd  &&
 	    curv.entry().nrow == ngens && curv.entry().ncol == ngens && 
 	    curv.entry().nslice == Hterms && ngens > 0 ;
     }
 
-void Numerics::data_write (ofstream& out, const string s, doub v)		// Save data value
+void Numerics::data_write (ofstream& out, const string s, doub v)	// Save value
     {
     string c { Coupling::values() } ;
     out << s << "[" << c << "] = " << MMAform(v) << " ;\n" ;
     }
 
-void Numerics::data_write (ofstream& out, const string s, const Rvec& vec)	// Save data vector
+void Numerics::data_write (ofstream& out, const string s, const Rvec& vec) // Save vector
     {
     string c { Coupling::values() } ;
     if (vec.size())
@@ -730,7 +745,7 @@ void Numerics::data_write (ofstream& out, const string s, const Rvec& vec)	// Sa
 	}
     }
 
-void Numerics::data_write (ofstream& out, const string s, const Cvec& vec)	// Save data vector
+void Numerics::data_write (ofstream& out, const string s, const Cvec& vec) // Save vector
     {
     string c { Coupling::values() } ;
     if (vec.size())
@@ -747,7 +762,7 @@ void Numerics::data_write (ofstream& out, const string s, const Cvec& vec)	// Sa
 	}
     }
 
-string Numerics::MMAform (doub x)				// Convert to MMA input form
+string Numerics::MMAform (doub x)			// Convert to MMA input form
     {
     std::stringstream buf ;
     buf << std::setprecision(12) << x ;
@@ -762,18 +777,19 @@ void Numerics::initialize (int stage)			// Initialize expectation values
     uint	blab	{ Blab::level(Blab::NUMERICS) } ;
     const auto& nobsG	{ global.info(0).nobs } ;
     const auto& nobsF	{ global.info(1).nobs } ;
-    resize (vev, nobsG + nobsF) ;
+
+    vev.resize(nobsG + nobsF) ;
     vev[0] = 1.0 ;
 
     if (stage == 0)				// gauge vev's
 	{
-	set_zero (vev) ;
+	vev.zeros() ;
 	vev[0] = 1.0 ;
 	if (blab) cout << "(Re)initialized gauge vev's\n" ;
 	}
     if (nobsF)					// fermion vev's
 	{
-	set_zero (vev.tail (nobsF)) ;
+	vev.tail(nobsF).zeros() ;
 
 	char8	mass { "mass" } ;
 	int	indx { Coupling::indx (mass) } ;

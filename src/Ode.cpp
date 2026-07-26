@@ -1,16 +1,16 @@
 #include "Ode.h"
 
-bool Ode::integrate (doub& s, doub goal, Dvec& y)	//  Integrate dy/ds = rhs(y,s)
+bool Ode::integrate (doub& s, doub goal, Rvec& y)	//  Integrate dy/ds = rhs(y,s)
     {
-    static Dvec			trial ;
-    static Dvec			error ;
-    static std::vector<Dvec>	deriv ;
+    static Rvec			trial ;
+    static Rvec			error ;
+    static std::vector<Rvec>	deriv ;
 
     if (deriv.size() != nstage)   deriv.resize (nstage) ;
-    if (trial.size() != y.size()) set_size (trial, y.size()) ;
-    if (error.size() != y.size()) set_size (error, y.size()) ;
+    if (trial.size() != y.size()) trial.set_size(y.size()) ;
+    if (error.size() != y.size()) error.set_size(y.size()) ;
     for (auto& b : deriv)
-	if (b.size() != y.size()) set_size (b, y.size()) ;
+	if (b.size() != y.size()) b.set_size(y.size()) ;
 
     if (!maxstepsize || maxstepsize > std::abs(goal - s)) maxstepsize = std::abs(goal - s) ;
 
@@ -60,7 +60,7 @@ bool Ode::integrate (doub& s, doub goal, Dvec& y)	//  Integrate dy/ds = rhs(y,s)
 	    for (int i(0) ; i < nstage ; ++i)
 		if (b[i]) trial += h * b[i] * deriv[i] ;
 	    }
-	set_zero (error) ;
+	error.zeros() ;
 	for (int i(0) ; i < nstage ; ++i)
 	    if (db[i]) error += h * db[i] * deriv[i] ;
 

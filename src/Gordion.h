@@ -33,29 +33,40 @@ using std::unordered_map ;
 using std::unordered_set ;
 using std::exception ;
 
-#ifdef EIGEN
-using doub   = long double ;		// Spectral matrices, etc.
-#else
-using doub   = double ;			// Spectral matrices, etc.
-#endif
-#ifdef VEV32
-using real   = float ;			// Poly coeffs & vev's
-#else
-using real   = doub ;			// Poly coeffs & vev's
-#endif
-
-using cmplx  = complex<doub> ;		// Complex eigenvalues
 using symb   = char ;			// Basic symbol type
+using doub   = double ;			// Spectral matrices, etc.
+using cmplx  = complex<doub> ;		// Complex eigenvalues
 using uchar  = uint8_t ;		// Hterm #
 using ushort = uint16_t ;		// Gen #, Obs/Poly length
 using uint   = uint32_t ;		// ObsList index
 using ulong  = uint64_t ;		// Statistics counters
-using uint2  = pair<uint,uint> ;	// Fermion initalization map, etc.
-using uint3  = array<uint,3> ;		// Obs bucket position
+using uint2  = pair<uint,uint> ;	// Rep projector indices
+
+#ifdef NUM32
+using real   = float ;			// Poly coeffs & vev's
+using numb   = int ;			// ObsList index
+using usmall = ushort ;			// Half size integer
+using small  = short ;			// Half size integer
+constexpr int  MAXORD  = 63 ;		// Max Op/Obs order
+constexpr long MAXOBS  = INT_MAX ;	// Max Obs index
+constexpr doub DFLTTOL = 1.e-6 ;	// Default ODE tolerance
+#else
+using real   = doub ;			// Poly coeffs & vev's
+using numb   = long ;			// ObsList index
+using usmall = uint ;			// Half size integer
+using small  = int ;			// Half size integer
+constexpr int  MAXORD  = 1023 ;		// Max Op/Obs order
+constexpr long MAXOBS  = LONG_MAX ;	// Max Obs index
+constexpr doub DFLTTOL = 1.e-10 ;	// Default ODE tolerance
+#endif
+
+using numb2  = pair<numb,numb> ;	// Fermion initalization map
+using numb3  = array<numb,3> ;		// Obs bucket position
 using char8  = array<char,8> ;		// Theory/Coupling name
 using strview = std::string_view ;	// Substrings
 
 static_assert (sizeof (ulong) >= 4 * sizeof (short), "Need 8 byte longs!") ;
+static_assert (sizeof (real) == sizeof (numb)) ;
 
 template <typename Key, typename... Value>
     using hash = unordered_map<Key, Value...> ;	// unordered_map alias

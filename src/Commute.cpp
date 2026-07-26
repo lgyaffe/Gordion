@@ -555,7 +555,7 @@ void Commute::do_split (doub coeff, const ObsPoly& redu, const Obs& b, ObsList& 
 		if (!t[k]) continue ;
 
 		const Op  a { redulist(t[k]) } ;	// convert Obs -> Op
-		PolyTerm  factor { t[1-k], t.coeff * coeff } ;
+		PolyTerm  factor ( t[1-k], t.coeff * coeff ) ;
 
 		if (factor[0] && list.neq (redulist))
 		    factor[0] = list.catalog (redulist(factor[0]))[0] ;
@@ -702,8 +702,8 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 
     auto&	oplist	{ ans.oplist() } ;
     uint	blab	{ Blab::level(Blab::COMMUTE) } ;
-    if (blab) cout << "op_commute[Op,Op]: a " << a << " b " << b
-		   << " coeff " << coeff << "\n" ;
+    if (blab > 2) cout << "op_commute[Op,Op]: a " << a << " b " << b
+		       << " coeff " << coeff << "\n" ;
 
     Str buf ;
     if (a.size() + b.size() >= buf.capacity())
@@ -749,13 +749,13 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 		    if (x2 >= 0)	buf.join((x2 << 2) | dir) ;
 		    if (b.size() > i+1)	buf.join(b.cbegin()+i+1, b.cend()) ;
 		    }
-		if (blab > 1)
+		if (blab > 2)
 		    {
 		    cout << "op_commute A: [" << a << ", " << b << "] -> "
 			 << coeff << " * " << (int)sp[k].coeff << " " << buf << "\n" ;
 		    }
 		Op	op { buf.joinends(), b.type, (short)(a.order + b.order) } ;
-		uint	indx { oplist.store (op) } ;
+		numb	indx { oplist.store (op) } ;
 		ans.settype (op) ;
 		ans.emplace_back ( OpTerm ( indx, coeff * sp[k].coeff ) ) ;
 		}
@@ -798,13 +798,13 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 		    if (x2 >= 0)	buf.join((x2 << 2) | dir) ;
 		    if (a.size() > i+1)	buf.join(a.cbegin()+i+1, a.cend()) ;
 		    }
-		if (blab > 1)
+		if (blab > 2)
 		    {
 		    cout << "op_commute B: [" << a << ", " << b << "] -> "
 			 << -coeff << " * " << (int)sp[k].coeff << " " << buf << "\n" ;
 		    }
 		Op	op { buf.joinends(), a.type, (short)(a.order + b.order) } ;
-		uint	indx { oplist.store (op) } ;
+		numb	indx { oplist.store (op) } ;
 		ans.settype (op) ;
 		ans.emplace_back ( OpTerm ( indx, -coeff * sp[k].coeff ) ) ;
 		}
@@ -825,13 +825,13 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 		if (a.size() % 2) sgn *= -1 ;
 		buf.front() = stag(buf.front()) ;
 		}
-	    if (blab > 1)
+	    if (blab > 2)
 		{
 		cout << "op_commute C1: [" << a << ", " << b << "] -> "
 		     << sgn * coeff << " " << buf << "\n" ;
 		}
 	    Op		op { buf, a.type, (short)(a.order + b.order) } ;
-	    uint	indx { oplist.store (op) } ;
+	    numb	indx { oplist.store (op) } ;
 	    ans.settype (op) ;
 	    ans.emplace_back ( OpTerm ( indx, sgn * coeff ) ) ;
 	    }
@@ -848,16 +848,16 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 		if (b.size() % 2) sgn *= -1 ;
 		buf.front() = stag(buf.front()) ;
 		}
-	    if (blab > 1)
+	    if (blab > 2)
 		{
 		cout << "op_commute C2: [" << a << ", " << b << "] -> "
 		     << sgn * coeff << " " << buf << "\n" ;
 		}
 	    Op		op { buf, b.type, (short)(a.order + b.order) } ;
-	    uint	indx { oplist.store (op) } ;
+	    numb	indx { oplist.store (op) } ;
 	    ans.settype (op) ;
 	    ans.emplace_back ( OpTerm ( indx, sgn * coeff ) ) ;
 	    }
 	}
-    if (blab > 1) cout << "op_commute[Op,Op] returning\n" ;
+    if (blab > 2) cout << "op_commute[Op,Op] returning " << ans << "\n" ;
     }

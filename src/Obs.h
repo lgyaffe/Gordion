@@ -34,7 +34,7 @@ class Obs : public Str				// Obs = Str + meta-info
     explicit Obs (const string&) ;				// Constructor
     explicit Obs (const string&, ObsType, short, short) ;	// Constructor
 
-    Obs(const Str& s, ObsHdr& hdr)				// Constructor
+    Obs(const Str& s, const ObsHdr& hdr)			// Constructor
 	:
 	Str	(s),
 	type	((ObsType) hdr.type),
@@ -135,7 +135,7 @@ class Obs : public Str				// Obs = Str + meta-info
     } ;
 
 using Obsset = unordered_set<Obs,Strhash,Str_eq> ;
-using Obsmap = hash<Obs,uint,Strhash,Str_eq> ;
+using Obsmap = hash<Obs,numb,Strhash,Str_eq> ;
 
 class ObsList: vector<const Obs*>
     {
@@ -152,13 +152,13 @@ class ObsList: vector<const Obs*>
 
     ObsList (const string, bool=false, bool=false) ;
 
-    const Obs&	operator() (uint indx) const	// Return indexed Obs
+    const Obs&	operator() (numb indx) const	// Return indexed Obs
 		    { return *(*this)[indx] ; }
 
     auto	size() const { return vector::size() ; } // List size
     auto	shrink() { return shrink_to_fit() ; }	// Shrink
 
-    uint	find (const Str& s) const	// Find Obs, return index
+    numb	find (const Str& s) const	// Find Obs, return index
 		    {
 		    auto p1 { map.find(s) } ;
 		    if (p1 != map.end()) return p1->second ;
@@ -204,11 +204,11 @@ class ObsList: vector<const Obs*>
 
     int		do_fermiinit () ;		// Load Fermion -> Loop map
     void	obsinit	(int) ;			// Load basic Obs
-    ostream&	print	(ostream&, uint) const ;// Print obs
+    ostream&	print	(ostream&, numb) const ;// Print obs
     ostream&	print	(ostream&) const ;	// Print list
 
-    uint	store	 (const Obs&) ;		// Store in list
-    void	purge	 (uint)	;		// Purge entries
+    numb	store	 (const Obs&) ;		// Store in list
+    void	purge	 (numb)	;		// Purge entries
     void	empty	 () ;			// Empty list
     void	rehash	 () const ; 		// Recalculate hashes
     void	hasher	 (ulong&,const Obs&) const ; // List hasher
@@ -221,7 +221,7 @@ class ObsList: vector<const Obs*>
     static ObsList			obs  ;		// Canonicalized Obs
     static ObsList			base ;		// Basic defined Obs
     static ObsList			redu ;		// Gen reductions
-    static inline vector<uint2>		fermiinit ;	// Fermion -> Loop map
+    static inline vector<numb2>		fermiinit ;	// Fermion -> Loop map
     static inline thread_local Obsset	inbox ;		// Obs awaiting insertion
     static inline thread_local bool	freeze {true} ;	// Freeze master list?
 
@@ -229,7 +229,7 @@ class ObsList: vector<const Obs*>
 	{ inbox.insert (o) ; }
     } ;
 
-class ObsSubset : public std::map<uint,Obs>		// Obs subset
+class ObsSubset : public std::map<numb,Obs>		// Obs subset
     {
     public:
     friend ostream& operator<< (ostream& stream, const ObsSubset& s)
@@ -239,20 +239,20 @@ class ObsSubset : public std::map<uint,Obs>		// Obs subset
 	}
     } ;
 
-class ObsStats : public array<vector<vector<uint>>,nobstype>	// Obs statistics
+class ObsStats : public array<vector<vector<ulong>>,nobstype>	// Obs statistics
     {
     public:
 
     ObsStats (const ObsList&) ;
 
-    uint get(int t, int c, int x) const
+    ulong get(int t, int c, int x) const
 	{
 	return (t < size()
 		&& c >= 0 && c < (*this)[t].size()
 		&& x >= 0 && x < (*this)[t][c].size())
 		? (*this)[t][c][x] : 0 ;
 	}
-    uint get(int c, int x) const
+    ulong get(int c, int x) const
 	{
 	int sum (0) ;
 	for (int t(0) ; t < size() ; ++t)
@@ -266,7 +266,7 @@ class ObsStats : public array<vector<vector<uint>>,nobstype>	// Obs statistics
     short maxc = 0 ;
     short maxx = 0 ;
     float avglen ;
-    uint  maxloop ;
+    numb  maxloop ;
     } ;
 
 #endif

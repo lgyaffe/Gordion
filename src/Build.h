@@ -22,14 +22,14 @@ namespace Build
     void mk_Efermions	() ;
     void do_geostats	() ;
 
-    void do_geo_bckt	  (const uint3&) ;
-    void do_Loop_bckt	  (const uint3&) ;
-    void do_Eloop_bckt	  (const uint3&) ;
-    void do_EEloop_bckt   (const uint3&) ;
-    void do_Fermion_bckt  (const uint3&) ;
-    void do_Efermion_bckt (const uint3&) ;
-    void do_geostat_bckt  (const uint3&) ;
-    void check_xorder	  (uint, const Gen&, const PolyMap&) ;
+    void do_geo_bckt	  (const numb3&) ;
+    void do_Loop_bckt	  (const numb3&) ;
+    void do_Eloop_bckt	  (const numb3&) ;
+    void do_EEloop_bckt   (const numb3&) ;
+    void do_Fermion_bckt  (const numb3&) ;
+    void do_Efermion_bckt (const numb3&) ;
+    void do_geostat_bckt  (const numb3&) ;
+    void check_xorder	  (numb, const Gen&, const PolyMap&) ;
     void clear_obs	  (int) ;
     void close_streams	  () ;
     } ;

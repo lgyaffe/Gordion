@@ -37,7 +37,7 @@ void Test::irreps ()					// Test irrep projector validity
     cout << "Sum of diagonal projectors " << (v.allzero() ? "is" : "is not") << " complete\n" ;
     }
 
-void Test::jacobi (const string& w1, const string& w2, uint obsindx) // Test specific Jacobi identity
+void Test::jacobi (const string& w1, const string& w2, numb obsindx) // Test specific Jacobi identity
     {
     ObsList	list	{ "JacobiTemp" } ;
     ObsPoly	poly	{ obsindx, ObsList::obs } ;
@@ -64,7 +64,7 @@ void Test::jacobi (const string& w1, const string& w2, uint obsindx) // Test spe
     else		cout << " = " << ans << "\n" ;
     }
 
-void Test::jacobi (uint obsindx)				// Test Jacobi identities on Obs
+void Test::jacobi (numb obsindx)				// Test Jacobi identities on Obs
     {
     auto&	gens	{ global.info().gens[global.repnum] } ;
     auto&	oplist	{ global.info().ops } ;

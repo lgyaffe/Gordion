@@ -357,9 +357,9 @@ void Build::mk_ham()				// Build canonical H
 	for (const auto& term : Hterms[i].poly)
 	    {
 	    Obs  o	{ baslist (term[0]) } ; o.canon() ;
-	    uint indx	{ obslist.find (o) } ;
+	    numb indx	{ obslist.find (o) } ;
 	    ans.add (PolyTerm (indx, term.coeff)) ;
-	    MMAobs.try_emplace (indx, o) ;
+	    if (indx) MMAobs.try_emplace (indx, o) ;
 	    }
 	Hterms[i].cpoly.clear() ;
 	Hterms[i].cpoly.push_map (ans) ;
@@ -388,7 +388,6 @@ void Build::mk_grad()				// Build gradient
     for (ushort i(0) ; i < nterms ; ++i)
 	{
 	const ObsPoly& cpoly { Hterms[i].cpoly } ;
-
 	for (ushort j(0) ; j < ngens ; ++j)
 	    {
 	    if (!gens[j].T_odd)
@@ -396,7 +395,7 @@ void Build::mk_grad()				// Build gradient
 		Commute::commute_poly (gens[j], cpoly, ans) ;
 		if (Hterms[i].imag && gens[j].imag) ans.negate() ;
 		}
-	    grad.add (Poly {GradHdr {j,i}}, ans.negate()) ;
+	    grad.add (ans.negate()) ;
 	    ans.clear() ;
 	    if (global.interrupt) return ;
 	    }
@@ -409,7 +408,7 @@ void Build::mk_grad()				// Build gradient
     if (blab) cout << "\t\tdone\n" << flush ;
     }
 
-void Build::mk_curv (string word)
+void Build::mk_curv (string word)			// Build curvature
     {
     try { mk_curv (Rep::known (word)) ; }
     catch (const exception& e) { gripe ("Unknown representation " + word) ; }
@@ -453,7 +452,7 @@ void Build::mk_curv (uint repnum)			// Build curvature
 			     gens[j].imag && Hterms[i].imag ||
 			     gens[k].imag && Hterms[i].imag) ans.negate() ;
 		    }
-		curv.add (Poly {CurvHdr {k,j,i}}, ans) ;
+		curv.add (ans) ;
 		ans.clear() ;
 		tmp.clear() ;
 		if (global.interrupt) return ;
@@ -469,7 +468,7 @@ void Build::mk_curv (uint repnum)			// Build curvature
     if (blab && ngens && nterms) cout << "\tdone\n" << flush ;
     }
 
-void Build::mk_lagr (string word)
+void Build::mk_lagr (string word)			// Build Lagrange bracket
     {
     try { mk_lagr (Rep::known (word)) ; }
     catch (const exception& e) { gripe ("Unknown representation " + word) ; }
@@ -481,6 +480,7 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
 
     const auto&	repnam	{ Rep::list[repnum].name } ;
     const auto&	gens	{ global.info().gens[repnum] } ;
+    ushort	neven	{ global.info().neven[repnum] } ;
     auto&	lagr	{ global.data().lagr[repnum] } ;
     auto&	oplist	{ global.info().ops } ;
     auto	opnum	{ oplist.size() } ;
@@ -494,25 +494,23 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     if (ngens && blab) cout << repnam << " Lagrange brkt: " << flush ;
 
     lagr.clear();
-    for (ushort j(0) ; j < ngens ; ++j)
+    for (ushort j(0) ; j < neven ; ++j)
 	{
-	if (gens[j].T_odd) continue ;
-	for (ushort k(0) ; k < ngens ; ++k)
+	for (ushort k(neven) ; k < ngens ; ++k)
 	    {
-	    if (!gens[k].T_odd) continue ;
 	    Gen newgen { oplist } ;
 	    Commute::commute_gen (gens[j], gens[k], newgen) ;
 	    if (!ans.add_gen (newgen))
 		trunc = std::min(trunc, newgen.order) ;
-	    lagr.add (Poly {LagrHdr {k,j}}, ans) ;
+	    lagr.add (ans) ;
 	    ans.clear() ;
 	    if (global.interrupt) return ;
 	    }
 	}
     if (lagr.entry().id != RecordID::Lagr) fatal ("mk_lagr: bad record ID!") ;
     lagr.shrink_to_fit() ;
-    lagr.entry().ncol   = ngens ;
-    lagr.entry().nrow   = ngens ;
+    lagr.entry().ncol   = neven ;
+    lagr.entry().nrow   = ngens - neven ;
     lagr.entry().reclen = lagr.size();
     if (blab && ngens)
 	{
@@ -542,7 +540,7 @@ void Build::mk_geos()				// Build geodesic equations
     if (blab) cout << "\tdone\n" << flush ;
     }
 
-void Build::do_Loop_bckt (const uint3& bckt)		// Do loop build bucket 
+void Build::do_Loop_bckt (const numb3& bckt)		// Do loop build bucket 
     {
     if (global.interrupt) return ;
 
@@ -554,12 +552,12 @@ void Build::do_Loop_bckt (const uint3& bckt)		// Do loop build bucket
     PolyMap 	tmp	{ obslist } ;
     PolyTerm 	zero	{ Polyindx(), 0 } ;
     auto	numobs	{ obslist.size() } ;
-    uint	bcktnum { bckt[0] } ;
-    uint 	first	{ bckt[1] } ;
-    uint 	last	{ bckt[2] } ;
+    numb	bcktnum { bckt[0] } ;
+    numb 	first	{ bckt[1] } ;
+    numb 	last	{ bckt[2] } ;
 
     ObsList::freeze = false ;
-    for (uint i(first) ; i <= last ; ++i)
+    for (numb i(first) ; i <= last ; ++i)
 	{
 	if (obslist(i).type != ObsType::Loop)	continue ;
 
@@ -594,7 +592,7 @@ void Build::do_Loop_bckt (const uint3& bckt)		// Do loop build bucket
     inbox.clear() ;
     }
 
-void Build::do_Eloop_bckt (const uint3& bckt)		// Do Eloop build bucket
+void Build::do_Eloop_bckt (const numb3& bckt)		// Do Eloop build bucket
     {
     if (global.interrupt) return ;
 
@@ -606,12 +604,12 @@ void Build::do_Eloop_bckt (const uint3& bckt)		// Do Eloop build bucket
     PolyTerm	zero	{ Polyindx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
     auto	numobs	{ obslist.size() } ;
-    uint	bcktnum { bckt[0] } ;
-    uint 	first	{ bckt[1] } ;
-    uint 	last	{ bckt[2] } ;
+    numb	bcktnum { bckt[0] } ;
+    numb 	first	{ bckt[1] } ;
+    numb 	last	{ bckt[2] } ;
 
     ObsList::freeze = false ;
-    for (uint i(first) ; i <= last ; ++i)
+    for (numb i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
 	auto	insiz { inbox.size() } ;
@@ -678,7 +676,7 @@ void Build::do_Eloop_bckt (const uint3& bckt)		// Do Eloop build bucket
     inbox.clear() ;
     }
 
-void Build::do_EEloop_bckt (const uint3& bckt)		// Do EEloop build bckt
+void Build::do_EEloop_bckt (const numb3& bckt)		// Do EEloop build bckt
     {
     if (global.interrupt) return ;
 
@@ -690,12 +688,12 @@ void Build::do_EEloop_bckt (const uint3& bckt)		// Do EEloop build bckt
     auto	numobs	{ obslist.size() } ;
     PolyTerm	zero	{ Polyindx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
-    uint	bcktnum { bckt[0] } ;
-    uint 	first	{ bckt[1] } ;
-    uint 	last	{ bckt[2] } ;
+    numb	bcktnum { bckt[0] } ;
+    numb 	first	{ bckt[1] } ;
+    numb 	last	{ bckt[2] } ;
 
     ObsList::freeze = false ;
-    for (uint i(first) ; i <= last ; ++i)
+    for (numb i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
 	if (obslist(i).is_fermi() || !obslist(i).is_EEloop()) continue ;
@@ -731,7 +729,7 @@ void Build::do_EEloop_bckt (const uint3& bckt)		// Do EEloop build bckt
     inbox.clear() ;
     }
 
-void Build::do_Fermion_bckt (const uint3& bckt)		// Do Fermion build bckt
+void Build::do_Fermion_bckt (const numb3& bckt)		// Do Fermion build bckt
     {
     if (global.interrupt) return ;
 
@@ -742,12 +740,12 @@ void Build::do_Fermion_bckt (const uint3& bckt)		// Do Fermion build bckt
     auto	numobs	{ obslist.size() } ;
     PolyTerm	zero	{ Polyindx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
-    uint	bcktnum { bckt[0] } ;
-    uint	first	{ bckt[1] } ;
-    uint	last	{ bckt[2] } ;
+    numb	bcktnum { bckt[0] } ;
+    numb	first	{ bckt[1] } ;
+    numb	last	{ bckt[2] } ;
 
     ObsList::freeze = false ;
-    for (uint i(first) ; i <= last ; ++i)
+    for (numb i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
 	if (obslist(i).type != ObsType::Fermion) continue ;
@@ -784,7 +782,7 @@ void Build::do_Fermion_bckt (const uint3& bckt)		// Do Fermion build bckt
     inbox.clear() ;
     }
 
-void Build::do_Efermion_bckt (const uint3& bckt)	// Do Efermion build bckt
+void Build::do_Efermion_bckt (const numb3& bckt)	// Do Efermion build bckt
     {
     if (global.interrupt) return ;
 
@@ -796,12 +794,12 @@ void Build::do_Efermion_bckt (const uint3& bckt)	// Do Efermion build bckt
     auto	numobs	{ obslist.size() } ;
     PolyTerm	zero	{ Polyindx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
-    uint	bcktnum { bckt[0] } ;
-    uint 	first	{ bckt[1] } ;
-    uint 	last	{ bckt[2] } ;
+    numb	bcktnum { bckt[0] } ;
+    numb 	first	{ bckt[1] } ;
+    numb 	last	{ bckt[2] } ;
 
     ObsList::freeze = false ;
-    for (uint i(first) ; i <= last ; ++i)
+    for (numb i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
 	if (obslist(i).is_Fermion())
@@ -857,7 +855,7 @@ void Build::do_Efermion_bckt (const uint3& bckt)	// Do Efermion build bckt
     inbox.clear() ;
     }
 
-void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
+void Build::do_geo_bckt (const numb3& bckt)		// Do bucket of geodesic eqns
     {
     if (global.interrupt) return ;
 
@@ -866,11 +864,10 @@ void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
     auto&	list	{ ObsList::obs } ;
     const auto&	gens	{ info.gens.front() } ;
     ushort	ngens	{ info.neven.front() } ;
-    uint	offset	{ global.stage ? global.info(0).nobs : 0 } ;
-    uint	bcktnum	{ bckt[0] } ;
-    uint	first	{ bckt[1] } ;
-    uint	last	{ bckt[2] } ;
-    uint	bcktsiz	{ last - first + 1 } ;
+    numb	bcktnum	{ bckt[0] } ;
+    numb	first	{ bckt[1] } ;
+    numb	last	{ bckt[2] } ;
+    numb	bcktsiz	{ last - first + 1 } ;
     auto&	geos	{ global.data().geos[bcktnum] } ;
     PolyMap	ans	{ ObsList::obs } ;
 
@@ -879,7 +876,7 @@ void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
     array<ulong,PSIZ+1>	geotermord {} ;
 
     geos.clear() ;
-    for (uint i(first) ; i <= last ; ++i)
+    for (numb i(first) ; i <= last ; ++i)
 	{
 	if (list(i).is_fermi() != global.stage)
 	    fatal ("do_geo_bckt: bad obs stage") ;
@@ -906,7 +903,7 @@ void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
 		    }
 		++ngeo ;
 		}
-	    geos.add (Poly {GeoHdr {i,k}}, ans) ;
+	    geos.add (ans) ;
 	    ans.clear() ;
 	    if (global.interrupt) return ;
 	    }
@@ -917,8 +914,8 @@ void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
     geos.entry().nrow   = ngens ;
     geos.entry().reclen = geos.size() ;
 
-    global.count().ngeos    += ngeo ;
-    global.count().geoterms += nterms ;
+    global.count().ngeos      += ngeo ;
+    global.count().geoterms   += nterms ;
     global.count().geotermord += geotermord ;
 
     if (blab > 2)
@@ -930,10 +927,7 @@ void Build::do_geo_bckt (const uint3& bckt)	// Do bucket of geodesic eqns
     if (global.autosave) Save::write_geo_bckt (bcktnum) ;
     }
 
-void Build::check_xorder (uint i, const Gen& g, const PolyMap& ans)
-    //
-    // check expectation orders
-    //
+void Build::check_xorder (numb i, const Gen& g, const PolyMap& ans)	// Check xorders
     {
     if (global.interrupt) return ;
 
@@ -970,43 +964,43 @@ void Build::do_geostats()			// (Re)evaluate geodesic stats
 	const auto&	geos { global.data().geos } ;
 	const auto&	bckt { global.info(stage).bckt } ;
 
-	//std::sort (bckt.begin(), bckt.end(), [geos](const uint3& a, const uint3& b)
-	//    { return geos[a[0]].entry().filepos < geos[b[0]].entry().filepos ; }) ;
-
 	TASK_ARENA (global.maxthread, bckt,
 	    FOR_EACH (bckt.begin(), bckt.end(), Build::do_geostat_bckt)) ;
 	}
     global.stage = oldstage ;
     }
 
-void Build::do_geostat_bckt (const uint3& bckt)	// Evaluate geo bucket statistics
+void Build::do_geostat_bckt (const numb3& bckt)	// Evaluate geo bucket statistics
     {
     if (global.interrupt) return ;
 
-    uint		bcktnum { bckt[0] } ;
-    uint		first	{ bckt[1] } ;
-    uint		last	{ bckt[2] } ;
+    numb		bcktnum { bckt[0] } ;
+    numb		first	{ bckt[1] } ;
+    numb		last	{ bckt[2] } ;
     ulong		ngeos	(0) ;
     ulong		nterms	(0) ;
     array<ulong,PSIZ+1>	byord	{} ;
     auto&		geos	{ global.data().geos[bcktnum] } ;
 
     if (global.geoswap) Save::read_geo_bckt (bcktnum) ;
+    const auto&		ncol { geos.entry().ncol } ;
+    const auto&		nrow { geos.entry().nrow } ;
+
     for (const auto& poly : geos)
 	{
-	const GeoHdr& info ( poly) ;
-	if (info.indx < first || info.indx > last)
-	    fatal (format ("Inconsistent geo record: bucket {} indx {} first {} last {}!",
-		    bcktnum, info.indx, first, last)) ; 
-
-	if (global.interrupt) break ;
+	if (global.interrupt) return ;
+	auto ptr { poly.begin() } ;
 	for (const auto& term : poly)
 	    {
-	    ++byord [term.order()] ;
+	    PolyTerm t { poly.nextterm (ptr) } ;
+	    ++byord [t.order()] ;
 	    ++nterms ;
 	    }
 	++ngeos ;
-	if (global.interrupt) return ;
+
+	if (geos.entry().items() != ngeos)
+	    fatal (format("Inconsistent geo record: bucket {} expected {} got {}",
+		    bcktnum, geos.entry().items(), ngeos)) ;
 	}
     if (global.geoswap) Save::read_geo_bckt (-bcktnum-1) ;
     global.count().ngeos      += ngeos ;

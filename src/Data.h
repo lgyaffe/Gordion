@@ -4,122 +4,83 @@
 #include "Gripe.h"
 #include <functional>
 
-struct OpHdr					// Operator record item header
-    {
-    short	order ;
-    char	type ;
-    bool	prim ;
-    ushort	pad ;
-    ushort	len ;
-    doub&	data()	{ return *cast_to<doub*>(this) ; }
-    } ;
+#ifdef NUM32
+    struct OpHdr				// Op record item header
+	{
+	ushort	order : 6 ;
+	ushort	type  : 2 ;
+	ushort	prim  : 1 ;
+	} ;
 
-struct ObsHdr					// Observable record item header
-    {
-    short	corder ;
-    short	xorder ;
-    char	type ;
-    char	pad ;
-    ushort	len ;
-    doub&	data()	{ return *cast_to<doub*>(this) ; }
-    } ;
+    struct ObsHdr				// Obs record item header
+	{
+	ushort	corder : 6 ;
+	ushort	xorder : 6 ;
+	ushort	type   : 3 ;
+	} ;
 
-struct GenHdr					// Generator record item header
-    {
-    short	rep ;
-    short	order ;
-    char	type ;
-    bool	T_odd ;
-    ushort	len ;
-    doub&	data()	{ return *cast_to<doub*>(this) ; }
-    } ;
+    struct GenHdr				// Gen record item header
+	{
+	ushort	rep   : 6 ;
+	ushort	order : 6 ;
+	ushort	type  : 2 ;
+	ushort	T_odd : 1 ;
+	} ;
+#else
+    struct OpHdr				// Op record item header
+	{
+	uint	order : 10 ;
+	uint	type  : 2  ;
+	uint	prim  : 1  ;
+	} ;
 
-struct HamHdr					// Hamiltonian record header
-    {
-    ushort	Hterm ;
-    ushort	pad[2] ;
-    ushort	len ;
-    doub&	data()	{ return *cast_to<doub*>(this) ; }
-    } ;
+    struct ObsHdr				// Obs record item header
+	{
+	uint	corder : 10 ;
+	uint	xorder : 10 ;
+	uint	type   : 4  ;
+	} ;
 
-struct GradHdr					// Gradient record poly header
-    {
-    ushort	gen ;
-    ushort	Hterm ;
-    ushort	pad ;
-    ushort	len ;
-    doub&	data()	{ return *cast_to<doub*>(this) ; }
-    } ;
-
-struct CurvHdr					// Curvature record poly header
-    {
-    ushort	gen2 ;
-    ushort	gen1 ;
-    ushort	Hterm ;
-    ushort	len ;
-    doub&	data()	{ return *cast_to<doub*>(this) ; }
-    } ;
-
-struct LagrHdr					// Lagrange record poly header
-    {
-    ushort	gen2 ;
-    ushort	gen1 ;
-    ushort	pad ;
-    ushort	len ;
-    doub&	data()	{ return *cast_to<doub*>(this) ; }
-    } ;
-
-struct GeoHdr					// Geodesic record poly header
-    {
-    uint	indx ;
-    ushort	gen ;
-    ushort	len ;
-    doub&	data()	{ return *cast_to<doub*>(this) ; }
-    } ;
+    struct GenHdr				// Gen record item header
+	{
+	uint	rep   : 8 ;
+	uint	order : 10 ;
+	uint	type  : 2 ;
+	uint	T_odd : 1 ;
+	} ;
+#endif
 
 struct RecHdr				// Data record header
     {
+    usmall	len ;			// Record length (w/o header)
     union
 	{
-	struct
-	    {
-	    ushort	info[3] ;	// type-specific info
-	    ushort	len ;		// subsequent # data elements
-	    } ;
-	real		coef ;		// for alignment
+	OpHdr	op  ;
+	ObsHdr	obs ;
+	GenHdr	gen ;
 	} ;
-
-    operator const ObsHdr&  () const { return *cast_to<const ObsHdr*>(this)  ; }
-    operator const OpHdr&   () const { return *cast_to<const OpHdr*>(this)   ; }
-    operator const GenHdr&  () const { return *cast_to<const GenHdr*>(this)  ; }
-    operator const HamHdr&  () const { return *cast_to<const HamHdr*>(this)  ; }
-    operator const GradHdr& () const { return *cast_to<const GradHdr*>(this) ; }
-    operator const CurvHdr& () const { return *cast_to<const CurvHdr*>(this) ; }
-    operator const LagrHdr& () const { return *cast_to<const LagrHdr*>(this) ; }
-    operator const GeoHdr&  () const { return *cast_to<const GeoHdr*>(this)  ; }
-
-    doub& data() { return *cast_to<doub*>(this) ; }
-
-    RecHdr () {}
-    RecHdr (OpHdr&    h) { data() = h.data() ; }
-    RecHdr (OpHdr&&   h) { data() = h.data() ; }
-    RecHdr (ObsHdr&   h) { data() = h.data() ; }
-    RecHdr (ObsHdr&&  h) { data() = h.data() ; }
-    RecHdr (GenHdr&   h) { data() = h.data() ; }
-    RecHdr (GenHdr&&  h) { data() = h.data() ; }
-    RecHdr (HamHdr&   h) { data() = h.data() ; }
-    RecHdr (HamHdr&&  h) { data() = h.data() ; }
-    RecHdr (GradHdr&  h) { data() = h.data() ; }
-    RecHdr (GradHdr&& h) { data() = h.data() ; }
-    RecHdr (CurvHdr&  h) { data() = h.data() ; }
-    RecHdr (CurvHdr&& h) { data() = h.data() ; }
-    RecHdr (LagrHdr&  h) { data() = h.data() ; }
-    RecHdr (LagrHdr&& h) { data() = h.data() ; }
-    RecHdr (GeoHdr&   h) { data() = h.data() ; }
-    RecHdr (GeoHdr&&  h) { data() = h.data() ; }
     } ;
 
-static_assert (sizeof (RecHdr) >= sizeof (real)) ;
+struct Element				// Data record element
+    {
+    union
+	{
+	RecHdr	hdr ;		// Record header
+	real	coeff ;		// Poly coefficient
+	numb	index ;		// Poly Obs index
+	} ;
+
+    Element () {}
+    Element (OpHdr   h) { hdr.op  = h ; }
+    Element (ObsHdr  h) { hdr.obs = h ; }
+    Element (GenHdr  h) { hdr.gen = h ; }
+    Element (real    c) { coeff   = c ; }
+    Element (numb    n) { index   = n ; }
+
+    const auto& len() const { return hdr.len ; }
+    } ;
+
+static_assert (sizeof (Element) == sizeof (real)) ;
 
 enum class RecordID : char		// Data record type
     {
@@ -136,10 +97,10 @@ class RecIndx				// Data index entry
     uint	ncol    { 1 } ;		// # cols if multi-dim block
     union
 	{
-	uint	nrow    { 0 } ;		// # rows if multi-dim block
-	uint	nelem ;			// # items in block
+	ulong	nrow    { 0 } ;		// # rows if multi-dim block
+	ulong	nelem ;			// # items in block
 	} ;
-    ulong	reclen  { 0 } ;		// data length in RecHdr units
+    ulong	reclen  { 0 } ;		// data length in Element units
     ulong	filepos { 0 } ;		// file offset of data
 
     ulong items () const		// total number of items
@@ -163,7 +124,7 @@ class RecIndxArr : public array<RecIndx,N>	// RecIndx array
 
 class SysIndex ;
 
-class DataRec : public vector<RecHdr>		// Data record
+class DataRec : public vector<Element>		// Data record
     {
     public:
     std::reference_wrapper<RecIndx> indexref ;	// Data index entry
@@ -174,35 +135,35 @@ class DataRec : public vector<RecHdr>		// Data record
 
     char* recptr()				// char* ptr to data
 	{
-	return cast_to<char*> (data()) ;
+	return cast_to<char*>(data()) ;
 	}
     const char* reccptr()			// const char* ptr to data
 	{
-	return cast_to<const char*> (data()) ;
+	return cast_to<char*>(data()) ;
 	}
     void writerec (fstream& stream)		// Write record to stream
 	{
 	entry().reclen  = size() ;
 	entry().filepos = static_cast<std::streamoff> (stream.tellp()) ;
-	if (size()) stream.write (reccptr(), size() * sizeof (RecHdr)) ;
+	if (size()) stream.write (reccptr(), size() * sizeof (Element)) ;
 	}
     void readrec (fstream& stream)		// Read record from stream
 	{
 	resize (entry().reclen) ;
 	if (!entry().reclen) return ;
 	stream.seekg (entry().filepos, std::ios_base::beg) ;
-	stream.read (recptr(), size() * sizeof (RecHdr)) ;
+	stream.read (recptr(), size() * sizeof (Element)) ;
 	}
     void clear()				// Clear data record
 	{
-	vector<RecHdr>::clear() ;
+	vector<Element>::clear() ;
 	entry().nslice	= 1 ;
 	entry().ncol	= 1 ;
 	entry().nrow	= 0 ;
 	}
     void free()					// Free data record
 	{
-	vector<RecHdr>().swap(*this) ;
+	vector<Element>().swap(*this) ;
 	}
     } ;
 

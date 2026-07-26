@@ -11,11 +11,11 @@ class ObsList ;
 class Poly ;
 class SysIndex ;
 
-class Polyindx : public array<uint,PSIZ>		// Obs index tuples
+class Polyindx : public array<numb,PSIZ>		// Obs index tuples
     {
     public:
-    Polyindx (uint i = 0)     : array<uint,PSIZ>{i} {}
-    Polyindx (uint i, uint j) : array<uint,PSIZ>{i,j} { mysort() ; }
+    Polyindx (numb i = 0)     : array<numb,PSIZ>{i} {}
+    Polyindx (numb i, numb j) : array<numb,PSIZ>{i,j} { mysort() ; }
 
     void mysort()					// sort indices
 	{ std::sort (begin(), end(), std::greater()) ; }
@@ -40,9 +40,9 @@ class PolyTerm : public Term<real,Polyindx>		// Polynomial term
     public:
     using	Term<real,Polyindx>::Term ;
 
-    operator	Polyindx()	  const { return item ; }	// Conversion
-    const uint	operator[](int i) const { return item[i] ; }	// Subscript
-    uint&	operator[](int i)	{ return item[i] ; }	// Subscript
+    operator	Polyindx()	   const { return item ; }	// Conversion
+    const numb	operator[](uint i) const { return item[i] ; }	// Subscript
+    numb&	operator[](uint i)	 { return item[i] ; }	// Subscript
 
     PolyTerm	operator* (const PolyTerm&) const ;		// Combine
     PolyTerm	operator* (doub z) const			// Scale term
@@ -58,7 +58,7 @@ struct Polyhash						// Polyindx hash function
     std::size_t operator() (const Polyindx&) const noexcept ;
     } ;
 
-class PolyMap : public hash<Polyindx,doub,Polyhash>	// PolyTerm hash table
+class PolyMap : public hash<Polyindx,real,Polyhash>	// PolyTerm hash table
     {
     std::reference_wrapper<ObsList> list ;		// Observable list
 
@@ -67,7 +67,7 @@ class PolyMap : public hash<Polyindx,doub,Polyhash>	// PolyTerm hash table
 
     ObsList& obslist() const { return list ; }		// Underlying ObsList
 
-    void add (Polyindx t, doub d)			// Add term to PolyMap
+    void add (Polyindx t, real d)			// Add term to PolyMap
 	{
 	auto [iter, isnew] { try_emplace (t, d) } ;
 	if (!isnew) iter->second += d ;
@@ -83,7 +83,7 @@ class PolyMap : public hash<Polyindx,doub,Polyhash>	// PolyTerm hash table
 	}
     void purge ()					// Purge zero entries
 	{
-	std::erase_if (*this, [](const pair<Polyindx,doub>& p)
+	std::erase_if (*this, [](const pair<Polyindx,real>& p)
 	    { return !p.second ; }) ;
 	}
     bool allzero () { purge() ; return !size() ; }	// Vanishing Poly?
@@ -104,27 +104,36 @@ class ObsPoly : public vector<PolyTerm>			// Polynomial of Obs
     ObsList&	obslist() const { return list ; }	// Underlying ObsList
 
     ObsPoly (ObsList& l) : list(l) {}			// Constructor
-    ObsPoly (uint indx, ObsList& l)			// Constructor
+    ObsPoly (numb indx, ObsList& l)			// Constructor
 	: list(l), vector<PolyTerm>(1, PolyTerm(indx)) {}
 
     friend ostream& operator<< (ostream&, const ObsPoly&) ;
     } ;
 
-struct Poly : public RecHdr				// Packed ObsPoly
+class Poly : public Element				// Packed ObsPoly
     {
     public:
-    const PolyTerm* begin() const
-	{ return cast_to<const PolyTerm*>(this + 1) ; }
+    const Poly* begin() const { return this + 1 ; }
+    const Poly* end()   const { return this + this->hdr.len + 1 ; }
 
-    const PolyTerm* end() const
-	{ return cast_to<const PolyTerm*>(this + 1 + len * ptermsize) ; }
+    static PolyTerm nextterm (const Poly*& ptr)
+	{
+	PolyTerm term { Polyindx{}, ptr++->coeff } ;
+	for (int i(0) ; i < PSIZ ; ++i)
+	    {
+	    numb indx { ptr++->index } ;
+	    term.item[i] = abs(indx) ;
+	    if (indx >= 0) break ;
+	    }
+	return term ;
+	}
 
     friend ostream& operator<< (ostream&, const Poly&) ;
 
-    static constexpr int ptermsize = sizeof (PolyTerm) / sizeof (RecHdr) ;
+    static constexpr int ptermsize = sizeof (PolyTerm) / sizeof (Element) ;
     } ;
 
-static_assert (sizeof (PolyTerm) % sizeof (Poly) == 0) ;
+static_assert (sizeof(Poly) == sizeof(numb)) ;
 
 class PolyRec : public DataRec				// Polynomial data record
     {
@@ -132,19 +141,16 @@ class PolyRec : public DataRec				// Polynomial data record
     mutable vector<ulong> offset ;			// Item offests
 
     using DataRec::DataRec ;
-    PolyRec (DataRec rec) : DataRec (rec) {}		// Copy constructor
 
-    void add (RecHdr, PolyMap&) ;			// Add PolyTerms
-    void add (RecHdr, ObsPoly&) ;			// Add PolyTerms
+    void add (PolyMap&) ;				// Add PolyTerms
+    void add (const ObsPoly&) ;				// Add PolyTerms
 
     void clear () { DataRec::clear() ; offset.clear() ; }	// Clear data
 
-    const Poly& operator() (uint k, uint j=0, uint i=0) const	// Indexed Poly
+    const Poly& operator() (numb k, numb j=0, numb i=0) const	// Indexed Poly
 	{						// N.B. slice/col major!
-//cout << "Poly() k " << k << " j " << j << " i " << i << "\n" << flush ;
 	if (offset.empty()) slice_n_dice () ;
 	auto dataptr { begin().ptr } ;
-//cout << " offset " << (i * entry().ncol + j) * entry().nrow + k << "\n" << flush ;
 	return dataptr [offset [(i * entry().ncol + j) * entry().nrow + k]] ;
 	}
 
@@ -164,9 +170,8 @@ class PolyRec : public DataRec				// Polynomial data record
     struct PolyIter					// Packed Poly iterator
 	{
 	const Poly*	ptr ;
-	const Poly&	operator*() { return *ptr ; }
-	PolyIter& 	operator++()
-			{ ptr += 1 + ptr->len * Poly::ptermsize ; return *this ; }
+	const Poly&	operator*()  { return *ptr ; }
+	PolyIter& 	operator++() { ptr += ptr->hdr.len + 1 ; return *this ; }
 	bool		operator!= (const PolyIter& a) { return ptr != a.ptr ; }
 
 	PolyIter (const Poly* p) : ptr(p) {}

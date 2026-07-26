@@ -15,8 +15,8 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 		   << " frozen " << frozen() << " approx " << approx
 		   << " classify " << classify << " " << a << "\n" << flush ;
 
-    doub	sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
-    uint	indx { find (a) } ;
+    real	sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
+    numb	indx { find (a) } ;
 
     if (blab > 1) cout << "assess " << depth << "| "
 		       << (sgn < 0 ? "-" : "") << a << "\n" ;
@@ -109,7 +109,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
     else					// Temp list: just store
 	{
 	a.shrink_to_fit() ;
-	uint indx { store(a) } ;
+	numb indx { store(a) } ;
 	if (blab > 1)
 	    {
 	    cout << "assess " << depth << ":: " << a
@@ -637,7 +637,7 @@ short Obs::noEbound (const ObsList& list) const	// Lower bound xorder, Obs w. E'
 
     ObsType	ntype { is_Efermion() ? ObsType::Fermion : ObsType::Loop } ;
     Obs		obs   { buf, ntype, corder, -1 } ; obs.canon() ;
-    uint	indx  { list.find (obs) } ;
+    numb	indx  { list.find (obs) } ;
     short	xord  ( indx == UINT_MAX ? SHRT_MAX : list(indx).xorder ) ;
     if (blab > 1)
 	{

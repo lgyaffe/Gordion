@@ -16,14 +16,15 @@ Gen::Gen (const Op& op)				// Construct w/o projection
     inner_commute () ;
     }
 
-Gen::Gen (const OpSum& s, GenHdr& hdr, doub coeff)	// Constructor
+Gen::Gen (const OpSum& s, Element& e, real coeff)	// Constructor
     :
     OpSum (s),
-    type  ((OpType) hdr.type),
-    order (hdr.order),
-    T_odd (hdr.T_odd),
-    imag  ((theory.euclid ? (hdr.len % 2) : hdr.T_odd) ^ !Rep::list[hdr.rep].C_even),
-    coeff (coeff)
+    coeff (coeff),
+    type  ((OpType) e.hdr.gen.type),
+    order (e.hdr.gen.order),
+    T_odd (e.hdr.gen.T_odd),
+    imag  ((theory.euclid ? e.hdr.len % 2
+			  : e.hdr.gen.T_odd) ^ !Rep::list[e.hdr.gen.rep].C_even)
     { inner_commute() ; }
 
 Gen::Gen (const Op& op, const Proj& proj)		// Construct with given projector
@@ -42,8 +43,8 @@ Gen::Gen (const Op& op, const Proj& proj)		// Construct with given projector
 	if (proj[i])
 	    {
 	    auto [sgn,trans]	{ Symm::list[i](op) } ;
-	    uint indx		{ oplist().store (trans) } ;
-	    emplace_back (OpTerm {indx, proj[i] * sgn} ) ;
+	    numb indx		{ oplist().store (trans) } ;
+	    emplace_back (OpTerm (indx, proj[i] * sgn) ) ;
 	    }
 	}
     if (int k = OpSum::collect(true))		// collect terms
@@ -89,7 +90,7 @@ Gen::Gen (const OpSum& s, const Proj& proj)		// Construct with given projector
 	    if (proj[i])
 		{
 		auto [sgn,trans] { Symm::list[i](op) } ;
-		uint indx	 { oplist().store (trans) } ;
+		numb indx	 { oplist().store (trans) } ;
 		emplace_back (indx, t.coeff * proj[i] * sgn) ;
 		}
 	    }
@@ -218,7 +219,7 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
 	}
     for (const auto& s : b) genmtx(s.item,ngen) = s.coeff ;
 
-    return rank (genmtx) == ncol(genmtx) ;
+    return arma::rank (genmtx) == genmtx.n_cols ;
     }
 
 bool Gen::allzero () const				// Vanishing Gen?

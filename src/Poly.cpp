@@ -4,7 +4,7 @@
 std::size_t Polyhash::operator()(const Polyindx& t)	// Polyindx hash function
     const noexcept
     {
-    std::hash<uint> hasher ;
+    std::hash<numb> hasher ;
     size_t answer { 0 } ;
     for (auto x : t)
 	{
@@ -65,9 +65,10 @@ ObsPoly& ObsPoly::negate ()				// Negate ObsPoly
 void ObsPoly::add (const Poly& poly)			// Add Poly
     {
     if (obslist().neq (ObsList::obs)) abort ("Bad ObsPoly::add call") ;
-    for (const auto& t : poly)
+    for (auto pptr { poly.begin() } ; pptr < poly.end() ;)
 	{
-	if (t.coeff) emplace_back (t.item, t.coeff) ;
+	PolyTerm t { Poly::nextterm (pptr) } ;
+	if (t.coeff) push_back (t) ;
 	}
     shrink_to_fit() ;
     sort() ;
@@ -88,34 +89,44 @@ void ObsPoly::push_map (PolyMap& map)			// Add PolyMap
 
 bool PolyMap::add_gen (const Gen& gen)			// Add Gen to PolyMap
     {
-    const auto& oplist { gen.oplist() } ;
+    bool	notrunc { true } ;
+    const auto& oplist	{ gen.oplist() } ;
     for (auto& t : gen)
 	{
 	const auto&	op  { oplist[t.item] } ;
 	Obs		obs { op, (ObsType) op.type, op.order, -1 } ;
 	PolyTerm	tmp { obslist().is_known (std::move(obs)) } ;
-	if (tmp.coeff) add (tmp * t.coeff * gen.coeff) ;
-	else return false ;
+	if (tmp.coeff)  add (tmp * t.coeff * gen.coeff) ;
+	else notrunc = false ;
 	}
-    return true ;
+    return notrunc ;
     }
 
-void PolyRec::add (RecHdr hdr, ObsPoly& poly)	// Add ObsPoly to PolyRec
+void PolyRec::add (const ObsPoly& obspoly)		// Add ObsPoly to PolyRec
     {
-    hdr.len = poly.size() ;
-    push_back (hdr) ;
-    for (auto& term : poly)
+    uint n(0) ;
+    push_back (Element {}) ;
+    for (const auto& term : obspoly)
 	{
-	auto ptr  { cast_to<const Poly*> (&term) } ;
-	insert (DataRec::end(), ptr, ptr + Poly::ptermsize) ;
+	auto indx { term.item[0] } ;
+	push_back (term.coeff) ; ++n ;
+	for (int i(0) ; indx && i < PSIZ-1 ; ++i)
+	    {
+	    auto next { term.item[i+1] } ;
+	    if (next) { push_back (-indx) ; ++n ;
+	    indx = next ; }
+	    else break ;
+	    }
+	push_back (indx) ; ++n ;
 	}
+    (&back() - n)->hdr.len = n ;
     }
 
-void PolyRec::add (RecHdr hdr, PolyMap& map)	// Add PolyMap to PolyRec
+void PolyRec::add (PolyMap& map)	// Add PolyMap to PolyRec
     {
-    ObsPoly poly { ObsList::obs } ;
-    poly.push_map (map) ;			// copy to ObsPoly for sorting
-    add (hdr, poly) ;
+    ObsPoly obspoly { ObsList::obs } ;
+    obspoly.push_map (map) ;			// copy to ObsPoly for sorting
+    add (obspoly) ;
     }
 
 ostream& operator<< (ostream& stream, const Polyindx& t)	// Print Polyindx
@@ -127,7 +138,8 @@ ostream& operator<< (ostream& stream, const Polyindx& t)	// Print Polyindx
 
 ostream& operator<< (ostream& stream, const ObsPoly& poly)	// Print ObsPoly
     {
-    string	sep { poly.size() > 3 ? "\n\t" : " " } ;
+    //string	sep { poly.size() > 3 ? "\n\t" : " " } ;
+    string	sep	{ "\n\t" } ;
     int		count(0) ;
     for (const auto& t : poly)
 	{
@@ -139,7 +151,8 @@ ostream& operator<< (ostream& stream, const ObsPoly& poly)	// Print ObsPoly
 
 ostream& operator<< (ostream& stream, const PolyMap& map)	// Print PolyMap
     {
-    string	sep { map.size() > 3 ? "\n\t" : " " } ;
+    //string	sep { map.size() > 3 ? "\n\t" : " " } ;
+    string	sep	{ "\n\t" } ;
     int		count(0) ;
     for (const auto& [key,coeff] : map)
 	{
@@ -152,11 +165,14 @@ ostream& operator<< (ostream& stream, const PolyMap& map)	// Print PolyMap
 
 ostream& operator<< (ostream& stream, const Poly& poly)		// Print Poly
     {
-    string	sep  { poly.len > 3 ? "\n\t" : " " } ;
-    int		count(0) ;
-    for (const auto& t : poly)
+    //string	sep	{ poly.hdr.len > 3 ? "\n\t" : " " } ;
+    string	sep	{ "\n\t" } ;
+    int		count	(0) ;
+
+    for (auto pptr { poly.begin() } ; pptr < poly.end() ;)
 	{
 	if (count++) stream << sep ;
+	PolyTerm t { Poly::nextterm (pptr) } ;
 	t.print (stream, ObsList::obs) ;
 	}
     return stream << (count ? "" : " 0") ;

@@ -59,35 +59,35 @@ string Global::stageabbrev (int stage, const string& ext)
 
 void Global::mk_bcktlist ()			// Make Obs bucket list
     {
-    auto&	bckt  { info(stage).bckt } ;
-    uint	count { info(stage).nobs } ;
-    uint	start { stage ? info(0).nobs : 0 } ;
-    uint	end   { start + count } ;
-    uint	chunk ( 1024 ) ;
+    auto&	bckt  { info().bckt } ;
+    long	count { info().nobs } ;
+    long	start { stage ? info(0).nobs : 0 } ;
+    numb	end   ( start + count ) ;
+    numb	chunk ( 1024 ) ;
 
     if (count >= MAXBCKT * chunk) chunk = 1 + (count - 1)/MAXBCKT ;
 
     bckt.resize (count ? 1 + (count - 1)/chunk : 0) ;
-    for (uint i(start), k(0) ; i < end ; i += chunk, ++k)
+    for (numb i(start), k(0) ; i < end ; i += chunk, ++k)
 	{
-	bckt[k] = uint3 { k, i, std::min(i+chunk, end) - 1 } ;
+	bckt[k] = numb3 { k, i, std::min(i+chunk, end) - 1 } ;
 	}
     }
 
-uint3 Global::bckt_pos (uint i)			// Return stage/bucket/indx
+numb3 Global::bckt_pos (numb i)			// Return stage/bucket/indx
     {
-    uint	stage { i >= info(0).nobs } ;
-    uint	start { stage ? info(0).nobs : 0 } ;
+    int		stage { i >= info(0).nobs } ;
+    long	start { stage ? info(0).nobs : 0 } ;
     const auto& bckt  { info(stage).bckt } ;
 
     if (bckt.size())
 	{
 	if (i <= bckt.back()[2])
 	    {
-	    uint n { bckt.front()[2] - bckt.front()[1] + 1 } ;
-	    uint j { (i - start) / n } ;
-	    uint k {  i - bckt[j][1]  } ;
-	    return uint3 { stage, j, k } ;
+	    numb n { bckt.front()[2] - bckt.front()[1] + 1 } ;
+	    numb j ( (i - start) / n ) ;
+	    numb k {  i - bckt[j][1]  } ;
+	    return numb3 { stage, j, k } ;
 	    }
 	else fatal ("Invalid observable number!") ;
 	}

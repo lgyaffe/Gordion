@@ -3,27 +3,9 @@
 #include "Index.h"
 #include "Obs.h"
 
-using OpTerm = Term<doub,uint> ;			// Term with list index
+using OpTerm = Term<real,numb> ;			// Term with list index
 class OpList ;
 class Obs ;
-
-class OpSum : public vector<OpTerm>			// Op linear combination
-    {
-    std::reference_wrapper<OpList> list ;		// Operator list
-
-    public:
-    OpSum (OpList&) ;					// Constructor
-    OpSum (OpTerm*, OpTerm*, OpList&) ;			// Constructor
-
-    OpList&		oplist() const { return list ;} // Underlying OpList
-    int			collect (bool = false) ;	// Collect terms
-    OpSum 		flipT   () const ;		// Flip fermion staggering
-    OpSum 		loop_dt () ;			// Return [EE,loops]/2
-    static OpSum 	loop_dt (Op, OpList&) ;		// Return [EE,loops]/2
-    static OpSum 	loop_dt (OpTerm, OpSum&) ;	// Return [EE,loops]/2
-
-    friend ostream& operator<< (ostream&, const OpSum&) ;
-    } ;
 
 enum class OpType : char				// Operator types
     {
@@ -46,7 +28,7 @@ class Op : public Str					// Op = generator term
     explicit Op (const string&, short) ;		// Constructor
     explicit Op (const string&, OpType, short) ;	// Constructor
 
-    Op (const Str& s, OpHdr& hdr)			// Constructor
+    Op (const Str& s, const OpHdr& hdr)			// Constructor
 	:
 	Str	(s),
 	type	((OpType) hdr.type),
@@ -94,24 +76,42 @@ class Op : public Str					// Op = generator term
 class OpList : public Index<Op>
     {
     public:
-    uint	store () ;			// Store Op in list
+    numb	store () ;			// Store Op in list
     void	setprimary () ;			// Identify primary Op's
 
-    uint store (const Op& op)			// Store Op in list
+    numb store (const Op& op)			// Store Op in list
 	{
-	uint	len  ( size() ) ;
+	auto	len  ( size() ) ;
 	uint	indx { Index::store (op,op) } ;
 	if (indx >= size()) fatal ("OpList::store: bad store! ") ;
 	return indx ;
 	}
-    void purge (uint limit)			// Purge entries
+    void purge (numb limit)			// Purge entries
 	{
 	std::erase_if (map, [&](const auto& p) { return p.second >= limit ; }) ;
 	resize (limit) ;
 	}
 
-    ostream& print (ostream&, uint) const ;	// Print indexed Op
+    ostream& print (ostream&, numb) const ;	// Print indexed Op
     ostream& print (ostream&) const ;		// Print Op list
+    } ;
+
+class OpSum : public vector<OpTerm>			// Op linear combination
+    {
+    std::reference_wrapper<OpList> list ;		// Operator list
+
+    public:
+    OpSum (OpList&) ;					// Constructor
+    OpSum (OpTerm*, OpTerm*, OpList&) ;			// Constructor
+
+    OpList&		oplist() const { return list ;} // Underlying OpList
+    int			collect (bool = false) ;	// Collect terms
+    OpSum 		flipT   () const ;		// Flip fermion staggering
+    OpSum 		loop_dt () ;			// Return [EE,loops]/2
+    static OpSum 	loop_dt (Op, OpList&) ;		// Return [EE,loops]/2
+    static OpSum 	loop_dt (OpTerm, OpSum&) ;	// Return [EE,loops]/2
+
+    friend ostream& operator<< (ostream&, const OpSum&) ;
     } ;
 
 #endif

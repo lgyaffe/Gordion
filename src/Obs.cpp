@@ -122,17 +122,13 @@ bool Obs::Esublat() const				// E sublattice ?
 
 ObsType Obs::obstype (const string s)			// Determine Obs type
     {
-    int				nE = 0 ;
-    int				nF = 0 ;
     std::regex			E_s ("[ABCD]") ;
     std::regex			F_s ("[FGHI]") ;
+    std::sregex_iterator	end ;
     std::sregex_iterator	Ebeg (s.begin(), s.end(), E_s) ;
     std::sregex_iterator	Fbeg (s.begin(), s.end(), F_s) ;
-    std::sregex_iterator	Eend ;
-    std::sregex_iterator	Fend ;
-
-    while (Ebeg != Eend) { ++nE ; ++Ebeg ; }	// count E's
-    while (Fbeg != Fend) { ++nF ; ++Fbeg ; }	// count F's
+    int				nE ( std::distance (Ebeg, end) ) ;
+    int				nF ( std::distance (Fbeg, end) ) ;
 
     if      (nE == 0 && nF == 0) return ObsType::Loop ;
     else if (nE == 1 && nF == 0) return ObsType::Eloop ;
@@ -229,7 +225,7 @@ ObsList::ObsList (const string s, bool can, bool clsfy)		// Construct ObsList
 PolyTerm ObsList::is_known (Obs&& a) const			// Find in ObsList
     {
     doub	sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
-    uint	indx { find (a) } ;
+    numb	indx { find (a) } ;
 
     return (indx < UINT_MAX-1) ? PolyTerm (Polyindx(indx), sgn)
 			       : PolyTerm (Polyindx(),     0.0) ;
@@ -239,8 +235,8 @@ PolyTerm ObsList::is_known (Obs&& a, Obs&& b) const		// Find in ObsList
     {
     doub	sgna  ( canonicalize ? a.canon() : a.findstart() ) ;
     doub	sgnb  ( canonicalize ? b.canon() : b.findstart() ) ;
-    uint	indxa { find (a) } ;
-    uint	indxb { find (b) } ;
+    numb	indxa { find (a) } ;
+    numb	indxb { find (b) } ;
 
     return (indxa < UINT_MAX-1 && indxb < UINT_MAX-1) ?
 	PolyTerm (Polyindx(indxa, indxb), sgna * sgnb) :
@@ -254,7 +250,7 @@ PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
     if (Obs::check) a.validate() ;
 
     int  sgn  { canonicalize ? a.canon() : a.findstart() } ;
-    uint indx { find(a) } ;
+    numb indx { find(a) } ;
     if (indx < UINT_MAX-1)
 	{
 	if (blab > 1)
@@ -288,8 +284,8 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
 
     int	sgna ( canonicalize ? a.canon() : a.findstart() ) ;
     int	sgnb ( canonicalize ? b.canon() : b.findstart() ) ;
-    uint indxa { find(a) } ;
-    uint indxb { find(b) } ;
+    numb indxa { find(a) } ;
+    numb indxb { find(b) } ;
 
     if (indxa < UINT_MAX-1 && indxb < UINT_MAX-1)
 	{
@@ -323,7 +319,7 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
     return ans ;
     }
 
-uint ObsList::store (const Obs& o)			// Store Obs in ObsList
+numb ObsList::store (const Obs& o)			// Store Obs in ObsList
     {
     uint blab { Blab::level(Blab::OBS) } ;
     if (classify)
@@ -344,7 +340,7 @@ uint ObsList::store (const Obs& o)			// Store Obs in ObsList
 	}
     if (blab > 1) cout << "Storing in " << name << ": " << o << "\n" ;
     auto [iter, isnew] { map.try_emplace (o, (*this).size()) } ;
-    uint indx { iter->second } ;
+    numb indx { iter->second } ;
     if (isnew)
 	{
 	push_back (&(iter->first)) ;
@@ -352,6 +348,8 @@ uint ObsList::store (const Obs& o)			// Store Obs in ObsList
 	    {
 	    auto& info { global.info(o.is_fermi()) } ;
 	    hasher (info.obshash, o) ;
+	    if (info.nobs == MAXOBS)
+		gripe ("Max # Obs exceeded: recompile without NUM32!") ;
 	    ++info.nobs ;
 	    }
 	}
@@ -372,7 +370,7 @@ void ObsList::empty ()					// Empty list
     store (Obs(Str(), ObsType::Loop, 0, 0)) ;
     }
 
-void ObsList::purge (uint limit)			// Purge entries
+void ObsList::purge (numb limit)			// Purge entries
     {
     resize (limit) ;
     if (!neq (ObsList::obs))
@@ -499,12 +497,12 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
     {
     uint	initfail  ( 0 ) ;
-    uint	beg	  { global.info(0).nobs } ;
     uint	blab	  { Blab::level(Blab::OBS) } ;
+    long	beg	  { global.info(0).nobs } ;
     if (blab > 3) cout << "do_fermiinit start\n" << flush ;
 
     fermiinit.clear () ;
-    for (uint i(beg) ; i < size() ; ++i)
+    for (long i(beg) ; i < size() ; ++i)
 	{
 	const Obs& a { (*this)(i) } ;
 	if (!a.is_Fermion() || !a.isclosed()) continue ;
@@ -523,7 +521,7 @@ int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
     return initfail ;
     }
 
-ostream& ObsList::print (ostream& stream, uint indx) const	// Print indexed Obs
+ostream& ObsList::print (ostream& stream, numb indx) const	// Print indexed Obs
     {
     bool	addvev	 { !neq(ObsList::obs) } ;
     auto	prevprec { stream.precision(12) } ;

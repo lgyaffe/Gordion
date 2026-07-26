@@ -108,7 +108,6 @@ void Parse::parse_cmd (const string& buf)		// Parse command
     else if (isword(cmd,"set"))		valid = parse_set   (line) ;
     else if (isword(cmd,"reset"))	valid = parse_reset (line) ;
     else if (isword(cmd,"call"))	valid = parse_call  (line) ;
-    else if (isword(cmd,"add"))		valid = parse_add   (line) ;
     else if (isword(cmd,"build"))	valid = parse_build (line) ;
     else if (isword(cmd,"generator"))	valid = parse_gen   (line) ;
     else if (isword(cmd,"evaluate"))	valid = parse_eval  (line) ;
@@ -362,7 +361,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		Obs	o	{ word } ;
 		int	sgn	{ o.canon() } ;
 		int	stage	{ o.is_fermi() } ;
-		uint	indx	{ ObsList::obs.find (o) } ;
+		numb	indx	{ ObsList::obs.find (o) } ;
 		if (indx != UINT_MAX)
 		    {
 		    global.info(stage).MMAobs.emplace (indx,o) ;
@@ -613,7 +612,7 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 			    {
 			    try {
 				Obs  o { word } ; o.canon() ;
-				uint indx { ObsList::obs.find (o) } ;
+				numb indx { ObsList::obs.find (o) } ;
 				if (indx != UINT_MAX && order < 0)
 				    order = ObsList::obs(indx).corder ;
 				}
@@ -666,99 +665,13 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
     return valid ;
     }
 
-bool Parse::parse_add (istringstream& line)		// Parse "add" command
-    {
-    bool	valid { true } ;
-    string	word ;
-    if (line >> word)
-	{
-	if (isword(word,"generator"))
-	    {
-	    doub	coef  (0) ;
-	    short	order (-1) ;
-	    int		type  (-1) ;
-	    bool	gotcoef { line >> coef } ;
-	    bool	gotword { false } ;
-	    OpSum	sum[2] { global.info(0).ops, global.info(1).ops } ;
-
-	    if (!gotcoef)
-		{
-		line.clear() ;
-		if (line >> word)
-		    {
-		    std::regex	pattern { "\\((\\d+)\\)" } ;
-		    std::smatch match ;
-		    if (std::regex_match (word, match, pattern))
-			{
-			order = stoi (match[1].str()) ;
-			gotword = false ;
-			}
-		    else
-			{
-			gotword = true ;
-			coef = 1.0 ;
-			}
-		    }
-		}
-
-	    do  {
-		if (!gotcoef && !gotword && !(line >> coef))
-		    {
-		    line.clear() ;
-		    coef = 1.0 ;
-		    }
-		gotcoef = false ;
-		if (gotword || (line >> word))
-		    {
-		    try {
-			Obs o { word } ; o.canon() ;
-			uint indx { ObsList::obs.find (o) } ;
-			if (indx != UINT_MAX)
-			    {
-			    short cord { ObsList::obs(indx).corder } ;
-			    if (order < 0) order = cord ;
-			    else if (order != cord)
-				gripe ("Invalid generator: inconsistent orders") ;
-			    }
-			}
-		    catch (const BadInput&) {}
-		    if (order >= 0)
-			{
-			Op	op   { word, order } ;
-			bool	isF  { op.is_Fermion() } ;
-			if (type < 0) type = isF ;
-			else if (type != isF)
-			    gripe ("Can't mix gauge and fermi Op's") ;
-			auto&	list { global.info(type).ops } ;
-			sum[type].emplace_back (list.store(op), coef) ;
-			}
-		    else gripe ("unknown order for " + word) ;
-		    gotword = false ;
-		    }
-		} while (!eos(line)) ;
-
-	    if (type >= 0 && sum[type].size())
-		{
-		int n { Gen::addgen (std::move(sum[type])) } ;
-		if (n)	cout << "  " << n ;
-		else	cout << "  No" ;
-		cout << " generators added\n" ;
-		}
-	    else valid = false ;
-	    }
-	else valid = false ;
-	}
-    else valid = false ;
-    return valid ;
-    }
-
 bool Parse::parse_print (istringstream& line)		// Parse "print" commands
     {
     using namespace Print ;
 
     bool	valid { true } ;
     bool	isH   { !theory.euclid } ;
-    uint	i, j, k ;
+    numb	i, j, k ;
     string	word ;
     if (line >> word)
 	{
@@ -868,7 +781,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 
 bool Parse::parse_test (istringstream& line)		// Parse "test" commands
     {
-    uint	i(0) ;
+    numb	i(0) ;
     auto	nobs  { ObsList::obs.size() } ;
     bool	valid { true } ;
     string	word, word2 ;
@@ -905,7 +818,7 @@ bool Parse::parse_test (istringstream& line)		// Parse "test" commands
 bool Parse::parse_call (istringstream& line)		// Parse "call" commands
     {
     string	word, word2 ;
-    uint	i, j ;
+    numb	i, j ;
     if (line >> word)
 	{
 	if (isword(word,"canon") && parse_args (line,word2))
@@ -928,7 +841,7 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    {
 	    auto&	gens  { global.info().gens[global.repnum] } ;
 	    uint	ngens ( gens.size() ) ;
-	    uint	nobs  ( ObsList::obs.size() ) ;
+	    numb	nobs  ( ObsList::obs.size() ) ;
 
 	    if (i < ngens && j < nobs)
 		{
@@ -1026,8 +939,6 @@ void Parse::parse_help ()					// Print command help
     {
     cout << "Usage: " << program << cmdargs << "\n" ;
     cout << R"(Commands:
-add		generator	[(<order>)] [<coeff>] <op> [...] (deprecated)
-
 build		observables	<maxorder>
 		geodesics
 		gradient
