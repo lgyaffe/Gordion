@@ -37,7 +37,7 @@ struct SerialData				// Serialised stage data
     PolyArr<MAXBCKT>	geos  ;		// Geodesic equations
     } ;
 
-static constexpr int NENTRY = 6 + 2 * NREP + MAXBCKT ;
+static constexpr int NENTRY = 6 + 2 * NREP + MAXBCKT + 1 ;
 
 class SysIndex : public RecIndxArr<NENTRY> {} ;	// Sys-info file index
 
@@ -94,7 +94,6 @@ class Global					// Global data
     uint	maxthread  { 0 } ;		// Thread limit
     bool	autosave   { false } ;		// Write savefile on bulid
     bool	geoswap    { false } ;		// Swap geo bckts to disk
-    bool	massreinit { true } ;		// Auto reinit on new mass?
     bool	symcurv    { true } ;		// Symmetrize curvature?
     bool	fermivev   { false } ;		// Non-base fermi vev's?
     bool	oknegeig   { false } ;		// Negative curvature OK?

@@ -217,7 +217,7 @@ void OpList::setprimary ()			// Determine Op primacy
 	{
 	Op op1 { (*this)[i] } ;			// N.B. non-ref needed
 	if (!op1.order) continue ;
-	for (int j(0) ; j < i ; ++j)
+	for (int j(0) ; j <= i ; ++j)		// N.B. include i == j
 	    {
 	    Op op2 { (*this)[j] } ;		// N.B. non-ref needed
 	    if (!op2.order) continue ;
@@ -233,7 +233,7 @@ void OpList::setprimary ()			// Determine Op primacy
 		else if (new1.order > op1.order + op2.order)
 		    cout << "Warning: mis-ordered Op: " << new1 << "\n" ;
 		}
-	    for (int k(0) ; k <= i ; ++k)
+	    for (int k(0) ; k <= i ; ++k)	// need triples for fermions
 		{
 		Op op3 { (*this)[k] } ;		// N.B. non-ref needed
 		if (!op3.order) continue ;

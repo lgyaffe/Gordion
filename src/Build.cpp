@@ -382,6 +382,7 @@ void Build::mk_grad()				// Build gradient
     PolyMap	ans	{ ObsList::obs } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
+    if (grad.entry().id != RecordID::Grad) fatal ("mk_grad: bad record ID!") ;
 
     grad.clear() ;
     if (blab) cout << "Gradient:    " << flush ;
@@ -400,7 +401,6 @@ void Build::mk_grad()				// Build gradient
 	    if (global.interrupt) return ;
 	    }
 	}
-    if (grad.entry().id != RecordID::Grad) fatal ("mk_grad: bad record ID!") ;
     grad.shrink_to_fit() ;
     grad.entry().ncol   = nterms ;
     grad.entry().nrow   = ngens ;
@@ -431,6 +431,7 @@ void Build::mk_curv (uint repnum)			// Build curvature
     PolyMap	tmp	{ tmplist } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
+    if (curv.entry().id != RecordID::Curv) fatal ("mk_curv: bad record ID!") ;
 
     curv.clear() ;
     if (blab && ngens && nterms) cout << repnam << " curvature:    " << flush ;
@@ -459,7 +460,6 @@ void Build::mk_curv (uint repnum)			// Build curvature
 		}
 	    }
 	}
-    if (curv.entry().id != RecordID::Curv) fatal ("mk_curv: bad record ID!") ;
     curv.shrink_to_fit() ;
     curv.entry().nslice  = nterms ;
     curv.entry().ncol    = ngens ;
@@ -490,10 +490,10 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     PolyMap	ans	{ ObsList::obs } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
-
-    if (ngens && blab) cout << repnam << " Lagrange brkt: " << flush ;
+    if (lagr.entry().id != RecordID::Lagr) fatal ("mk_lagr: bad record ID!") ;
 
     lagr.clear();
+    if (ngens && blab) cout << repnam << " Lagrange brkt: " << flush ;
     for (ushort j(0) ; j < neven ; ++j)
 	{
 	for (ushort k(neven) ; k < ngens ; ++k)
@@ -507,7 +507,6 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
 	    if (global.interrupt) return ;
 	    }
 	}
-    if (lagr.entry().id != RecordID::Lagr) fatal ("mk_lagr: bad record ID!") ;
     lagr.shrink_to_fit() ;
     lagr.entry().ncol   = neven ;
     lagr.entry().nrow   = ngens - neven ;
@@ -875,6 +874,7 @@ void Build::do_geo_bckt (const numb3& bckt)		// Do bucket of geodesic eqns
     ulong		nterms	(0) ;
     array<ulong,PSIZ+1>	geotermord {} ;
 
+    if (geos.entry().id != RecordID::Geos) fatal ("do_geos_bckt: bad record ID!") ;
     geos.clear() ;
     for (numb i(first) ; i <= last ; ++i)
 	{
@@ -908,7 +908,6 @@ void Build::do_geo_bckt (const numb3& bckt)		// Do bucket of geodesic eqns
 	    if (global.interrupt) return ;
 	    }
 	}
-    if (geos.entry().id != RecordID::Geos) fatal ("mk_geos_bckt: bad record ID!") ;
     geos.shrink_to_fit() ;
     geos.entry().ncol   = bcktsiz ;
     geos.entry().nrow   = ngens ;
