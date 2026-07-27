@@ -4,20 +4,20 @@
 #
 # Include on command line:
 #   DBG=1 for debugging compilation with -g
-#   EIGEN=1 for compilation with Eigen library instead of Armadillo
+#   NUM32=1 for 32-bit observable indices & polynomial coefficients
 #   MASSSCALE=<exponent> to scale fermion masses with a power of gauge coupling
 #
 # LGY 5/2026
 
 TARGET   = gordion
 CXX      = c++
-CXXFLAGS = -std=c++20 -I.
+CXXFLAGS = -std=c++20 -I. -DARMA_DONT_USE_WRAPPER 
+OS	:= $(shell uname)
 
-ifdef EIGEN
-CXXFLAGS += -DEIGEN
+ifeq ($(OS), Darwin)
+LDFLAGS   = -framework Accelerate
 else
-CXXFLAGS += -DARMA
-LDFLAGS  = -larmadillo
+LDFLAGS   = -lopenblas
 endif
 
 ifdef DBG
@@ -25,6 +25,10 @@ CXXFLAGS += -O0 -g
 else
 CXXFLAGS += -O3 -DPARALLEL
 LDFLAGS  += -ltbb
+endif
+
+ifdef NUM32
+CXXFLAGS += -DNUM32
 endif
 
 ifdef MASSSCALE
@@ -89,6 +93,7 @@ DEPS   = $(SRCS:.cpp=.d)
 
 $(TARGET)-$(THY): $(OOPS) $(CLEAN) $(OBJS) $(DEPS) $(RELINK)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LDFLAGS) -o $(TARGET)-$(THY)
+#	@codesign --force --deep --sign - $(TARGET) > /dev/null
 #	codesign -s - -f --entitlements $(TARGET).entitlements $(TARGET)
 
 $(TARGET).eneitlements:
@@ -99,7 +104,7 @@ $(TARGET).eneitlements:
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.d: %.cpp
-	$(CXX) -M $(CXXFLAGS) $< > $@
+	$(CXX) $(CXXFLAGS) -M $< > $@
 
 clean:
 	rm -f $(OBJS) $(TARGET)-$(THY) $(DEPS)
