@@ -379,16 +379,6 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		int  stage { Coupling::list[indx].stage } ; 
 		Coupling::list[indx].value = value ;
 		if (stage != global.stage) global.stageinit (stage) ;
-		if (value != oldv && stage && theory.euclid)
-		    {
-		    char8 mass	{ "mass" } ;
-		    int   mindx	{ Coupling::indx (mass) } ;
-		    if (indx == mindx && global.massreinit)
-			{
-			cout << "Reinitializing fermion vev's\n" ;
-			numerics.initialize (1) ;
-			}
-		    }
 		}
 	    else valid = false ;
 	    }
@@ -1036,7 +1026,6 @@ set		stage		gauge | fermi
 		gennorm		false | true
 		geoswap		false | true
 		oknegeig	false | true
-		massreinit	true | false
 		maxnewt		<integer>
 		maxode		<integer>
 		maxthread	<integer>
