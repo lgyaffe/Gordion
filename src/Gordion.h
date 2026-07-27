@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <complex>
 #include <algorithm>
+#include <climits>
 #include <version>
 
 using std::ios ;			// I/O classes & functions

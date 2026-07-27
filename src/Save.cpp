@@ -23,7 +23,7 @@ static constexpr int	elemsiz { sizeof (Element)  } ;
 union Buffer						// Alignment buffer
     {
     Element		elem ;
-    array<symb,elemsiz> symb ;
+    array<symb,elemsiz> byte ;
     Buffer() {}
     } ;
 static Buffer		buffer ;
@@ -150,8 +150,8 @@ void Save::write_op ()						// Write Op record
 	record.insert (record.end(), elemptr, elemptr + n) ;
 	if (auto rem { op.size() % elemsiz })
 	    {
-	    buffer.symb.fill (X) ;
-	    std::memcpy (buffer.symb.data(), symbptr + n * elemsiz, rem) ;
+	    buffer.byte.fill (X) ;
+	    std::memcpy (buffer.byte.data(), symbptr + n * elemsiz, rem) ;
 	    record.push_back (buffer.elem) ;
 	    ++n ;
 	    }
@@ -187,8 +187,8 @@ void Save::write_obs ()					// Write Obs record
 	record.insert (record.end(), elemptr, elemptr + n) ;
 	if (auto rem { obs.size() % elemsiz })
 	    {
-	    buffer.symb.fill (X) ;
-	    std::memcpy (buffer.symb.data(), symbptr + n * elemsiz, rem) ;
+	    buffer.byte.fill (X) ;
+	    std::memcpy (buffer.byte.data(), symbptr + n * elemsiz, rem) ;
 	    record.push_back (buffer.elem) ;
 	    ++n ;
 	    }
