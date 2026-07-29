@@ -1,6 +1,6 @@
 #ifndef BUILD_H
 #define BUILD_H
-#include "Gordion.h"
+#include "Op.h"
 
 class Gen ;
 class PolyMap ;
@@ -32,6 +32,12 @@ namespace Build
     void check_xorder	  (numb, const Gen&, const PolyMap&) ;
     void clear_obs	  (int) ;
     void close_streams	  () ;
+
+    inline static int		cord ;			// Current creation order
+    inline static Obsset	newobs ;		// Newly generated Obs
+    inline static vector<Op>	primepOps ;		// primary conj mom Ops
+    inline static std::mutex	obsmutex ;		// newobs insertion lock
+    constexpr int		single_thread = 1024 ;	// multi-threading threshold
     } ;
 
 #endif

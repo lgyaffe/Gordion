@@ -38,6 +38,8 @@ ostream& Print::coeffprt (ostream& stream, doub c)	// Pretty print coefficient
 
 void Print::print_obs (numb i, numb j)		// Print ObsList::obs range
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+
     if (i < ObsList::obs.size() && j < ObsList::obs.size())
 	{
 	for (int k(i) ; k <= j ; ++k) ObsList::obs.print (cout, k) ;
@@ -47,6 +49,8 @@ void Print::print_obs (numb i, numb j)		// Print ObsList::obs range
 
 void Print::print_obs (numb i)			// Print indexed Obs
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+
     if (i < ObsList::obs.size())
 	{
 	ObsList::obs.print (cout, i) ;
@@ -56,6 +60,8 @@ void Print::print_obs (numb i)			// Print indexed Obs
 
 void Print::print_obs (const string& word)	// Print specified Obs
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+
     bool	found { false } ;
     Str		s { word } ;
     numb	indx { ObsList::obs.find (s) } ;
@@ -69,11 +75,14 @@ void Print::print_obs (const string& word)	// Print specified Obs
 
 void Print::print_obs ()			// Print ObsList::obs
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
     ObsList::obs.print (cout) ;
     }
 
 void Print::print_obs_select (const string& word)	// Print order-selected Obs
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+
     std::regex	patt3 { "\\((\\d+),(\\d+),([A-Z]+[a-z]+)\\)" } ;
     std::regex	patt2 { "\\((\\d+),(\\d+)\\)" } ;
     std::regex	patt1 { "\\(([A-Z]+[a-z]+)\\)" } ;
@@ -172,6 +181,8 @@ void Print::print_primary ()			// Print primary Op's
 
 void Print::print_fermiinit ()			// Print fermi init map
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+
     const auto& list { ObsList::obs } ;
     cout << "Fermion initializations:\n" ;
     for (const auto& [indx_f,indx_g] : ObsList::fermiinit)
@@ -520,6 +531,7 @@ void Print::print_geodesic (numb i, uint j)	// Print specified geodesic equation
     {
     const auto&	list  { ObsList::obs } ;
 
+    if (list.swapped) Save::reload_obs() ;
     if (i < list.size())
 	{
 	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
@@ -544,6 +556,7 @@ void Print::print_geodesic (numb i, uint j)	// Print specified geodesic equation
 
 void Print::print_geodesic (numb i)		// Print geo eqns for specified Obs
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
     if (i < ObsList::obs.size())
 	{
 	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
@@ -556,8 +569,9 @@ void Print::print_geodesic (numb i)		// Print geo eqns for specified Obs
 
 void Print::print_geodesic ()			// Print all geodesic equations
     {
-    auto& bckt { global.info().bckt } ;
+    if (ObsList::obs.swapped) Save::reload_obs() ;
 
+    auto& bckt { global.info().bckt } ;
     for (int bcktnum(0) ; bcktnum < bckt.size() ; ++bcktnum)
 	{
 	const auto&	list	{ ObsList::obs } ;
@@ -592,12 +606,13 @@ void Print::print_cache ()			// Print canonicalization cache
 void Print::print_sysindex ()			// Print sys data index
     {
     auto& info { global.info() } ;
-    if (info.syspath.size())
+    if (info.sysfile.path.size())
 	{
+	cout << "Save file: " << info.sysfile.path << "\n" ;
 	cout << "RecID  nslice  ncol      nrow     reclen      filebeg      fileend\n" ;
 	for (auto& entry : info.sysindex)
 	    {
-	    //if (!entry.reclen) continue ;
+	    if (!entry.reclen) continue ;
 	    auto fileend { entry.filepos + entry.reclen * sizeof (RecHdr) } ;
 	    cout << RecIndx::idname[(int) entry.id] << "\t"
 		 << std::setw(3)  << (int) entry.nslice << " "
@@ -614,21 +629,21 @@ void Print::print_sysindex ()			// Print sys data index
 void Print::print_vevindex ()			// Print vev data index
     {
     auto& info { global.info() } ;
-    if (info.vevstream.is_open())
+    if (info.vevfile.stream.is_open())
 	{
-	Couplings tmplist { Coupling::ncoup() } ;
-	cout << "Vev data sets in " << info.vevpath << ":\n" ;
-	for (int i(0) ; Save::read_coup (i,&tmplist) ; ++i)
+	int		i (0) ;
+	Couplings*	listptr ;
+	cout << "Vev data sets in " << info.vevfile.path << ":\n" ;
+	while ((listptr = Save::read_coup (i,false)))
 	    {
-	    cout << "  #" << i ;
+	    cout << "  #" << i++ ;
 	    auto sep { ": " } ;
-	    for (auto& c : tmplist)
+	    for (auto& c : *listptr)
 		{
 		cout << sep << c << " = " << c.value ;
 		sep = ", " ;
 		}
 	    cout << "\n" ;
-	    if (i > 5) break ;
 	    }
 	}
     else gripe ("No open vev data file") ;
@@ -656,6 +671,12 @@ void Print::print_rkmethods()			// Print Runge-Kutta method name
 	cout << "  " << rk.name << "\n" ;
 	}
     cout << "Curren RK method: " << numerics.rk.name  << "\n" ;
+    }
+
+void Print::print_stage ()			// Print minimization stage
+    {
+    auto stage { global.stage ? "fermion" : "gauge" } ;
+    cout << "Current minimization stage: " << stage << "\n" ;
     }
 
 void Print::print_stats ()			// Print global statistics
@@ -718,6 +739,7 @@ void Print::print_state ()			// Print global state variables
     cout << " Obs approx:         " << global.approx     << "\n" ;
     cout << " Max threads:        " << global.maxthread  << "\n" ;
     cout << " Geo swap:           " << global.geoswap    << "\n" ;
+    cout << " Obs swap:           " << global.obsswap    << "\n" ;
     cout << " Auto save:          " << global.autosave   << "\n" ;
     cout << " Neg curvature ok:   " << global.oknegeig   << "\n" ;
     cout << " Symmetrize curv:    " << global.symcurv    << "\n" ;
@@ -732,13 +754,13 @@ void Print::print_state ()			// Print global state variables
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
     cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
     cout << " Save directory:     " << global.savedir    << "\n" ;
-    cout << " Sys info file:      " << global.info().syspath << "\n" ;
-    cout << " Vev data file:      " << global.info().vevpath << "\n" ;
-    cout << " Vev file append:    " << global.vevappend      << "\n" ;
-    cout << " MMA directory:      " << global.MMAdir     << "\n" ;
-    cout << " MMA result file:    " << global.info().MMApath << "\n" ;
-    cout << " MMA file append:    " << global.MMAappend      << "\n" ;
-    cout << " MMA obs subset:     " << global.info().MMAobs  << "\n" ;
+    cout << " Sys info file:      " << global.info().sysfile.path   << "\n" ;
+    cout << " Vev data file:      " << global.info().vevfile.path   << "\n" ;
+    cout << " Vev file append:    " << global.info().vevfile.append << "\n" ;
+    cout << " MMA directory:      " << global.MMAdir                << "\n" ;
+    cout << " MMA result file:    " << global.info().MMAfile.path   << "\n" ;
+    cout << " MMA file append:    " << global.info().MMAfile.append << "\n" ;
+    cout << " MMA obs subset:     " << global.info().MMAfile.obs    << "\n" ;
     }
 
 void Print::print_blab ()			// Print blab levels
@@ -762,6 +784,8 @@ void Print::print_bcktlist ()			// Print bucket list
 
 void Print::print_obsstats ()			// Print observable statistics
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+
     ObsStats		obsstats { ObsList::obs } ;
     auto		maxc { obsstats.maxc } ;
     auto		maxx { obsstats.maxx } ;

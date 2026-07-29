@@ -35,11 +35,11 @@ string Global::addsubdir (string dir)		// Reteurn save sub-directory
 
 void Global::close_streams (int keep)		// Close output streams
     {
-    for (int stage (keep & 1) ; stage < 2 ; ++stage)
+    for (int stage (keep & 1) ; stage < 2 - !theory.nf ; ++stage)
 	{
-	if (!(keep & 2))  { global.info(stage).sysstream.close() ;
-			    global.info(stage).vevstream.close() ; }
-	if (!(keep & 4))    global.info(stage).MMAstream.close() ;
+	if (!(keep & 2))  { global.info(stage).sysfile.stream.close() ;
+			    global.info(stage).vevfile.stream.close() ; }
+	if (!(keep & 4))    global.info(stage).MMAfile.stream.close() ;
 	}
     }
 

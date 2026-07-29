@@ -5,8 +5,9 @@
 class Coupling : public char8		// Adjustable coupling constant
     {
     public:
-    doub	value = 0 ;			// Coupling value
-    int		stage = -1 ;			// Coupling stage
+    doub	 value = 0 ;			// Coupling value
+    int		 stage = -1 ;			// Coupling stage
+    const char8& name() const { return *this ; }	// Coupling name
 
     static int indx (const string& s)		// Return coupling index
 	{
@@ -29,6 +30,7 @@ class Coupling : public char8		// Adjustable coupling constant
     inline static int		ncoupG ;	// # gauge couplings
     static vector<Coupling>	list ;		// Coupling list
 
+    static bool	  update (const vector<Coupling>&) ; // Update list values
     static string values () ;			// Printable values
     static uint   ncoup  () ;			// # couplings for stage
     static uint   ncoup  (int) ;		// # couplings for stage

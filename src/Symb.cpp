@@ -53,23 +53,6 @@ Str::Str (const string& s)		// Construct from printable string
     else push_back (it-symbname.begin()) ;
     }
 
-/*
-	while (size() > 1 && (y = ligature(back(),front())))
-	    {
-	    if (y != Null)
-		{
-		front() = y ;
-		resize(size() - 1) ;
-		}
-	    else
-		{
-		rotate(begin(), begin() + 1, end()) ;
-		resize(size() - 2) ;
-		}
-	    }
-	}
-*/
-
 bool Str::isclosed(const_iterator beg, const_iterator end)	// Closed (sub)string?
     const noexcept
     {

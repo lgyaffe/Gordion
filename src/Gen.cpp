@@ -286,7 +286,7 @@ void Gen::normalize ()					// Generator normalization
     {
     for (int repnum(0) ; repnum < Rep::list.size() ; ++repnum)
 	{
-	for (int stage(0) ; stage < 2 ; ++stage)
+	for (int stage(0) ; stage < 2 - !theory.nf ; ++stage)
 	    {
 	    auto& gens { global.info(stage).gens[repnum] } ;
 
@@ -409,6 +409,7 @@ int Gen::addgen (OpSum&& s)			// Add new generator
 	{
 	list.setprimary () ;
 	global.clearpolys (op1.is_Fermion()) ;
+	global.info().sysfile.stream.close() ;
 	}
     return added ;
     }

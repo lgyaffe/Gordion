@@ -24,6 +24,28 @@ string Coupling::values ()	// Make comma-separated coupling values
     return string { buf.str() } ;
     }
 
+bool Coupling::update (const Couplings& tmp)	// Update values?
+    {
+    auto len { tmp.size() } ;
+    if (len > list.size()) return false ;
+
+    for (int i(0) ; i < len ; ++i)		// consistency test
+	{
+	if (list[i].name() != tmp[i].name()) return false ;
+	if (list[i].stage  != tmp[i].stage)  return false ;
+	if (list[i].value  != tmp[i].value)
+	    {
+	    if (global.stage && !tmp[i].stage) return false ;
+	    }
+	}
+    for (int i(0) ; i < list.size() ; ++i)	// value update
+	{
+	list[i].value = i < len ? tmp[i].value : dfltval ;
+	}
+    return true ;
+    }
+
+
 ostream& operator<< (ostream& stream, const vector<AdjTerm>& vec)	// Print AdjTerm list
     {
     string	plus { " + " } ;
@@ -44,7 +66,7 @@ ostream& operator<< (ostream& stream, const vector<AdjTerm>& vec)	// Print AdjTe
 	stream << "( " << term.poly << " ) " ;
 	sep = "+ " ;
 	}
-    if (!vec.front().cpoly.size()) return stream ;
+    if (vec.front().cpoly.empty()) return stream ;
     sep = "" ;
     cout << "\n      = " ;
     for (auto& term : vec)

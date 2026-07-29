@@ -107,9 +107,9 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	char8	mass	 {"mass"} ;
 	int	massindx { Coupling::indx (mass) } ;
 	if (massindx < 0)
-	    {
-	    Coupling::list.emplace_back (mass) ;
-	    massindx  = Coupling::indx (mass) ;
+	    {						// N.B.: fermion 
+	    Coupling::list.emplace_back (mass) ;	// coupling must follow
+	    massindx = Coupling::indx (mass) ;		// all gauge couplings
 	    Coupling::list[massindx].value = 1000 ;
 	    Coupling::list[massindx].stage = 1 ;
 	    }

@@ -31,11 +31,11 @@ static Buffer		buffer ;
 void Save::save_sys ()					// Save sys info
     {
     const auto& savedir		{ global.savedir } ;
-    auto&	syspath		{ global.info().syspath } ;
-    auto&	sysstream	{ global.info().sysstream } ;
+    auto&	syspath		{ global.info().sysfile.path } ;
+    auto&	sysstream	{ global.info().sysfile.stream } ;
     string	file		{ global.mk_filename("sys") } ;
     string	path		{ global.addsubdir (savedir) + file } ;
-    auto	mode		{ ios::out | ios::trunc | ios::binary } ;
+    auto	mode		{ ios::in | ios::out | ios::trunc | ios::binary } ;
 
     if (sysstream.is_open() && path == syspath)
 	{
@@ -67,14 +67,15 @@ void Save::save_sys ()					// Save sys info
 
 void Save::save_vev ()					// Save vev data
     {
+    const auto&	blab		{ Blab::level(Blab::SAVE) } ;
     const auto&	nvev		{ global.info().nobs } ;
     const auto& savedir		{ global.savedir } ;
-    auto&	vevpath		{ global.info().vevpath } ;
-    auto&	vevstream	{ global.info().vevstream } ;
+    auto&	vevpath		{ global.info().vevfile.path } ;
+    auto&	vevstream	{ global.info().vevfile.stream } ;
+    auto	vevappend	{ global.info().vevfile.append } ;
     string	file		{ global.mk_filename("vev") } ;
     string	path		{ global.addsubdir (savedir) + file } ;
     uint	ncoup		{ Coupling::ncoup() } ;
-    uint	blab		{ Blab::level(Blab::SAVE) } ;
 
     if (path != vevpath) vevstream.close() ;
     if (!vevstream.is_open())				// open vevfile
@@ -90,14 +91,14 @@ void Save::save_vev ()					// Save vev data
 	    stream.open (path, ios::out | ios::binary) ;
 	    stream.close() ;
 	    }
-	else mode |= (global.vevappend ? ios::app : ios::trunc) ;
+	else mode |= (vevappend ? ios::app : ios::trunc) ;
 
 	stream.open (path, mode) ;			// open for append
 	if (stream.is_open())
 	    {
-	    if (exists && global.vevappend)
+	    if (exists && vevappend)
 		{
-		read_header (stream) ;
+		read_header (stream, path) ;
 		if (!filehdr.is_vevfile())
 		    gripe (format("Inconsistent vev-data file {}", path)) ;
 		cout << "Appending vev data to " << path << "\n" ;
@@ -112,6 +113,7 @@ void Save::save_vev ()					// Save vev data
 	    }
 	else gripe ("Cannot write vev-data file " + path) ;
 	}
+    if (blab) cout << "Writing vev record to " << vevpath << "\n" ;
     write_coup () ;
     write_vev  () ;
     }
@@ -130,8 +132,9 @@ void Save::write_header (fstream& stream, uint ncoup, uint nvev) // Write file h
 
 void Save::write_op ()						// Write Op record
     {
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	record	{ global.data().op  } ;
-    auto&	stream	{ global.info().sysstream } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     const auto&	oplist	( global.info().ops ) ;
     uint	nop	( oplist.size() ) ;
 
@@ -162,16 +165,18 @@ void Save::write_op ()						// Write Op record
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_op: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Saved Op\n" << flush ;
+    if (blab > 1) cout << "Saved Op\n" << flush ;
     }
 
 void Save::write_obs ()					// Write Obs record
     {
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	record	{ global.data().obs  } ;
-    auto&	stream	{ global.info().sysstream } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     const auto&	nobs	{ global.info().nobs } ;
     long	start	{ global.stage ? global.info(0).nobs : 0 } ;
 
+    if (ObsList::obs.swapped) reload_obs() ;
     if (record.entry().id == RecordID::Obs) record.clear() ;
     else fatal ("write_obs: bad record ID!") ;
     for (long indx(start) ; indx < start + nobs ; ++indx)
@@ -199,13 +204,14 @@ void Save::write_obs ()					// Write Obs record
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_obs: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Saved Obs\n" << flush ;
+    if (blab > 1) cout << "Saved Obs\n" << flush ;
     }
 
 void Save::write_gen ()					// Write Gen record
     {
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	record	{ global.data().gen } ;
-    auto&	stream	{ global.info().sysstream } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     int		optsiz	{ sizeof (OpTerm) / sizeof (Element) } ;
     uint	ngen	( 0 ) ;
     
@@ -231,13 +237,14 @@ void Save::write_gen ()					// Write Gen record
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_gen: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Saved Gen\n" << flush ;
+    if (blab > 1) cout << "Saved Gen\n" << flush ;
     }
 
 void Save::write_ham ()					// Write Ham record
     {
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	record	{ global.data().ham } ;
-    auto&	stream	{ global.info().sysstream } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	Hterms	{ global.info().Hterms } ;
     ushort	nterms	( Hterms.size() ) ;
 
@@ -249,13 +256,14 @@ void Save::write_ham ()					// Write Ham record
     record.writerec (stream) ;
     record.free() ;
     if (stream.fail()) ioerror ("write_ham: I/O error!") ;
-    if (record.size() && Blab::level(Blab::SAVE))
+    if (record.size() && blab > 1)
 	cout << "Saved Ham\n" << flush ;
     }
 
 void Save::write_grad ()				// Write Grad record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().grad } ;
 
     if (record.entry().id != RecordID::Grad)
@@ -263,13 +271,14 @@ void Save::write_grad ()				// Write Grad record
 
     record.writerec (stream) ;
     if (stream.fail()) ioerror ("write_grad: I/O error!") ;
-    if (record.size() && Blab::level(Blab::SAVE))
+    if (record.size() && blab > 1)
 	cout << "Saved Grad\n" << flush ;
     }
 
 void Save::write_curv ()				// Write Curv records
     {
-    auto& stream { global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream { global.info().sysfile.stream } ;
 
     for (int rep(0) ; rep < global.data().curv.size() ; ++rep)
 	{
@@ -282,14 +291,15 @@ void Save::write_curv ()				// Write Curv records
 	record.writerec (stream) ;
 	if (stream.fail())
 	    ioerror (format("write_curv {}: I/O error!", repname)) ;
-	else if (record.size() && Blab::level(Blab::SAVE))
+	else if (record.size() && blab > 1)
 	    cout << "Saved Curv " << repname << "\n" << flush ;
 	}
     }
 
 void Save::write_lagr ()					// Write Lagr records
     {
-    auto& stream { global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream { global.info().sysfile.stream } ;
 
     for (int rep(0) ; rep < global.data().lagr.size() ; ++rep)
 	{
@@ -302,19 +312,20 @@ void Save::write_lagr ()					// Write Lagr records
 	record.writerec (stream) ;
 	if (stream.fail())
 	    ioerror (format("write_lagr {}: I/O error!",repname)) ;
-	else if (record.size() && Blab::level(Blab::SAVE))
+	else if (record.size() && blab > 1)
 	    cout << "Saved Lagr " << Rep::list[rep].name << "\n" << flush ;
 	}
     }
 
 void Save::write_geos ()					// Write Geo records
     {
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto	nbckts	{ global.info().bckt.size() } ;
     int		bcktnum (0) ;
 
     for (; bcktnum < nbckts ; ++bcktnum)
 	{
-	auto&	stream	{ global.info().sysstream } ;
+	auto&	stream	{ global.info().sysfile.stream } ;
 	auto&	record	{ global.data().geos[bcktnum] } ;
 
 	if (record.entry().id != RecordID::Geos)
@@ -323,19 +334,20 @@ void Save::write_geos ()					// Write Geo records
 	record.writerec (stream) ;
 	if (stream.fail())
 	    ioerror ("write_geos: I/O error!") ;
-	else if (record.size() && Blab::level(Blab::SAVE))
+	else if (record.size() && blab > 1)
 	    cout << "Saved Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
 	}
     for (; bcktnum < global.data().geos.size() ; ++bcktnum)
 	{
-	auto&	record	{ global.data().geos[bcktnum] } ;
+	auto& record { global.data().geos[bcktnum] } ;
 	record.entry().reclen = 0 ;
 	}
     }
 
 void Save::write_geo_bckt (int bcktnum)			// Write single Geo bucket
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().geos[bcktnum] } ;
     auto	nbckts	{ global.info().bckt.size() } ;
 
@@ -348,7 +360,7 @@ void Save::write_geo_bckt (int bcktnum)			// Write single Geo bucket
     record.writerec (stream) ;
     if (stream.fail())
 	ioerror (format("write_geo_bckt [{}]: I/O error!",bcktnum)) ;
-    if (Blab::level(Blab::SAVE))
+    if (blab > 1)
 	cout << "Saved Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
     write_sysindex () ;
     rewrite_stat () ;
@@ -357,7 +369,8 @@ void Save::write_geo_bckt (int bcktnum)			// Write single Geo bucket
 
 void Save::write_stat ()				// Write Stat record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().stat } ;
     auto&	count	{ global.info().count } ;
     uint	nelem	( sizeof (count) / sizeof (Counter) ) ;
@@ -371,12 +384,13 @@ void Save::write_stat ()				// Write Stat record
 
     stream.write (cast_to<const char*>(&count), nelem * sizeof (Counter)) ;
     if (stream.fail()) ioerror ("write_stat: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Saved Stat\n" << flush ;
+    if (blab > 1) cout << "Saved Stat\n" << flush ;
     }
 
 void Save::rewrite_stat ()				// Rewrite Stat record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().stat } ;
     auto&	count	{ global.info().count } ;
     uint	nelem	( sizeof (count) / sizeof (Counter) ) ;
@@ -387,13 +401,14 @@ void Save::rewrite_stat ()				// Rewrite Stat record
     stream.seekg (record.entry().filepos, ios_base::beg) ;
     stream.write (cast_to<const char*>(&count), nelem * sizeof (Counter)) ;
     if (stream.fail()) ioerror ("rewrite_stat: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Rewrote Stat\n" ;
+    if (blab > 1) cout << "Rewrote Stat\n" ;
     }
 
 void Save::write_sysindex ()				// Write SysIndex
     {
-    auto&	stream	{ global.info().sysstream } ;
-    auto&	syspath	{ global.info().syspath   } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
+    auto&	syspath	{ global.info().sysfile.path   } ;
     auto&	index	{ global.info().sysindex  } ;
     auto&	last	{ index.back() } ;
 
@@ -406,30 +421,32 @@ void Save::write_sysindex ()				// Write SysIndex
     stream.flush() ;
     if (stream.fail()) ioerror ("write_sysindex: I/O error!") ;
     std::filesystem::resize_file (syspath,stream.tellp()) ;
-    if (Blab::level(Blab::SAVE) > 1) cout << "Wrote SysIndex\n" ;
+    if (blab > 1) cout << "Wrote SysIndex\n" ;
     }
 
 void Save::write_coup ()				// Write Coupling's
     {
-    auto&	stream	{ global.info().vevstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().vevfile.stream } ;
     auto	ptr	{ Coupling::list.data() } ;
 
     stream.seekp (0, ios::end) ;
     stream.write (cast_to<char*>(ptr), coupsize()) ;
     if (stream.fail()) ioerror ("write_coup: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Wrote Couplings\n" << flush ;
+    if (blab > 1) cout << "Wrote Couplings\n" << flush ;
     }
 
 void Save::write_vev ()					// Write Vev's
     {
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     long	start	{ global.stage ? global.info(0).nobs : 0 } ;
-    auto&	stream	{ global.info().vevstream } ;
+    auto&	stream	{ global.info().vevfile.stream } ;
     auto	ptr	{ numerics.vev.memptr() + start } ;
 
     stream.seekp (0, ios::end) ;
     stream.write (cast_to<const char*>(ptr), vevsize()) ;
     if (stream.fail()) ioerror ("write_vev: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Wrote Vevs\n" << flush ;
+    if (blab > 1) cout << "Wrote Vevs\n" << flush ;
     }
 
 void Save::load_save (int set, string file)		// Load save file
@@ -449,14 +466,14 @@ void Save::load_save (int set, string file)		// Load save file
     fstream stream { path, ios::in | ios::out | ios::binary } ;
     if (stream.is_open())
 	{
-	global.stageinit (read_header (stream)) ;
+	global.stageinit (read_header (stream, path)) ;
 	if (filehdr.is_sysfile())			// sys info file
 	    {
 	    if (set >= 0) gripe ("No set numbers in sys files") ;
 
 	    cout << "Loading sys info from " << path << "\n" ;
-	    global.info().syspath   = std::move (path) ;
-	    global.info().sysstream = std::move (stream) ;
+	    global.info().sysfile.path   = std::move (path) ;
+	    global.info().sysfile.stream = std::move (stream) ;
 
 	    read_sysindex () ;
 	    read_op   () ;
@@ -475,87 +492,104 @@ void Save::load_save (int set, string file)		// Load save file
 	    if (set < 0)	cout << "\n" ;
 	    else		cout << ", set " << set << "\n" ;
 
-	    global.info().vevpath   = std::move (path) ;
-	    global.info().vevstream = std::move (stream) ;
+	    global.info().vevfile.path   = std::move (path) ;
+	    global.info().vevfile.stream = std::move (stream) ;
 	    load_vev (set) ;
 	    }
 	}
     else gripe (format("Cannot open save file {}", path)) ;
     }
 
-void Save::load_vev (int set)				// Load vev data set
+void Save::load_vev (int set)			// Load vev data set
     {
-    if (global.info(global.stage).vevstream.is_open())
+    if (global.info(global.stage).vevfile.stream.is_open())
 	{
-	if (read_coup (set,nullptr)) read_vev (set) ;
+	if (read_coup (set,true)) read_vev (set) ;
 	else gripe (format("Cannot load vev set {}", set)) ;
+	Print::print_couplings() ;
 	}
     else gripe ("No open vev file") ;
     }
 
-int Save::read_header (fstream& stream)		// Read save file header
+int Save::read_header (fstream& stream, string path)	// Read save file header
     {
     const auto& hashG	{ global.info(0).obshash } ;
     const auto& hashF	{ global.info(1).obshash } ;
     const auto& nobsG	{ global.info(0).nobs } ;
     const auto& nobsF	{ global.info(1).nobs } ;
+    const auto& ncoupG	{ Coupling::ncoup(0) } ;
+    const auto& ncoupF	{ Coupling::ncoup(1) } ;
     auto&	hdr	{ filehdr } ;
-    auto	badobs	{ format("Inconsistent Obs set in {}", hdr.name.data()) } ;
+    string	hdrthy	{ hdr.name.data(),sizeof (hdr.name) } ;
+    string	mythy	{ theory.name.data(), sizeof (theory.name) } ;
+    string	mypar	{ theory.parent().data(), sizeof (theory.name) } ;
+
+    static constexpr sv newer  { "Warning: file {} has newer program version {}" } ;
+    static constexpr sv corrpt { "File {} has inconsistent Obs set" } ;
+    static constexpr sv badnum { "File {} has wrong real num type" } ;
+    static constexpr sv badset { "File {} has hash code mismatch, {} != {}" } ;
+    static constexpr sv numcup { "File {} has wrong # couplings, {} != {}" } ;
+    static constexpr sv numobs { "File {} has wrong # vev's, {} != {}" } ;
+    static constexpr sv	badpar { "File {} theory {} != {} or {}" } ;
+    static constexpr sv	badthy { "File {} theory {} != {}" } ;
 
     stream.read (cast_to<char*>(&hdr), sizeof hdr) ;
     if (stream.fail()) ioerror ("read_header: I/O error!") ;
 
-    if (hdr.version.incompat()) 
-	gripe (format("Inconsistent save file {}: wrong real num type",
-	    hdr.name.data())) ;
-    if (hdr.version.newer())
-	cout << format("Warning: save file {} from newer program version",
-	    hdr.name.data()) ;
+    if (hdr.version.incompat()) gripe (format (badnum, path)) ;
+    if (hdr.version.newer())	cout << format(newer, path, hdr.version.print()) ;
 
     if (theory.parent() == hdr.name)				// YM save file
 	{
-	if (!hdr.ncoup && !hdr.nvev && !hdr.hashF)
-	    {
-	    if (!hdr.hashF) return 0 ;				// YM sys file
-	    else gripe (badobs) ;
-	    }
-	if (hdr.ncoup == Coupling::ncoup(0) && hdr.nvev  == nobsG)
-	    {
-	    if (hdr.hashG == hashG && !hdr.hashF) return 0 ;	// YM vev file
-	    else gripe (badobs) ;
-	    }
+	if (hdr.hashF)
+	    gripe (format (corrpt, path)) ;
+	if (hdr.ncoup == 0 && hdr.nvev == 0)
+	    return 0 ;						// YM sys file
+	if (hdr.ncoup != ncoupG)
+	    gripe (format (numcup, path, hdr.ncoup, ncoupG)) ;
+	if (hdr.nvev  != nobsG)
+	    gripe (format (numobs, path, hdr.nvev,  nobsG))  ;
+	if (hdr.hashG != hashG)
+	    gripe (format (badset, path, hdr.hashG, hashG)) ;
+	return 0 ;						// YM vev file
 	}
     else if (theory.name == hdr.name && theory.nf)		// QCD save file
 	{
+	if (hdr.hashG != hashG)
+	    gripe (format (badset, path, hdr.hashG, hashG));
 	if (hdr.ncoup == 0 && hdr.nvev == 0)
-	    {
-	    if (hdr.hashG == hashG) return 1 ;			// QCD sys file
-	    else gripe (badobs) ;
-	    }
-	if (hdr.ncoup == Coupling::ncoup(1) && hdr.nvev == nobsF)
-	    {
-	    if (hdr.hashG == hashG && hdr.hashF == hashF) return 1 ; // QCD vev file
-	    else gripe (badobs) ;
-	    }
+	    return 1 ;						// QCD sys file
+	if (hdr.ncoup != ncoupF)
+	    gripe (format (numcup, path, hdr.ncoup, ncoupF));
+	if (hdr.nvev  != nobsF)
+	    gripe (format (numobs, path, hdr.nvev,  nobsF)) ;
+	if (hdr.hashF != hashF)
+	    gripe (format (badset, path, hdr.hashF, hashF));
+	return 1 ;						// QCD vev file
 	}
-    gripe (format("Inappropriate save file from theory {}", hdr.name.data())) ;
+    else if (theory.name != theory.parent())
+	gripe (format(badpar, path, hdrthy, mypar, mythy)) ;
+    else 
+	gripe (format(badthy, path, hdrthy, mythy)) ;
     }
 
 void Save::read_sysindex ()					// Load SysIndex
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	index	{ global.info().sysindex } ;
     auto	ptr	{ index.data() } ;
 
     stream.seekg (-sizeof index, ios_base::end) ;
     stream.read (cast_to<char*>(ptr), sizeof index) ;
     if (stream.fail()) ioerror ("read_sysindex: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Read Index\n" ;
+    if (blab > 1) cout << "Read Index\n" ;
     }
 
 void Save::read_op ()						// Read Op record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().op } ;
 
     if (record.entry().id != RecordID::Op)
@@ -589,29 +623,33 @@ void Save::read_op ()						// Read Op record
     if (indx != nop)
 	gripe ("read_op: Inconsistent save record!") ;
 
-    if (Blab::level(Blab::SAVE)) cout << "Loaded Op\n" << flush ;
+    if (blab > 1) cout << "Loaded Op\n" << flush ;
     }
 
 void Save::read_obs ()					// Read Obs record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().obs } ;
     auto&	obslist	{ ObsList::obs } ;
+    auto	nobs	{ record.entry().nelem } ;
 
     if (record.entry().id != RecordID::Obs)
 	gripe ("read_obs: bad record ID!") ;
+
+    if (global.obsswap) { ObsList::swapped = true ; return ; }
+
     record.readrec (stream) ;
-    if (stream.fail())
-	ioerror ("read_obs: I/O error!") ;
+    if (stream.fail()) ioerror ("read_obs: I/O error!") ;
 
     long	start	{ global.stage ? global.info(0).nobs : 0 } ;
     long	indx    { start } ;
-    long	nobs	( record.entry().nelem ) ;
     Element*	elemptr	{ record.data() } ;
     Element*	recend	{ elemptr + record.size() } ;
 
     obslist.purge   (start) ;
     obslist.reserve (start + nobs) ;
+
     while (elemptr < recend)
 	{
 	auto	len	{ elemptr->len() } ;
@@ -635,18 +673,68 @@ void Save::read_obs ()					// Read Obs record
     if (global.info(0).nobs + global.info(1).nobs != obslist.size())
 	abort ("read_obs: Inconsistent ObsList size") ;
 
-    if (Blab::level(Blab::SAVE)) cout << "Loaded Obs\n" << flush ;
+    if (blab > 1) cout << "Loaded Obs\n" << flush ;
     global.mk_bcktlist  () ;
     if (global.stage) ObsList::obs.do_fermiinit() ;
-    numerics.initialize () ;
     Canon::cache.reload() ;
+    numerics.initialize () ;
     global.info(0).obshash = filehdr.hashG ;
     global.info(1).obshash = filehdr.hashF ;
     }
 
+
+void Save::reload_obs ()			// Reload Obs record
+    {
+    auto& obslist { ObsList::obs } ;
+    obslist.clear () ;
+    for (int stage(0) ; stage < 2 - !theory.nf ; ++stage)
+	{
+	auto&	stream	{ global.info(stage).sysfile.stream } ;
+	auto&	record	{ global.data(stage).obs } ;
+
+	if (record.entry().id != RecordID::Obs)
+	    gripe ("reload_obs: bad record ID!") ;
+	record.readrec (stream) ;
+	if (stream.fail())
+	    ioerror ("reload_obs: I/O error!") ;
+
+	cout << "Reloading Obs: " << flush ;
+	long		start	{ stage ? global.info(0).nobs : 0 } ;
+	long		indx    { start } ;
+	long		nobs	( record.entry().nelem ) ;
+	Element*	elemptr	{ record.data() } ;
+	Element*	recend	{ elemptr + record.size() } ;
+
+	obslist.reserve (start + nobs) ;
+	while (elemptr < recend)
+	    {
+	    auto	len	{ elemptr->len() } ;
+	    ObsHdr	hdr	{ elemptr++->hdr.obs } ;
+	    symb*	ptr	{ cast_to<symb*> (elemptr) } ;
+	    symb*	end	{ ptr + len * elemsiz  } ; while (*--end == X) ;
+	    Str	s	{ ptr, end + 1 } ;
+	    Obs	o	{ s, hdr } ;
+
+	    if (obslist.store (o) != indx++)
+		gripe ("reload_obs: Inconsistent ObsList::obs") ;
+
+	    elemptr += len ;
+	    }
+	record.free() ;
+	if (indx - start != nobs)
+	    gripe ("reload_obs: Inconsistent save record!") ;
+	}
+    if (global.info(0).nobs + global.info(1).nobs != obslist.size())
+	abort ("reload_obs: Inconsistent ObsList size") ;
+
+    ObsList::swapped = false ;
+    cout << "done\n" << flush ;
+    }
+
 void Save::read_gen ()					// Read Gen record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().gen } ;
     int		optsiz	{ sizeof (OpTerm) / sizeof (Element) } ;
 
@@ -689,12 +777,13 @@ void Save::read_gen ()					// Read Gen record
     if (nelem != record.entry().nelem)
 	gripe ("read_gen: Inconsistent save record!") ;
 
-    if (Blab::level(Blab::SAVE)) cout << "Loaded Gen\n" << flush ;
+    if (blab > 1) cout << "Loaded Gen\n" << flush ;
     }
 
 void Save::read_ham ()				// Read Ham record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto& 	record	{ global.data().ham } ;
     auto&	Hterms	{ global.info().Hterms } ;
     auto	nterms	{ Hterms.size() } ;
@@ -718,12 +807,13 @@ void Save::read_ham ()				// Read Ham record
 	}
     if (i != nterms) gripe ("read_ham: Inconsistent save record!") ;
     record.free() ;
-    if (Blab::level(Blab::SAVE)) cout << "Loaded Ham\n" << flush ;
+    if (blab > 1) cout << "Loaded Ham\n" << flush ;
     }
 
 void Save::read_grad ()				// Read Grad record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto& 	record	{ global.data().grad } ;
 
     if (record.entry().id != RecordID::Grad)
@@ -731,13 +821,14 @@ void Save::read_grad ()				// Read Grad record
     record.readrec (stream) ;
     if (stream.fail())
 	ioerror ("read_grad: I/O error!") ;
-    else if (record.size() && Blab::level(Blab::SAVE))
+    else if (record.size() && blab > 1)
 	cout << "Loaded Grad\n" << flush ;
     }
 
 void Save::read_curv ()				// Read Curv records
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
 
     for (int rep(0) ; rep < theory.nrep ; ++rep)
 	{
@@ -749,14 +840,15 @@ void Save::read_curv ()				// Read Curv records
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_curv {}: I/O error!", repname)) ;
-	else if (record.size() && Blab::level(Blab::SAVE))
+	else if (record.size() && blab > 1)
 	    cout << "Loaded Curv " << repname << "\n" << flush ;
 	}
     }
 
 void Save::read_lagr ()					// Read Lagr records
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
 
     for (int rep(0) ; rep < theory.nrep ; ++rep)
 	{
@@ -768,14 +860,15 @@ void Save::read_lagr ()					// Read Lagr records
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_lagr {}: I/O error!", repname)) ;
-	else if (record.size() && Blab::level(Blab::SAVE))
+	else if (record.size() && blab > 1)
 	    cout << "Loaded Lagr " << repname << "\n" << flush ;
 	}
     }
 
 void Save::read_geos ()					// Read Geo records
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto	nbckts	{ global.info().bckt.size() } ;
 
     if (global.geoswap) return ;
@@ -788,26 +881,26 @@ void Save::read_geos ()					// Read Geo records
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_geos [{}]: I/O error!",bcktnum)) ;
-	else if (record.size() && Blab::level(Blab::SAVE))
+	else if (record.size() && blab > 1)
 	    cout << "Loaded Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
 	}
     }
 
 void Save::read_geo_bckt (int bcktnum)			// Read Geo bucket
     {
-    const auto&				syspath  { global.info().syspath } ;
-    thread_local string			mypath   { syspath } ;
-    thread_local bool			checkout { false } ;
-    thread_local fstream		mystream ;
-    thread_local vector<Element>		myvec ;
+    const auto&			blab	 { Blab::level(Blab::SAVE) } ;
+    const auto&			syspath  { global.info().sysfile.path } ;
+    thread_local string		mypath   { syspath } ;
+    thread_local bool		checkout { false } ;
+    thread_local fstream	mystream ;
+    thread_local vector<Element> myvec ;
 
     if (bcktnum >= 0)
 	{
 	auto	 	nbckts	{ global.info().bckt.size() } ;
 	auto& 	 	record	{ global.data().geos[bcktnum] } ;
-//	cout << "read_geo_bckt: bcktnum " << bcktnum << " stage " << global.stage << " nbckts " << nbckts << " ncol " << record.entry().ncol << " nrow " << record.entry().nrow << "\n" << flush ;
 
-	if (!global.info().sysstream.is_open())
+	if (!global.info().sysfile.stream.is_open())
 	    gripe ("Must write or load save file!") ;
 
 	if (mypath != syspath) mystream.close() ;
@@ -836,7 +929,7 @@ void Save::read_geo_bckt (int bcktnum)			// Read Geo bucket
 	record.readrec (mystream) ;
 	if (mystream.fail())
 	    ioerror (format("read_geo_bckt [{}]: I/O error!", bcktnum)) ;
-	if (Blab::level(Blab::SAVE))
+	if (blab > 1)
 	    cout << "Loaded Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
 	}
     else if (checkout)
@@ -849,7 +942,8 @@ void Save::read_geo_bckt (int bcktnum)			// Read Geo bucket
 
 void Save::read_stat ()					// Read Stat record
     {
-    auto&	stream	{ global.info().sysstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().stat } ;
     auto	nelem	{ record.entry().nelem } ;
     auto	ptr	{ &global.info().count } ;
@@ -859,7 +953,7 @@ void Save::read_stat ()					// Read Stat record
     stream.seekg (record.entry().filepos, ios_base::beg) ;
     stream.read (cast_to<char*>(ptr), nelem * sizeof (Counter)) ;
     if (stream.fail()) ioerror ("read_stat: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Loaded Stat\n" << flush ;
+    if (blab > 1) cout << "Loaded Stat\n" << flush ;
     }
 
 ulong Save::vevsize ()				// Vev record bytes
@@ -877,25 +971,40 @@ ulong Save::cvsetsize ()			// coup + vev record size
     return coupsize() + vevsize() ;
     }
 
-bool Save::read_coup (int set, Couplings* ptr)		// Read Coupling set
+Couplings* Save::read_coup (int set, bool update)	// Read Coupling set
     {
-    auto&	stream	{ global.info().vevstream } ;
-    auto&	list	{ ptr ? *ptr : Coupling::list } ;
-    ulong	offset	{ set * cvsetsize() } ;
+    static Couplings	list ;
+    const auto&		blab	{ Blab::level(Blab::SAVE) } ;
+    auto&		stream	{ global.info().vevfile.stream } ;
+    ulong		offset	{ set * cvsetsize() } ;
 
     if (set < 0) stream.seekg (offset, ios_base::end) ;
     else	 stream.seekg (offset + sizeof filehdr, ios_base::beg) ;
 
+    list.resize (Coupling::ncoup()) ;
     stream.read (cast_to<char*>(list.data()), coupsize()) ;
-    if (stream.eof()) { stream.clear() ; return false ; }
+    if (stream.eof())
+	{
+	stream.clear() ;
+	return nullptr ;
+	}
     if (stream.fail()) ioerror ("read_coup: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Loaded Coup\n" << flush ;
-    return true ;
+    if (update)
+	{
+	if (Coupling::update (list))
+	    {
+	    if (blab > 1) cout << "Loaded Coup\n" << flush ;
+	    return &Coupling::list ;
+	    }
+	else gripe ("Incompatible coupling sets in specified data set") ;
+	}
+    return &list ;
     }
 
 void Save::read_vev (int set)				// Read Vev data
     {
-    auto&	stream	{ global.info().vevstream } ;
+    const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	stream	{ global.info().vevfile.stream } ;
     long	start	{ global.stage ? global.info(0).nobs : 0 } ;
     ulong	offset	{ coupsize() + set * cvsetsize() } ;
     auto	ptr	{ numerics.vev.memptr() + start } ;
@@ -905,5 +1014,5 @@ void Save::read_vev (int set)				// Read Vev data
 
     stream.read (cast_to<char*>(ptr), filehdr.nvev * sizeof (real)) ;
     if (stream.fail()) ioerror ("read_vev: I/O error!") ;
-    if (Blab::level(Blab::SAVE)) cout << "Loaded Vev\n" << flush ;
+    if (blab > 1) cout << "Loaded Vev\n" << flush ;
     }

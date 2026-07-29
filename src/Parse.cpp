@@ -1,6 +1,7 @@
 #include "Parse.h"
 #include "Build.h"
 #include "Commute.h"
+#include "Gordion.h"
 #include "Numerics.h"
 #include "Print.h"
 #include "Rep.h"
@@ -9,19 +10,7 @@
 #include "Blab.h"
 #include "Gripe.h"
 #include <fstream>
-#include <chrono>
 #include <regex>
-
-using hires = std::chrono::high_resolution_clock ;
-using msec  = std::chrono::milliseconds ;
-using sec   = std::chrono::seconds ;
-using std::chrono::duration_cast ;
-
-static bool	echo	  { false } ;
-static bool	timing	  { true  } ;
-static bool	awaiting  { false } ;
-static auto	starttime { hires::now() } ;
-static ostream	myout	  { cout.rdbuf() } ;
 
 void Parse::read_input (istream& in, bool prompt)	// Read input
     {
@@ -55,26 +44,6 @@ void Parse::read_input (istream& in, bool prompt)	// Read input
 	}
     }
 
-void Parse::read_input (istream&& in, bool prompt)	// Read input
-    {
-    read_input (in, prompt) ;
-    }
-
-[[noreturn]] void Parse::quit (int code)		// Exit program
-    {
-    auto end  { hires::now() } ;
-    auto secs { duration_cast<sec>(end - starttime).count() } ;
-    if (timing && secs > 10) myout << "Total time: " << secs << " sec\n" ;
-    exit (code) ;
-    }
-
-void Parse::sig_catch (int signum)			// Catch interrupts
-    {
-    global.interrupt = true ;
-    std::cerr << "\nCaught Interrupt!\n" ;
-    if (awaiting) quit(1) ;
-    }
-
 void Parse::parse_line (const string& buf)		// Parse input line
     {
     int	start(0) ;
@@ -100,30 +69,31 @@ void Parse::parse_cmd (const string& buf)		// Parse command
 
     line >> cmd >> std::boolalpha ;			// get command
 
-    auto start { hires::now() } ;
+    auto beg { high_resolution_clock::now() } ;
 
     if (cmd[0] == '#')			return ;	// skip cmoment
     else if (cmd == "?")		parse_help() ;
     else if (isword(cmd,"help"))	parse_help() ;
-    else if (isword(cmd,"set"))		valid = parse_set   (line) ;
-    else if (isword(cmd,"reset"))	valid = parse_reset (line) ;
-    else if (isword(cmd,"call"))	valid = parse_call  (line) ;
     else if (isword(cmd,"build"))	valid = parse_build (line) ;
-    else if (isword(cmd,"generator"))	valid = parse_gen   (line) ;
-    else if (isword(cmd,"evaluate"))	valid = parse_eval  (line) ;
+    else if (isword(cmd,"call"))	valid = parse_call  (line) ;
     else if (isword(cmd,"do"))		valid = parse_do    (line) ;
-    else if (isword(cmd,"test"))	valid = parse_test  (line) ;
-    else if (isword(cmd,"print"))	valid = parse_print (line) ;
-    else if (isword(cmd,"read"))	valid = parse_read  (line) ;
-    else if (isword(cmd,"write"))	valid = parse_write (line) ;
-    else if (isword(cmd,"save"))	valid = parse_save  (line) ;
+    else if (isword(cmd,"evaluate"))	valid = parse_eval  (line) ;
+    else if (isword(cmd,"generator"))	valid = parse_gen   (line) ;
     else if (isword(cmd,"load"))	valid = parse_load  (line) ;
+    else if (isword(cmd,"print"))	valid = parse_print (line) ;
+    else if (isword(cmd,"purge"))	valid = parse_purge (line) ;
+    else if (isword(cmd,"read"))	valid = parse_read  (line) ;
+    else if (isword(cmd,"reset"))	valid = parse_reset (line) ;
+    else if (isword(cmd,"set"))		valid = parse_set   (line) ;
+    else if (isword(cmd,"save"))	valid = parse_save  (line) ;
+    else if (isword(cmd,"test"))	valid = parse_test  (line) ;
+    else if (isword(cmd,"write"))	valid = parse_write (line) ;
     else if (isword(cmd,"quit"))	quit (1) ;
     else valid = false ;
     if (!valid && cmd.size()) gripe ("Don't understand: " + buf) ;
 
-    auto end  { hires::now() } ;
-    auto tics { duration_cast<msec>(end - start).count() } ;
+    auto end  { high_resolution_clock::now() } ;
+    auto tics { duration_cast<milliseconds>(end - beg).count() } ;
     if (timing && tics > 10) cout << tics << " msec\n" ;
     }
 
@@ -186,12 +156,13 @@ bool Parse::parse_load (istringstream& line)		// Parse "load" command
 	if (indx >= 0 && parse_args (line,value))
 	    {
 	    const auto&	info { global.info(Coupling::list[indx].stage) } ;
-	    if (info.vevstream.is_open())
+	    if (info.vevfile.stream.is_open())
 		{
-		Couplings tmplist { Coupling::list.size() } ;
-		for (int i(0) ; Save::read_coup (i,&tmplist) ; ++i)
+		int		i(0) ;
+		Couplings*	listptr ;
+		for (; (listptr = Save::read_coup (i,false)) ; ++i)
 		    {
-		    if (tmplist[indx].value == value) set = i ;
+		    if ((*listptr)[indx].value == value) set = i ;
 		    }
 		if (set >= 0)			Save::load_vev (set) ;
 		else
@@ -306,6 +277,10 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    numerics.mintol = value ;
 	    }
+	else if (isword(word,"obsswap") && parse_args (line,flag))
+	    {
+	    global.obsswap = flag ;
+	    }
 	else if (isword(word,"odetol") && parse_args (line,value))
 	    {
 	    numerics.odetol = value ;
@@ -343,11 +318,11 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"vevappend") && parse_args (line,flag))
 	    {
-	    global.vevappend = flag ;
+	    global.info().vevfile.append = flag ;
 	    }
 	else if (isword(word,"MMAappend") && parse_args (line,flag))
 	    {
-	    global.MMAappend = flag ;
+	    global.info().MMAfile.append = flag ;
 	    }
 	else if (isword(word,"MMAdir") && parse_args (line,word))
 	    {
@@ -357,6 +332,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"MMAobs") && line >> word)
 	    {
+	    if (ObsList::obs.swapped) Save::reload_obs() ;
 	    do  {
 		Obs	o	{ word } ;
 		int	sgn	{ o.canon() } ;
@@ -364,7 +340,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		numb	indx	{ ObsList::obs.find (o) } ;
 		if (indx != UINT_MAX)
 		    {
-		    global.info(stage).MMAobs.emplace (indx,o) ;
+		    global.info(stage).MMAfile.obs.emplace (indx,o) ;
 		    }
 		else gripe ("Unknown Obs " + word) ;
 		}
@@ -396,7 +372,7 @@ bool Parse::parse_reset (istringstream& line)		// Parse "reset" commands
 	if (isword(word,"representation"))	global.repnum = 0 ;
 	else if (isword(word,"maxthread"))	global.maxthread = 0 ;
 	else if (isword(word,"stage"))		global.stageinit (0) ;
-	else if (isword(word,"MMAobs"))		global.info().MMAobs.clear() ;
+	else if (isword(word,"MMAobs"))		global.info().MMAfile.obs.clear() ;
 	else if (isword(word,"blab"))		Blab::resetblab () ;
 	else if (isword(word,"numerics"))	numerics.initialize () ;
 	else if (isword(word,"mintol"))		numerics.mintol = numerics.dflttol ;
@@ -592,6 +568,7 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 	    switch (action)
 		{
 		case 1:				// Add generator
+		    if (ObsList::obs.swapped) Save::reload_obs() ;
 		    do  {
 			if (!(line >> coef))
 			    {
@@ -758,6 +735,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	else if (isword(word,"obsstats")    && eos(line))	print_obsstats  () ;
 	else if (isword(word,"primary")     && eos(line))	print_primary   () ;
 	else if (isword(word,"rkmethods")   && eos(line))	print_rkmethods () ;
+	else if (isword(word,"stage")       && eos(line))	print_stage     () ;
 	else if (isword(word,"state")       && eos(line))	print_state     () ;
 	else if (isword(word,"stats")       && eos(line))	print_stats     () ;
 	else if (isword(word,"symmsets")    && eos(line))	print_symmsets  () ;
@@ -769,16 +747,32 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
     return valid ;
     }
 
+bool Parse::parse_purge (istringstream& line)		// Parse "swap" commands
+    {
+    string	word ;
+    bool	valid { true } ;
+
+    if (line >> word && isword(word,"observables") && eos(line))
+	{
+	ObsList::ondisk() ;
+	global.obsswap = true ;
+	}
+    else valid = false ;
+    return valid ;
+    }
+
 bool Parse::parse_test (istringstream& line)		// Parse "test" commands
     {
     numb	i(0) ;
     auto	nobs  { ObsList::obs.size() } ;
     bool	valid { true } ;
     string	word, word2 ;
+
     if (line >> word)
 	{
 	if (isword(word,"jacobi"))
 	    {
+	    if (ObsList::obs.swapped) Save::reload_obs() ;
 	    if (eos(line))
 		{
 		Test::jacobi () ;
@@ -807,6 +801,8 @@ bool Parse::parse_test (istringstream& line)		// Parse "test" commands
 
 bool Parse::parse_call (istringstream& line)		// Parse "call" commands
     {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+
     string	word, word2 ;
     numb	i, j ;
     if (line >> word)
@@ -821,8 +817,8 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    {
 	    Obs		obs	{ word } ;
 	    const char*	sgn	{ obs.canon() < 0 ? "-" : "" } ;
+	    bool	ok	{ obs.classify (ObsList::obs) } ;
 	    cout << word << " -> " << sgn << obs << "\n" ;
-	    bool ok { obs.classify (ObsList::obs) } ;
 	    if (ok) cout << "classified: " << obs
 			 << " xorder " << obs.xorder << "\n" ;
 	    else    cout << "classify failed\n" ;
@@ -993,6 +989,7 @@ print		baseobs
 		primary
 		representation  [* | <repname>]
 		rkmethods
+		stage
 		state
 		stats
 		spectrum (+)
@@ -1000,6 +997,8 @@ print		baseobs
 		symmsets
 		sysindex
 		vevindex
+
+purge		observables
 
 reset		blab
 		maxthread

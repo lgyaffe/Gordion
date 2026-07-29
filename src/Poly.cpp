@@ -1,5 +1,6 @@
 #include "Poly.h"
 #include "Gen.h"
+#include "Save.h"
 
 std::size_t Polyhash::operator()(const Polyindx& t)	// Polyindx hash function
     const noexcept
@@ -168,6 +169,8 @@ ostream& operator<< (ostream& stream, const Poly& poly)		// Print Poly
     //string	sep	{ poly.hdr.len > 3 ? "\n\t" : " " } ;
     string	sep	{ "\n\t" } ;
     int		count	(0) ;
+
+    if (ObsList::swapped) Save::reload_obs() ;
 
     for (auto pptr { poly.begin() } ; pptr < poly.end() ;)
 	{

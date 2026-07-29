@@ -213,45 +213,55 @@ void OpList::setprimary ()			// Determine Op primacy
 	if (op.order > maxord) maxord = op.order ;
 	op.primary = true ;
 	}
-    for (int i(0) ; i < opnum ; ++i)
+    for (int ord(0) ; ord <= maxord ; ++ord)
 	{
-	Op op1 { (*this)[i] } ;			// N.B. non-ref needed
-	if (!op1.order) continue ;
-	for (int j(0) ; j <= i ; ++j)		// N.B. include i == j
+	for (int i(0) ; i < opnum ; ++i)
 	    {
-	    Op op2 { (*this)[j] } ;		// N.B. non-ref needed
-	    if (!op2.order) continue ;
-	    if (op1.order + op2.order > maxord)	continue ;
-	    Gen ans1 (*this) ;
-	    Commute::op_commute (1.0, op1, op2, ans1) ;
+	    auto ord1 { (*this)[i].order } ;
+	    if (!ord1) continue ;
+	    Op op1 { (*this)[i] } ;			// N.B. non-ref needed
+	    for (int j(0) ; j <= i ; ++j)		// N.B. include j == i
+		{
+		auto ord2 { (*this)[j].order } ;
+		if (!ord2 || ord1 + ord2 > ord) continue ;
+		Op op2 { (*this)[j] } ;			// N.B. non-ref needed
+		Gen ans1 (*this) ;
 
-	    for (auto& term : ans1)		// N.B. don't collect
-		{
-		Op& new1 { (*this)[term.item] } ;
-		if (new1.order == op1.order + op2.order)
-		    new1.primary = false ;
-		else if (new1.order > op1.order + op2.order)
-		    cout << "Warning: mis-ordered Op: " << new1 << "\n" ;
-		}
-	    for (int k(0) ; k <= i ; ++k)	// need triples for fermions
-		{
-		Op op3 { (*this)[k] } ;		// N.B. non-ref needed
-		if (!op3.order) continue ;
-		if (op1.order + op2.order + op3.order > maxord) continue ;
-		for (auto& term : ans1)		// N.B. don't collect
+		for (int k(0) ; k <= j ; ++k)		// N.B. include k == j
 		    {
-		    const Op tmp { (*this)[term.item] } ;
-		    Gen ans2 (*this) ;
-		    Commute::op_commute (1.0, op3, tmp, ans2) ;
+		    auto ord3 { (*this)[k].order } ;
+		    if (!ord3 || ord1 + ord2 + ord3 != ord) continue ;
+		    Op op3 { (*this)[j] } ;		// N.B. non-ref needed
 
-		    for (auto& term : ans2)	// N.B. don't collect
+		    if (ans1.empty())
+			Commute::op_commute (1.0, op1, op2, ans1) ;
+
+		    for (auto& term : ans1)		// N.B. don't collect
 			{
-			Op& new2 { (*this)[term.item] } ;
-			if (new2.order == op1.order + op2.order + op3.order)
-			    new2.primary = false ;
-			else if (new2.order > op1.order + op2.order + op3.order)
-			    cout << "Warning: mis-ordered Op: " << new2 << "\n" ;
+			const Op tmp { (*this)[term.item] } ;
+			Gen ans2 (*this) ;
+			Commute::op_commute (1.0, op3, tmp, ans2) ;
+
+			for (auto& term : ans2)		// N.B. don't collect
+			    {
+			    Op& new2 { (*this)[term.item] } ;
+			    if (new2.order == ord)
+				new2.primary = false ;
+			    else if (new2.order > ord)
+				cout << "Warning:: mis-ordered Op: " << new2 << "\n" ;
+			    }
 			}
+		    }
+		if (ord1 + ord2 != ord) continue ;
+		if (ans1.empty())
+		    Commute::op_commute (1.0, op1, op2, ans1) ;
+		for (auto& term : ans1)			// N.B. don't collect
+		    {
+		    Op& new1 { (*this)[term.item] } ;
+		    if (new1.order == ord)
+			new1.primary = false ;
+		    else if (new1.order > ord)
+			cout << "Warning: mis-ordered Op: " << new1 << "\n" ;
 		    }
 		}
 	    }

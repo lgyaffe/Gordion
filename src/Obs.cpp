@@ -2,6 +2,7 @@
 #include "Global.h"
 #include "Numerics.h"
 #include "Op.h"
+#include "Save.h"
 #include "Symm.h"
 #include "Gripe.h"
 #include "Blab.h"
@@ -157,10 +158,10 @@ int Obs::findstart() noexcept				// Rotate to preferred start
 	}
     else if (is_EEloop() && !EEorEElink(front()))
 	{
-	uint	blab { Blab::level(Blab::OBS) } ;
-	int	a(0), b(middleE()), k(0) ;
-	int	len ( size() ) ;
-	auto	s { c_str() } ;
+	const auto&	blab { Blab::level(Blab::OBS) } ;
+	int		a(0), b(middleE()), k(0) ;
+	int		len ( size() ) ;
+	auto		s { c_str() } ;
 
 	while (k < len && s[(a+k) % len] == s[(b+k) % len]) ++k ;
 	if (k < len && s[(b+k) % len] < s[(a+k) % len])
@@ -183,8 +184,8 @@ int Obs::trans (const Symm& symm, int start) noexcept	// Symmetry transform Obs
     if (front() == EntrG || front() == EntrF)	return 1 ;
     if (!start && symm.is_id())			return 1 ;
 
-    bool neg	{ false } ;
-    uint blab	{ Blab::level(Blab::SYMM) } ;
+    const auto&	blab	{ Blab::level(Blab::SYMM) } ;
+    bool	neg	{ false } ;
     if (blab > 1) cout << "Symm " << symm.name << " on " << *this
 		       << " at " << start << " -> " ;
     if (symm.isCodd())
@@ -245,7 +246,7 @@ PolyTerm ObsList::is_known (Obs&& a, Obs&& b) const		// Find in ObsList
 
 PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
     {							// N.B. pass by value
-    uint blab { Blab::level(Blab::OBS) } ;
+    const auto&	blab { Blab::level(Blab::OBS) } ;
     if (blab > 1) cout << "catalog " << name << ": " << a << "\n" ;
     if (Obs::check) a.validate() ;
 
@@ -278,7 +279,7 @@ PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
 
 PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
     {							// N.B. pass by value
-    uint blab { Blab::level(Blab::OBS) } ;
+    const auto&	blab { Blab::level(Blab::OBS) } ;
     if (blab > 1) cout << "catalog " << name << ": " << a << ", " << b << "\n" ;
     if (Obs::check) { a.validate() ; b.validate() ; }
 
@@ -321,7 +322,7 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
 
 numb ObsList::store (const Obs& o)			// Store Obs in ObsList
     {
-    uint blab { Blab::level(Blab::OBS) } ;
+    const auto&	blab { Blab::level(Blab::OBS) } ;
     if (classify)
 	{
 	if (o.bilinear() && !o.is_coord())
@@ -356,7 +357,7 @@ numb ObsList::store (const Obs& o)			// Store Obs in ObsList
     return indx ;
     }
 
-void ObsList::empty ()					// Empty list
+void ObsList::clear ()					// Empty list
     {
     if (!neq (ObsList::obs))
 	{
@@ -365,8 +366,8 @@ void ObsList::empty ()					// Empty list
 	global.info(0).obshash = 0 ;
 	global.info(1).obshash = 0 ;
 	}
-    clear () ;
-    map.clear () ;
+    Obsmap().swap (map) ;
+    vector<const Obs*>().swap (*this) ;
     store (Obs(Str(), ObsType::Loop, 0, 0)) ;
     }
 
@@ -395,6 +396,38 @@ void ObsList::rehash () const			// Recalculate list hashes
 	{
 	hasher (global.info(ptr->is_fermi()).obshash, *ptr) ;
 	}
+    }
+
+void ObsList::ondisk ()			// Leave ObsList::obs on disk
+    {
+    auto	stage	{ global.stage } ;
+    const auto&	infoG	{ global.info(0) } ;
+    const auto&	infoF	{ global.info(1) } ;
+    auto&	list	{ ObsList::obs } ;
+    auto	nobsG	{ infoG.nobs } ;
+    auto	nobsF	{ infoF.nobs } ;
+
+    if (list.size() > 1) cout << "Swapping master Obs list to disk\n" ;
+    if (nobsG > 1)
+	{
+	bool		is_open	{ infoG.sysfile.stream.is_open() } ;
+	const auto&	obs	{ global.data(0).obs } ;
+	const auto&	nobs	{ obs.entry().items() } ;
+	global.stage = Global::Gauge ;
+	if (!is_open || nobsG != nobs) Save::save_sys () ;
+	global.stage = stage ;
+	}
+    if (nobsF > 0)
+	{
+	bool		is_open	{ infoF.sysfile.stream.is_open() } ;
+	const auto&	obs	{ global.data(1).obs } ;
+	const auto&	nobs	{ obs.entry().items() } ;
+	global.stage = Global::Fermi ;
+	if (!is_open || nobsF != nobs) Save::save_sys () ;
+	global.stage = stage ;
+	}
+    list.clear() ;
+    ObsList::swapped = true ;
     }
 
 void ObsList::hasher (ulong& hash, const Obs& o) const	// List hasher
@@ -496,9 +529,9 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 
 int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
     {
-    uint	initfail  ( 0 ) ;
-    uint	blab	  { Blab::level(Blab::OBS) } ;
-    long	beg	  { global.info(0).nobs } ;
+    const auto&	blab	{ Blab::level(Blab::OBS) } ;
+    long	beg	{ global.info(0).nobs } ;
+    uint	initfail (0) ;
     if (blab > 3) cout << "do_fermiinit start\n" << flush ;
 
     fermiinit.clear () ;

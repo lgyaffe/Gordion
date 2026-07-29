@@ -18,7 +18,7 @@ void initialize ()
     Canon::looptblinit	  () ;
     Canon::spectblinit	  () ;
 
-    for (int stage(0) ; stage < 2 ; ++stage)
+    for (int stage(0) ; stage < 2 - !theory.nf ; ++stage)
 	{
 	ObsList::base.obsinit	(stage) ;
 	Theory::theorydefn	(stage) ;

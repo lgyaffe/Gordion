@@ -19,8 +19,8 @@ class Proj : public vector<doub>		// Symmetry irrep projector
     bool	allzero() const ;		// Test for all zeros
     bool	C_even()  const ;		// Charge conjugation even?
     uint2	indices () const ;		// Projector indices
-    strview	rowname () const ;		// Rep row name
-    strview	repname () const ;		// Rep name
+    sv		rowname () const ;		// Rep row name
+    sv		repname () const ;		// Rep name
 
     static vector<Proj> list ;			// Known projectors
 

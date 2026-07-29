@@ -78,7 +78,7 @@ int Numerics::do_step (doub tol)		// Do geodesic integration step
     {
     if (global.interrupt) return 0 ;
 
-    uint	blab	{ Blab::level(Blab::NUMERICS) } ;
+    const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
     Ode		ode	{ do_dvev, err_norm, odetol, rk, maxode } ;
     doub	dnorm	{ eval_delta() } ;
     long	n	{ global.info().nobs } ;
@@ -415,10 +415,10 @@ void Numerics::eval_geos (int printlim)			// Evaluate vev derivatives
 
 void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     {
-    uint	blab	{ Blab::level(Blab::NUMERICS) } ;
-    long	offset	{ global.stage ? global.info(0).nobs : 0 } ;
+    const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
     const auto&	geos	{ global.data().geos } ;
     const auto&	bckt	{ global.info().bckt } ;
+    long	offset	{ global.stage ? global.info(0).nobs : 0 } ;
     int		ngens	{ global.info().neven.front() } ;
     long	n	{ global.info().nobs } ;
 
@@ -522,11 +522,11 @@ doub Numerics::err_norm (const Rvec& err, const Rvec& y)	// ODE error vector nor
     {
     if (global.interrupt) return 0 ;
 
-    uint	blab { Blab::level(Blab::NUMERICS) } ;
-//    auto&	eps  { numerics.odetol } ;
-//    doub	norm { arma::norm (err / (arma::abs (y) + eps),"inf") } ;
-//    doub	norm { arma::norm (err,2) / sqrt (err.n_elem) } ;
-    doub	norm { arma::norm (err,"inf") } ;
+    const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
+    doub	norm	{ arma::norm (err,"inf") } ;
+//    auto&	eps	{ numerics.odetol } ;
+//    doub	norm	{ arma::norm (err / (arma::abs (y) + eps),"inf") } ;
+//    doub	norm	{ arma::norm (err,2) / sqrt (err.n_elem) } ;
     if (blab > 2) cout << "err_norm: " << norm << "\n" << flush ;
     return norm ;
     }
@@ -551,8 +551,8 @@ void Numerics::status_rpt (uint iters, uint steps)
 bool Numerics::open_MMA ()				// Open MMA output file
     {
     const auto&	MMAdir		{ global.MMAdir  } ;
-    auto&	MMApath		{ global.info().MMApath } ;
-    auto&	MMAstream	{ global.info().MMAstream } ;
+    auto&	MMApath		{ global.info().MMAfile.path } ;
+    auto&	MMAstream	{ global.info().MMAfile.stream } ;
     string	file		{ global.mk_filename("m") } ;
     string	path		{ global.addsubdir (MMAdir) + file } ;
     auto	mode		{ std::ios::out } ;
@@ -562,7 +562,7 @@ bool Numerics::open_MMA ()				// Open MMA output file
     if (path != MMApath) MMAstream.close() ;
     if (!MMAstream.is_open())
 	{
-	if (global.MMAappend)
+	if (global.info().MMAfile.append)
 	    {
 	    mode |= std::ios::app ;
 	    okmsg = "Appending results to " ;
@@ -594,11 +594,11 @@ void Numerics::write_data ()				// Write data to MMAfile
     if (!open_MMA()) gripe ("Cannot write MMA results file!") ;
 
     string	HorF	{ theory.euclid ? "F" : "H" } ;
-    auto&	stream	{ global.info().MMAstream } ;
+    auto&	stream	{ global.info().MMAfile.stream } ;
 
     data_write (stream, HorF, eval_ham()) ;
 
-    for (auto& [i,o] : global.info().MMAobs)
+    for (auto& [i,o] : global.info().MMAfile.obs)
 	{
 	data_write (stream, o.print(), vev[i]) ;
 	}
@@ -616,6 +616,8 @@ void Numerics::write_data ()				// Write data to MMAfile
 
 bool Numerics::check_loops ()					// Loop vevs < 1?
     {
+    if (ObsList::swapped) return false ;
+    
     const auto&	obslist { ObsList::obs } ;
     auto 	beg	{ obslist.begin() } ;
     auto 	end	{ obslist.end()   } ;
@@ -774,7 +776,7 @@ string Numerics::MMAform (doub x)			// Convert to MMA input form
 
 void Numerics::initialize (int stage)			// Initialize expectation values
     {
-    uint	blab	{ Blab::level(Blab::NUMERICS) } ;
+    const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
     const auto& nobsG	{ global.info(0).nobs } ;
     const auto& nobsF	{ global.info(1).nobs } ;
 

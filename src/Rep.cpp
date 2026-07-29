@@ -187,18 +187,18 @@ uint2 Proj::indices () const				// Return projector indices
     return uint2 (i,j) ;
     }
 
-strview Proj::rowname () const				// Rep row name
+sv Proj::rowname () const			// Rep row name
     {
     static string suffix { "abcdxyzw" } ;
     if (suffix.find (name.back()) == suffix.npos) return name ;
-    else return std::string_view (name.begin(), name.end()-1) ;
+    else return sv (name.begin(), name.end()-1) ;
     }
 
-strview Proj::repname () const				// Rep name
+sv Proj::repname () const			// Rep name
     {
     static string suffix { "abcdxyzw" } ;
     if (suffix.find (name.back()) == suffix.npos) return name ;
-    else return std::string_view (name.begin(), name.end()-2) ;
+    else return sv (name.begin(), name.end()-2) ;
     }
 
 ostream& operator<< (ostream& stream, const Proj& proj)	// Print projector

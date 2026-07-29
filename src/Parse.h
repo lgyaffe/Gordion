@@ -5,8 +5,6 @@
 
 namespace Parse
     {
-    void read_input  (istream&&, bool) ;	// Read input line
-    void read_input  (istream&,  bool) ;	// Read input line
     void parse_help  () ;			// Print command help
     void parse_line  (const string&)  ;		// Parse input line
     void parse_cmd   (const string&)  ;		// Parse command word
@@ -19,18 +17,26 @@ namespace Parse
     bool parse_gen   (istringstream&) ;		// Parse "generator" commands
     bool parse_add   (istringstream&) ;		// Parse "add" command
     bool parse_print (istringstream&) ;		// Parse "print" commands
+    bool parse_purge (istringstream&) ;		// Parse "purge" command
     bool parse_test  (istringstream&) ;		// Parse "test" commands
     bool parse_read  (istringstream&) ;		// Parse "read" command
     bool parse_write (istringstream&) ;		// Parse "write" command
     bool parse_save  (istringstream&) ;		// Parse "save" command
     bool parse_load  (istringstream&) ;		// Parse "load" command
+    void read_input  (istream&,  bool) ;	// Read input line
 
-    void	 sig_catch (int) ;		// Catch interrupts
-    [[noreturn]] void quit (int) ;		// Exit program
-
+    inline void read_input  (istream&& in, bool prompt)
+	{
+	read_input (in, prompt) ;
+	}
     inline bool eos (istringstream& line)	// End of string?
 	{
 	return line.peek() == EOF ;
+	}
+
+    inline bool isword (const string& w, const string& cmd, int min=1)
+	{					// Abbreviating comparison
+	return (w.size() >= min) && 0 == cmd.compare (0, w.size(), w) ;
 	}
 
     template <typename... Args>
@@ -46,12 +52,6 @@ namespace Parse
 	return false;
 	}
 
-    inline bool isword (const string& w, const string& cmd, int min=1)
-	//					// Abbreviating comparison
-	{
-	return (w.size() >= min) && 0 == cmd.compare (0, w.size(), w) ;
-	}
-
     inline bool isstar (istringstream& line)	// Next word == "*"?
 	{
 	string	word ;
@@ -61,6 +61,11 @@ namespace Parse
 	line.seekg (pos) ;
 	return false ;
 	}
+
+    inline static bool	  echo	   { false } ;		// Echo commands?
+    inline static bool	  timing   { true  } ;		// Report command times?
+    inline static bool	  awaiting { false } ;		// Awaiting user input?
+    inline static ostream myout	   { cout.rdbuf() } ;	// Initial output stream
     } ;
 
 #endif

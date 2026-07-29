@@ -62,6 +62,7 @@ namespace Print
     void print_geostats	 () ;
     void print_obsstats  () ;
     void print_rkmethods () ;
+    void print_stage     () ;
     void print_state     () ;
     void print_stats     () ;
     void print_symmsets  () ;

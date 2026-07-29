@@ -7,7 +7,7 @@
 
 int Obs::canon()				// Canonicalize observable
     {
-    uint blab { Blab::level(Blab::CANON) } ;
+    const auto& blab { Blab::level(Blab::CANON) } ;
     if (blab > 1) cout << "canon " << *this << "\n" << flush ;
     ++global.count().canons ;
 
@@ -426,10 +426,10 @@ bool Canon::loopchunk (uint code, Str& s)	// Map looptbl index -> loop chunk
 
 bool Canon::specchunk (uint code, Str& s)	// Map spectbl index -> spec chunk
     {
-    int	 dim  { theory.dim } ;
-    int	 base { 2 * dim } ;
-    int  len  ( s.size() ) ;				// must equal specchunksize
-    uint blab { Blab::level(Blab::CANON) } ;
+    const auto& blab { Blab::level(Blab::CANON) } ;
+    const auto&	dim  { theory.dim } ;
+    int	 	base { 2 * dim } ;
+    int  	len  ( s.size() ) ;			// must equal specchunksize
     if (blab > 3) cout << "\t specchunk: code " << code << "\n" ;
 
     for (auto p { s.rbegin() } ; p < s.rend() ; code /= base)	// lay down links
@@ -483,11 +483,11 @@ bool Canon::specchunk (uint code, Str& s)	// Map spectbl index -> spec chunk
 
 uint Canon::speccode (const Obs& obs, int start, bool reverse)	// Map spec chunk -> spectbl index
     {
-    int  dim  { theory.dim } ;
-    int  len  ( obs.size() ) ;
-    int  inc  { reverse ? -1 : +1 } ;
-    int  k    { start } ;
-    uint blab { Blab::level(Blab::CANON) } ;
+    const auto& blab { Blab::level(Blab::CANON) } ;
+    const auto& dim  { theory.dim } ;
+    int  	len  ( obs.size() ) ;
+    int  	inc  { reverse ? -1 : +1 } ;
+    int  	k    { start } ;
     if (blab > 3) cout << "speccode " << obs << " len " << len
 			    << " start " << start << " reverse " << reverse << "\n" ;
 
@@ -609,10 +609,11 @@ void Canon::looptblinit()					// Initialize looptable
 
 void Canon::spectblinit()					// Initialize spectable
     {
-    int		nodecount(0) ;
+    const auto&	blab	{ Blab::level(Blab::CANON) } ;
     uint	halftbl	( spectable.size()/2 ) ;
     uint	csymm	( Symm::list.size()/2 ) ;
     Str		chk	(string(specchunksize,'x')) ;
+    int		nodecount(0) ;
 
     for (int code(0) ; code < halftbl ; ++code)
 	{
@@ -654,7 +655,7 @@ void Canon::spectblinit()					// Initialize spectable
 	    symmlist.shrink_to_fit() ;
 	    node.indx = symmset.store (symmstr, symmlist) ;
 	    ++nodecount ;
-	    if (Blab::level(Blab::CANON) > 2)
+	    if (blab > 2)
 		{
 		cout << "spectbl node[" << code + rev * halftbl << "]: "
 			  << " code " << code << " chunk " << chk.print()

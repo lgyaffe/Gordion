@@ -13,10 +13,11 @@ namespace Save
     void load_save	(string) ;	// Load save file
     void load_save	(int,string) ;	// Load vev file
     void load_vev	(int) ;		// Load vev set
+    void reload_obs	() ;		// Reload Obs
     string addsubdir	(string,int) ;	// Add subdirectory
 
     void write_header	(fstream&,uint=0,uint=0) ; // Write file header
-    int  read_header	(fstream&) ;	// Read file header
+    int  read_header	(fstream&,string) ;	   // Read file header
 
     void write_sysindex	() ;		// Save SysIndex
     void read_sysindex	() ;		// Load SysIndex
@@ -48,11 +49,11 @@ namespace Save
     void write_geo_bckt	(int) ;		// Save geo bucket
     void read_geo_bckt	(int) ;		// Load geo bucket
 
-    void write_coup	() ;		// Save Couplings
-    void write_vev	() ;		// Save Obs vev's
+    void write_coup	 () ;		// Save Couplings
+    Couplings* read_coup (int,bool) ;	// Load Couplings
 
-    bool read_coup   (int,Couplings*) ;	// Load Couplings
-    void read_vev    (int) ;		// Load Obs vev's
+    void write_vev	() ;		// Save Vev's
+    void read_vev	(int) ;		// Load Vev's
 
     void read_stat	() ;		// Load Statistics
     void write_stat	() ;		// Save Statistics

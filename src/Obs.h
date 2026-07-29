@@ -209,7 +209,7 @@ class ObsList: vector<const Obs*>
 
     numb	store	 (const Obs&) ;		// Store in list
     void	purge	 (numb)	;		// Purge entries
-    void	empty	 () ;			// Empty list
+    void	clear	 () ;			// Clear list
     void	rehash	 () const ; 		// Recalculate hashes
     void	hasher	 (ulong&,const Obs&) const ; // List hasher
     PolyTerm	catalog  (Obs) ;		// Catalog Obs
@@ -224,7 +224,9 @@ class ObsList: vector<const Obs*>
     static inline vector<numb2>		fermiinit ;	// Fermion -> Loop map
     static inline thread_local Obsset	inbox ;		// Obs awaiting insertion
     static inline thread_local bool	freeze {true} ;	// Freeze master list?
+    static inline bool			swapped {false};// Swapped to disk?
 
+    static void	ondisk () ;			// Leave ObsList::obs on disk
     static void	retain (const Obs& o)		// Retain for later insertion
 	{ inbox.insert (o) ; }
     } ;

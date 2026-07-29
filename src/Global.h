@@ -54,6 +54,21 @@ inline SerialData::SerialData (SysIndex& indx)	// SerialData constructor
     geos { indx, RecordID::Geos }
     {}
 
+struct SaveFile					// Save file info
+    {
+    string	path ;
+    fstream	stream ;
+    bool	append ;
+    } ;
+
+struct MMAFile					// MMA output file info
+    {
+    string	path ;
+    ofstream	stream ;
+    bool	append ;
+    ObsSubset	obs ;
+    } ;
+
 struct StageInfo				// Stage-specific info
     {
     using Genvec = vector<Gen> ;
@@ -67,13 +82,9 @@ struct StageInfo				// Stage-specific info
     array<ushort,NREP>	neven ;	 		// # T-even generators
     vector<AdjTerm>	Hterms ; 		// Hamiltonian/free energy
     vector<numb3>	bckt ;	 		// Obs bucket list
-    string		syspath ;		// Sys info path
-    fstream		sysstream ; 		// Sys info stream
-    string		vevpath ;		// Vev data path
-    fstream		vevstream ; 		// Vev data stream
-    string		MMApath ;		// MMA results path
-    ObsSubset		MMAobs ;		// MMA Obs list
-    ofstream		MMAstream ; 		// MMA results stream
+    SaveFile		sysfile ;		// Sys-info file
+    SaveFile		vevfile ;		// Vev-data file
+    MMAFile		MMAfile ;		// MMA results file
     SysIndex		sysindex ;		// System data index
     Counters		count ;			// Statistics counters
     } ;
@@ -94,11 +105,10 @@ class Global					// Global data
     uint	maxthread  { 0 } ;		// Thread limit
     bool	autosave   { false } ;		// Write savefile on bulid
     bool	geoswap    { false } ;		// Swap geo bckts to disk
+    bool	obsswap    { false } ;		// Swap obs list to disk
     bool	symcurv    { true } ;		// Symmetrize curvature?
     bool	fermivev   { false } ;		// Non-base fermi vev's?
     bool	oknegeig   { false } ;		// Negative curvature OK?
-    bool	vevappend  { false } ;		// Append to vev data file?
-    bool	MMAappend  { false } ;		// Append to MMA file?
     atombool	interrupt  { false } ;		// Interrupt flag
     string	savedir    { "./save/" } ;	// Save file directory
     string	MMAdir	   { "./MMA/"  } ;	// MMA result directory
