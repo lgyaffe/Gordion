@@ -118,11 +118,36 @@ July 10-24, 2026:
 
 July 26, 2026:
     Version 2.0 release.
-    Changed packed polynomial encoding to be more efficient: numerous changes
-	to Poly.{h,cpp}, Save.{h,cpp}, Build.cpp, Print.cpp, Data.h.
-	Note that sys-info files are not backwards compatible.
-    Removed redundant "add gen" command.
-    Gordion.h: introduced NUM32 typedef to select 32-bit integers and floats
-	for polynomial indices and coefficients, with default now being
-	64-bit indicies and coefficients.
+    Poly.*, Bulid.*, Save.*, Data.h: Changed packed polynomial encoding to be
+	more efficient.  Note that sys-info files are not backwards compatible.
+    Gordion.h: introduced NUM32 preprocessor variable and numb typedef to select,
+    	together with 'real', 32-bit integers and floats for polynomial indices
+	and coefficients, with default now being 64-bit indicies and coefficients.
+    Parse.cpp: Removed redundant "add gen" command.
+    Poly.cpp: Fixed add_gen to not return prematurely upon truncation.
+
+July 28, 2027:
+    Build.h: Moved in definitions of Build static variables.
+    Parse.h: Moved in definitions of Parse static variables.
+    Op.cpp: Fixed Op::setprimary to evaluate in increasing creation order.
+    Global.h: Added obsswap global variable.
+    Obs.cpp: Added swapped boolean to ObsList, with testing and calls to
+	Save::reload_obs in various Build, Numerics, Parse, Poly, Print functions.
+    Parse.cpp: Added "purge observables" command to free memory consumed by the
+	master observable list (after writing sys-info files). 
+	Added trivial "print stage" command.
+	Added setting of obsswap global variable.
+    Gordion.h: Added OS-dependent functions maxmem and cputime for reporting
+	at program exit.
+    Gordion.cpp: Moved in quit and sig_catch from Parse.cpp.
+	Added reporting of cpu time and max real memory in quit function.
+
+July 29, 2027:
+    Coupling.cpp: Added consistency checking in coupling changes.
+    Save.cpp: Changed read_coup to use static buffer and call
+	Coupling::update for consistency checking.
+    Print.cpp: Fixed print_coup to remove overlooked debugging code
+	and use new read_coup.
+    
+
 
