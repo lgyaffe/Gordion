@@ -126,7 +126,7 @@ July 26, 2026:
     Parse.cpp: Removed redundant "add gen" command.
     Poly.cpp: Fixed add_gen to not return prematurely upon truncation.
 
-July 28, 2027:
+July 28, 2026:
     Build.h: Moved in definitions of Build static variables.
     Parse.h: Moved in definitions of Parse static variables.
     Op.cpp: Fixed Op::setprimary to evaluate in increasing creation order.
@@ -142,12 +142,28 @@ July 28, 2027:
     Gordion.cpp: Moved in quit and sig_catch from Parse.cpp.
 	Added reporting of cpu time and max real memory in quit function.
 
-July 29, 2027:
+July 29, 2026:
     Coupling.cpp: Added consistency checking in coupling changes.
     Save.cpp: Changed read_coup to use static buffer and call
 	Coupling::update for consistency checking.
     Print.cpp: Fixed print_coup to remove overlooked debugging code
 	and use new read_coup.
-    
 
+July 30, 2026:
+    Parse.cpp: changed parse_set so that setting vevappend or MMAappend changes
+	the settings for both gauge and fermion stages.
+
+August 6, 2026:
+    Build.cpp: Added needed arguments to read_geo_bckt calls.  Misc code cleanup,
+    Numerics.{h,cpp}: Added nvevG and nvevF to record observable counts when
+	ObsList::obs is purged.  Added nvev() member function.
+    Symb.h: Renamed symb tnR tests to include underscore and distinguish them
+	from the broader type tests.
+    Poly.{h,cpp}: Renamed Poly -> PolyElem and Polyindx -> PolyIndx for better
+	consistency and clarity.
+    Print.cpp: Added more fraction recognition to coeffprt.
+	Fixed interchanged index limits in print_lagr and print_geos.
+	Added needed argments to read_geo_bckt calls.
+    Save.cpp: Changed read_coup to use a static buffer with a boolean argument
+	controlling whether to control whether to copy to Couplings::list.
 
