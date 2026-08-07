@@ -45,7 +45,6 @@ bool Coupling::update (const Couplings& tmp)	// Update values?
     return true ;
     }
 
-
 ostream& operator<< (ostream& stream, const vector<AdjTerm>& vec)	// Print AdjTerm list
     {
     string	plus { " + " } ;

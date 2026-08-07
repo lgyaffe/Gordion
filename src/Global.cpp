@@ -19,7 +19,7 @@ string Global::mk_filename (const string&& ext)	// Make data file names
     return filenam ;
     }
 
-string Global::addsubdir (string dir, int stag)	// Return save sub-directory
+string Global::addsubdir (string dir, int stag)	// Add save sub-directory
     {
     dir.append (stag ? theory.name.data() : theory.parent().data() ) ;
     dir += '/' ;

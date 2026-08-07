@@ -1,8 +1,8 @@
 #ifndef OBS_H
 #define OBS_H
-#include "Symb.h"
-#include "Poly.h"
 #include "Assess.h"
+#include "Poly.h"
+#include "Str.h"
 #include <climits>
 #include <map>
 
@@ -95,14 +95,14 @@ class Obs : public Str				// Obs = Str + meta-info
 
     bool is_gauge() const { return is_Loop()
 				|| is_Eloop()
-				|| is_EEloop() && !isEE_F(front())
+				|| is_EEloop() && !is_ee(front())
 				|| front() == EntrG ; }
     bool has_Es()   const { return is_Eloop()
 				|| is_EEloop()
 				|| is_Efermion() ; }
     bool is_fermi() const { return is_Fermion()
 				|| is_Efermion()
-				|| isEE_F(front())
+				|| is_ee(front())
 				|| front() == EntrF ; }
     bool is_coord() const { return theory.euclid
 				    ? is_Loop() || is_Fermion() && !staggered()
@@ -123,12 +123,12 @@ class Obs : public Str				// Obs = Str + meta-info
 
     static inline const std::map<string,ObsType> obstypes
 	{
-	{ "Loop",     ObsType::Loop},
-	{ "Eloop",    ObsType::Eloop},
-	{ "EEloop",   ObsType::EEloop},
-	{ "Fermion",  ObsType::Fermion},
-	{ "Efermion", ObsType::Efermion},
-	{ "Entropy",  ObsType::Entropy}
+	{ "Loop",     ObsType::Loop     },
+	{ "Eloop",    ObsType::Eloop    },
+	{ "EEloop",   ObsType::EEloop   },
+	{ "Fermion",  ObsType::Fermion  },
+	{ "Efermion", ObsType::Efermion },
+	{ "Entropy",  ObsType::Entropy  }
 	} ;
 
     friend ostream& operator<< (ostream&, const Obs&) ;
@@ -146,7 +146,7 @@ class ObsList: vector<const Obs*>
     bool		classify ;		// Classify entries?
     bool		approx {false} ;	// Approximate exclusions?
 
-    using vector::const_iterator ;	// Expose base const_iterator
+    using vector::const_iterator ;		// Base const_iterator
     const_iterator begin() const { return vector::cbegin() ; }
     const_iterator end()   const { return vector::cend()   ; }
 
@@ -165,9 +165,9 @@ class ObsList: vector<const Obs*>
 		    if (this == &ObsList::obs && inbox.size())
 			{
 			auto p2 { inbox.find(s) } ;
-			if (p2 != inbox.end()) return UINT_MAX-1 ;
+			if (p2 != inbox.end()) return MAXNUM-1 ;
 			}
-		    return UINT_MAX ;
+		    return MAXNUM ;
 		    }
     void	reserve (int len)		// Reserve space
 		    {
@@ -236,7 +236,7 @@ class ObsSubset : public std::map<numb,Obs>		// Obs subset
     public:
     friend ostream& operator<< (ostream& stream, const ObsSubset& s)
 	{
-	for (auto& [i,o] : s) stream << o << " " ;
+	for (const auto& [i,o] : s) stream << o << " " ;
 	return stream ;
 	}
     } ;

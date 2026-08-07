@@ -32,6 +32,8 @@ class Numerics
     Uvec	Tevens ;		// T-even active generators
     Uvec	Todds ;			// T-odd active generators
     ushort	lastrep ;		// Symmetry representation
+    numb	nvevG ;			// # gauge vev's
+    numb	nvevF ;			// # fermion vev's
 
     Rvec	vev_tmp ;		// Temporary vev vector
     const real*	vev_buf ;		// Pointer to vev buffer data
@@ -64,6 +66,7 @@ class Numerics
     const Uvec&	eval_inuse	(uint,bool=false) ;	// Active generator list
     const Cvec&	eval_spectra	(uint,bool=false) ;	// Evaluate spectrum
     const Cvec&	eval_spectra	(string,bool=false) ;	// Evaluate spectrum
+    void	initialize	(int,numb,numb) ;	// Initialize
     void	initialize	(int = global.stage) ;	// Initialize
     void	status_rpt	(uint,uint) ;		// Report status
     bool	check_loops	() ;			// Loop vevs < 1?
@@ -82,16 +85,18 @@ class Numerics
 	return z ;
 	}
 
-    doub termvalue (const Poly*& ptr)				// Evaluate Poly
+    doub termvalue (const PolyElem*& ptr)			// Evaluate Poly
 	 { return termvalue (ptr, vev.memptr()) ; }
 
-    static doub termvalue (const Poly*& ptr, const real* v)	// Evaluate Poly
+    static doub termvalue (const PolyElem*& ptr, const real* v)	// Evaluate Poly
 	{
 	doub z    { (ptr++)->coeff } ;
 	numb indx { (ptr++)->index } ;
 	for (; indx < 0 ; indx = (ptr++)->index) z *= v[-indx] ;
 	return z * v[indx] ;
 	}
+
+    numb nvev (int stage) { return stage ? nvevF : nvevG ; }	// # active vev
 
     inline static Status status ;				// Status info
 

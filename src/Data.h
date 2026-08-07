@@ -71,11 +71,11 @@ struct Element				// Data record element
 	} ;
 
     Element () {}
-    Element (OpHdr   h) { hdr.op  = h ; }
-    Element (ObsHdr  h) { hdr.obs = h ; }
-    Element (GenHdr  h) { hdr.gen = h ; }
-    Element (real    c) { coeff   = c ; }
-    Element (numb    n) { index   = n ; }
+    Element (OpHdr  h) { hdr.op  = h ; }
+    Element (ObsHdr h) { hdr.obs = h ; }
+    Element (GenHdr h) { hdr.gen = h ; }
+    Element (real   c) { coeff   = c ; }
+    Element (numb   n) { index   = n ; }
 
     const auto& len() const { return hdr.len ; }
     } ;
@@ -139,7 +139,7 @@ class DataRec : public vector<Element>		// Data record
 	}
     const char* reccptr()			// const char* ptr to data
 	{
-	return cast_to<char*>(data()) ;
+	return cast_to<const char*>(data()) ;
 	}
     void writerec (fstream& stream)		// Write record to stream
 	{

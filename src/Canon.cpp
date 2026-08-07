@@ -7,11 +7,10 @@
 
 int Obs::canon()				// Canonicalize observable
     {
-    const auto& blab { Blab::level(Blab::CANON) } ;
+    const auto&	blab { Blab::level(Blab::CANON) } ;
+    int		len  ( size() ) ;
     if (blab > 1) cout << "canon " << *this << "\n" << flush ;
     ++global.count().canons ;
-
-    int len (size()) ;
 
     if (!len)					// identity loop
 	{
@@ -21,7 +20,7 @@ int Obs::canon()				// Canonicalize observable
 	}
     else if (isxtra(front()))			// entropy, EE_F special cases
 	{
-	if (isEE_F(front()))			// fermion contribution to EE
+	if (is_ee(front()))			// fermion contribution to EE
 	    {
 	    short xord { xorder } ;
 	    front() -= 0x18 ;			// convert to regular EE
@@ -40,18 +39,18 @@ int Obs::canon()				// Canonicalize observable
 	    if (search == Canon::cache.end())		// cache miss
 		{
 		if (blab > 2) cout << "cache miss: " << *this << "\n" << flush ;
-		uint minscore { UINT_MAX } ;
-		Obs  best { *this } ;
+		uint minscore	{ UINT_MAX } ;
+		Obs  best	{ *this } ;
 
-		for (int rot(0) ; rot < len ; ++rot)
+		for (int rot(0) ; rot < len ; ++rot)	// try all starting points
 		    {
-		    for (const auto& symm : Symm::list)
+		    for (const auto& symm : Symm::list)	// ... and all Symm's
 			{
 			uint score (0) ;
 			Obs  obs { *this } ;
 			obs.trans (symm, rot) ;
 
-			for (auto& x : obs) score = (score << loopbits) + x ;
+			for (auto& c : obs) score = (score * loopbase) + c ;
 			if (score < minscore)
 			    {
 			    minscore = score ;
@@ -99,15 +98,14 @@ int Obs::canon()				// Canonicalize observable
 	    }
 	else						// compare starting chunks
 	    {
-	    int		dim { theory.dim } ;
-	    auto&	symmset { Canon::symmset } ;
+	    auto&	symmset  { Canon::symmset } ;
+	    int		dim	 { theory.dim } ;
 	    uint	minscore { UINT_MAX } ;
-	    uint	code(0) ;
-	    int		start(0) ;
-	    int		end(0) ;
-	    auto	p { data() } ;
-
-	    vector<pair<int,int>> trial ;
+	    auto	p	 { data() } ;
+	    uint	code	 (0) ;
+	    int		start	 (0) ;
+	    int		end	 (0) ;
+	    vector<int2> trial ;
 
 	    for (; end < loopchunksize ;)		// fill initial loopchunk
 		{
@@ -141,9 +139,9 @@ int Obs::canon()				// Canonicalize observable
 		{
 		start = trial[0].first ;
 		end   = (start + loopchunksize - 1) % len ;
-		auto		symmidx { symmset[trial[0].second][0] } ;
-		const auto&	symm { Symm::list [symmidx] } ;
-		int		beg  { symm.isCodd() ? end : start } ;
+		auto		symmidx	{ symmset[trial[0].second][0] } ;
+		const auto&	symm	{ Symm::list [symmidx] } ;
+		int		beg	{ symm.isCodd() ? end : start } ;
 		trans (symm, beg) ;
 		if (blab > 2)
 		    {
@@ -159,7 +157,7 @@ int Obs::canon()				// Canonicalize observable
 
 		for (auto [start,setindx] : trial)
 		    {
-		    end   = (start + loopchunksize - 1) % len ;
+		    end = (start + loopchunksize - 1) % len ;
 
 		    for (auto symmidx : symmset[setindx])
 			{
@@ -195,7 +193,7 @@ int Obs::canon()				// Canonicalize observable
 	{
 	int	sgn0 { 1 } ;
 	int	sgn1 { 1 } ;
-	bool	isFf { is_fermi() } ;
+	bool	isFf { bilinear() } ;
 	short	mid  ( midEtype() ? middleE() : 0 ) ;
 
 	if (!theory.euclid && isFf && isstag (back()))
@@ -222,9 +220,9 @@ int Obs::canon()				// Canonicalize observable
 		{
 		if (blab > 2) cout << "cache miss: " << *this << "\n" << flush ;
 
-		int	maxtry { (isFf || !mid) ? 1 : 2 } ;
-		Obs	best   { *this } ;
+		Obs	best	 { *this } ;
 		uint	minscore { UINT_MAX } ;
+		int	maxtry	 { (isFf || !mid) ? 1 : 2 } ;
 
 		for (int shot(0) ; shot < maxtry ; ++shot)
 		    {
@@ -238,7 +236,7 @@ int Obs::canon()				// Canonicalize observable
 
 			for (auto& x : obs)
 			    {
-			    if (!isferm(x)) score = (score << specbits) + x ;
+			    if (!isferm(x)) score = (score * specbase) + x ;
 			    }
 			if (score < minscore)
 			    {
@@ -290,7 +288,7 @@ int Obs::canon()				// Canonicalize observable
 		    }
 		else if (blab > 2) cout << "Canon: cannot cache " << *this << "\n" ;
 		if (blab > 1) cout << "canon S1 returning " << sgn0 * sgn1
-			       << " " << *this << "\n" << flush ;
+				   << " " << *this << "\n" << flush ;
 		++global.count().cachemiss ;
 		}
 	    else					// cache hit
@@ -311,15 +309,15 @@ int Obs::canon()				// Canonicalize observable
 	    if (blab > 3) cout << "\nspec obs " << *this << " mid " << mid
 			       << " maxtry " << maxtry << "\n" << flush ;
 
-	    vector<pair<int,int>> trial ;
+	    vector<int2> trial ;
 
 	    for (int shot(0) ; shot < maxtry ; ++shot)
 		{
 		bool	reverse ( shot & 1 ) ;
-		bool	flip  { isFf && reverse } ;
-		int	start ( shot > 1 ? mid : (flip ? size()-1 : 0) ) ;
-		uint	indx  { Canon::speccode (*this, start, reverse) } ;
-		Node&	node  { Canon::spectable [indx] } ;
+		bool	flip	{ isFf && reverse } ;
+		int	start	( shot > 1 ? mid : (flip ? size()-1 : 0) ) ;
+		uint	indx	{ Canon::speccode (*this, start, reverse) } ;
+		Node&	node	{ Canon::spectable [indx] } ;
 		if (blab > 3)
 		    {
 		    cout << "shot " << shot << " score " << node.score
@@ -331,7 +329,7 @@ int Obs::canon()				// Canonicalize observable
 		    fatal (format("bad spectable node: obs {} start {} rev {} indx {}",
 			    print(), start, reverse, indx)) ;
 		    }
-//		Str chunk { string(specchunksize,'\0') } ;
+//		Str chunk { string (specchunksize,'x') } ;
 //		if (!Canon::specchunk (indx % (spectblsize()/2), chunk))
 //		    {
 //		    fatal (format("specchunk failed! obs {} start {} rev {} chunk {}",
@@ -352,10 +350,10 @@ int Obs::canon()				// Canonicalize observable
 
 	    if (trial.size() == 1 && symmset[trial[0].second].size() == 1)
 		{
-		auto		symmidx { symmset[trial[0].second][0] } ;
-		const auto&	symm { Symm::list [symmidx] } ;
-		int		beg  { trial[0].first } ;
-		int		sgn2 { trans (symm, beg) } ;
+		auto		symmidx	{ symmset[trial[0].second][0] } ;
+		const auto&	symm	{ Symm::list [symmidx] } ;
+		int		beg	{ trial[0].first } ;
+		int		sgn2	{ trans (symm, beg) } ;
 		if (blab > 2)
 		    {
 		    cout << "spec best: " << symm.name
@@ -402,7 +400,7 @@ int Obs::canon()				// Canonicalize observable
 		*this = best ;
 		}
 	    if (blab > 1) cout << "canon S2 returning " << sgn0 * sgn1
-			   << " " << *this << "\n" << flush ;
+			       << " " << *this << "\n" << flush ;
 	    }
 	return sgn0 * sgn1 ;
 	}
@@ -414,6 +412,7 @@ bool Canon::loopchunk (uint code, Str& s)	// Map looptbl index -> loop chunk
     int	 base { 2 * dim } ;
     symb x { X } ;
 
+    if (s.size() != loopchunksize) abort ("Bad call to Canon::loopchunk") ;
     for (auto p { s.rbegin() } ; p < s.rend() ; code /= base)
 	{
 	symb y ( code % base ) ;
@@ -426,12 +425,12 @@ bool Canon::loopchunk (uint code, Str& s)	// Map looptbl index -> loop chunk
 
 bool Canon::specchunk (uint code, Str& s)	// Map spectbl index -> spec chunk
     {
-    const auto& blab { Blab::level(Blab::CANON) } ;
+    const auto&	blab { Blab::level(Blab::CANON) } ;
     const auto&	dim  { theory.dim } ;
-    int	 	base { 2 * dim } ;
-    int  	len  ( s.size() ) ;			// must equal specchunksize
+    int		base { 2 * dim } ;
     if (blab > 3) cout << "\t specchunk: code " << code << "\n" ;
 
+    if (s.size() != specchunksize) abort ("Bad call to Canon::specchunk") ;
     for (auto p { s.rbegin() } ; p < s.rend() ; code /= base)	// lay down links
 	{
 	symb y ( code % base ) ;
@@ -483,15 +482,15 @@ bool Canon::specchunk (uint code, Str& s)	// Map spectbl index -> spec chunk
 
 uint Canon::speccode (const Obs& obs, int start, bool reverse)	// Map spec chunk -> spectbl index
     {
-    const auto& blab { Blab::level(Blab::CANON) } ;
-    const auto& dim  { theory.dim } ;
-    int  	len  ( obs.size() ) ;
-    int  	inc  { reverse ? -1 : +1 } ;
-    int  	k    { start } ;
+    const auto&	blab { Blab::level(Blab::CANON) } ;
+    const auto&	dim  { theory.dim } ;
+    int		len  ( obs.size() ) ;
+    int		inc  { reverse ? -1 : +1 } ;
+    int		k    { start } ;
     if (blab > 3) cout << "speccode " << obs << " len " << len
 			    << " start " << start << " reverse " << reverse << "\n" ;
 
-    if (obs.is_fermi())						// skip fermions
+    if (obs.bilinear())						// skip fermions
 	{
 	len -= 2 ;
 	k = reverse ? len : 1 ;
@@ -554,12 +553,12 @@ uint Canon::speccode (const Obs& obs, int start, bool reverse)	// Map spec chunk
 
 void Canon::looptblinit()					// Initialize looptable
     {
-    int	nodecount(0) ;
-    Str	chk (string(loopchunksize,'x')) ;
+    int	nodecount (0) ;
+    Str	chk { string (loopchunksize,'x') } ;
 
     for (int code(0) ; code < looptable.size() ; ++code)	// run over all loop chunks
 	{
-	Node&	node {looptable[code]} ;
+	Node&	node { looptable[code] } ;
 	SymmSet	symmlist ;
 	string	symmstr ;
 
@@ -574,14 +573,14 @@ void Canon::looptblinit()					// Initialize looptable
 		{
 		for (auto p = chk.crbegin() ; p < chk.crend() ; ++p)
 		    {
-		    score = (score << loopbits) + symm.map[*p] ;
+		    score = (score * loopbase) + symm.map[*p] ;
 		    }
 		}
 	    else
 		{
 		for (auto p = chk.cbegin() ; p < chk.cend() ; ++p)
 		    {
-		    score = (score << loopbits) + symm.map[*p] ;
+		    score = (score * loopbase) + symm.map[*p] ;
 		    }
 		}
 	    if (score < node.score)
@@ -590,13 +589,13 @@ void Canon::looptblinit()					// Initialize looptable
 		symmlist.clear() ;
 		symmlist.push_back (symmnum) ;
 		symmstr = Symm::list[symmnum].name ;
-		//symmstr = std::to_string(symmnum) ;
+		//symmstr = std::to_string (symmnum) ;
 		}
 	    else if (score == node.score)
 		{
 		symmlist.push_back (symmnum) ;
 		symmstr += " " + Symm::list[symmnum].name ;
-		//symmstr += " " + std::to_string(symmnum) " ;
+		//symmstr += " " + std::to_string (symmnum) " ;
 		}
 	    }
 	symmstr.shrink_to_fit() ;
@@ -612,7 +611,7 @@ void Canon::spectblinit()					// Initialize spectable
     const auto&	blab	{ Blab::level(Blab::CANON) } ;
     uint	halftbl	( spectable.size()/2 ) ;
     uint	csymm	( Symm::list.size()/2 ) ;
-    Str		chk	(string(specchunksize,'x')) ;
+    Str		chk	{ string (specchunksize,'x') } ;
     int		nodecount(0) ;
 
     for (int code(0) ; code < halftbl ; ++code)
@@ -634,7 +633,7 @@ void Canon::spectblinit()					// Initialize spectable
 
 		for (auto p = chk.cbegin() ; p < chk.cend() ; ++p)
 		    {
-		    score = (score << specbits) + symm.map[*p] ;
+		    score = (score * specbase) + symm.map[*p] ;
 		    }
 		if (score < node.score)
 		    {
@@ -642,13 +641,13 @@ void Canon::spectblinit()					// Initialize spectable
 		    symmlist.clear() ;
 		    symmlist.push_back (symmnum) ;
 		    symmstr = Symm::list[symmnum].name ;
-		    //symmstr = std::to_string(symmnum) ;
+		    //symmstr = std::to_string (symmnum) ;
 		    }
 		else if (score == node.score)
 		    {
 		    symmlist.push_back (symmnum) ;
 		    symmstr += " " + Symm::list[symmnum].name ;
-		    //symmstr += " " + std::to_string(symmnum) " ;
+		    //symmstr += " " + std::to_string (symmnum) " ;
 		    }
 		}
 	    symmstr.shrink_to_fit() ;

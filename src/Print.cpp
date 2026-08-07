@@ -22,7 +22,10 @@ ostream& Print::coeffprt (ostream& stream, doub c)	// Pretty print coefficient
 	else if (is_int (2*c))	stream << sgn << 2*c  << "/2" << " " ;
 	else if (is_int (3*c))	stream << sgn << 3*c  << "/3" << " " ;
 	else if (is_int (4*c))	stream << sgn << 4*c  << "/4" << " " ;
+	else if (is_int (6*c))	stream << sgn << 6*c  << "/6" << " " ;
 	else if (is_int (8*c))	stream << sgn << 8*c  << "/8" << " " ;
+	else if (is_int (9*c))	stream << sgn << 9*c  << "/9" << " " ;
+	else if (is_int (12*c))	stream << sgn << 12*c << "/12" << " " ;
 	else if (is_int (16*c))	stream << sgn << 16*c << "/16" << " " ;
 	else if (is_int (x))	stream << sgn <<   x  << "/\u221A2" << " "  ;
 	else if (is_int (2*x))	stream << sgn << 2*x  << "/(2\u221A2)" << " " ;
@@ -61,16 +64,9 @@ void Print::print_obs (numb i)			// Print indexed Obs
 void Print::print_obs (const string& word)	// Print specified Obs
     {
     if (ObsList::obs.swapped) Save::reload_obs() ;
-
-    bool	found { false } ;
-    Str		s { word } ;
-    numb	indx { ObsList::obs.find (s) } ;
-    if (indx != UINT_MAX)
-	{
-	ObsList::obs.print (cout, indx) ;
-	found = true ;
-	}
-    if (!found) gripe (format("Observable {} not known", word)) ;
+    numb indx { ObsList::obs.find (Str (word)) } ;
+    if (indx < MAXNUM) ObsList::obs.print (cout, indx) ;
+    else gripe (format("Observable {} not known", word)) ;
     }
 
 void Print::print_obs ()			// Print ObsList::obs
@@ -295,8 +291,8 @@ void Print::print_couplings ()			// Print Coupling::couplings
 	}
     }
 
-void Print::print_ham_or_free ()		// Print Hamiltonian
-    {						// or free energy
+void Print::print_ham_or_free ()		// Print H or F
+    {
     string name { theory.euclid ? "  F_" : "  H_" } ;
     cout << name << global.fg() << " = "
 	 << global.info().Hterms << "\n" ;
@@ -341,17 +337,17 @@ void Print::print_grad (uint i)			// Print gradient row
 
 void Print::print_grad ()			// Print gradient
     {
-    const auto& grad	{ global.data().grad } ;
-    auto	recptr	{ grad.begin() } ;
+    const auto&	grad	{ global.data().grad } ;
     auto	nterms	{ grad.entry().ncol } ;
     auto	neven	{ grad.entry().nrow } ;
+    auto	recptr	{ grad.begin() } ;
 
     for (int i(0) ; i < nterms ; ++i)
 	{
 	const auto& term { global.info().Hterms[i].cpoly } ;
 	for (int j(0) ; j < neven ; ++j, ++recptr)
 	    {
-	    const Poly*	ptr { &(*recptr) } ;
+	    const PolyElem*	ptr { &(*recptr) } ;
 	    if (ptr->len())
 		{
 		cout << "grad (" << i << "," << j << ") ="
@@ -422,10 +418,10 @@ void Print::print_curv (uint i)			// Print curvature slice
 
 void Print::print_curv ()			// Print curvature
     {
-    const auto& curv	{ global.data().curv[global.repnum] } ;
-    auto	recptr	{ curv.begin() } ;
+    const auto&	curv	{ global.data().curv[global.repnum] } ;
     auto	nterms	{ curv.entry().nslice } ;
     auto	neven	{ curv.entry().ncol } ;
+    auto	recptr	{ curv.begin() } ;
 
     if (curv.entry().nrow != neven) fatal ("Corrupted curv record!") ;
 
@@ -436,7 +432,7 @@ void Print::print_curv ()			// Print curvature
 	    {
 	    for (int k(0) ; k < neven ; ++k, ++recptr)
 		{
-		const Poly* ptr { &(*recptr) } ;
+		const PolyElem* ptr { &(*recptr) } ;
 		if (ptr->len())
 		    {
 		    cout << Rep::list[global.repnum].name
@@ -457,7 +453,7 @@ void Print::print_lagrange (uint j, uint k)	// Print Lagrange mtx element
 
     if (j < neven && k-neven >= 0 && k-neven < nodd)
 	{
-	if (true || lagr(k-neven,j).len())
+	if (lagr(k-neven,j).len())
 	    {
 	    cout << Rep::list[global.repnum].name << " lagrange (" 
 		 << global.fg() << j << ","
@@ -476,7 +472,7 @@ void Print::print_lagrange (uint j)		// Print Lagrange matrix row
 
     if (j < neven)
 	{
-	for (int k(0) ; k < nodd ; ++k) print_lagrange (k,k+neven) ;
+	for (int k(0) ; k < nodd ; ++k) print_lagrange (j,k+neven) ;
 	}
     else gripe (format("Invalid generator number {}", j)) ;
     }
@@ -484,15 +480,15 @@ void Print::print_lagrange (uint j)		// Print Lagrange matrix row
 void Print::print_lagrange ()			// Print Lagrange bracket
     {
     const auto&	lagr	{ global.data().lagr[global.repnum] } ;
-    auto	neven	{ lagr.entry().nrow } ;
-    auto	nodd	{ lagr.entry().ncol } ;
+    auto	neven	{ lagr.entry().ncol } ;
+    auto	nodd	{ lagr.entry().nrow } ;
     auto	recptr	{ lagr.begin() } ;
 
     for (int j(0) ; j < neven ; ++j)
 	{
 	for (int k(0) ; k < nodd ; ++k, ++recptr)
 	    {
-	    const Poly* ptr { &(*recptr) } ;
+	    const PolyElem* ptr { &(*recptr) } ;
 	    if (ptr->len())
 		{
 		cout << Rep::list[global.repnum].name << " lagrange ("
@@ -502,6 +498,81 @@ void Print::print_lagrange ()			// Print Lagrange bracket
 	    }
 	}
     }
+
+void Print::print_geodesic (numb i, uint j)	// Print specified geodesic equation
+    {
+    const auto&	list  { ObsList::obs } ;
+
+    if (list.swapped) Save::reload_obs() ;
+    if (i < list.size())
+	{
+	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
+	const auto& geos	{ global.data(stage).geos[bckt] } ;
+
+	if (j < geos.entry().nrow)
+	    {
+	    if (global.geoswap) Save::read_geo_bckt (stage, bckt) ;
+	    if (geos(j,pos).len())
+		{
+		cout << " geo (" << i << "," << j << ") = d<"
+		     << list(i) << ">/d("
+		     << global.fg(stage) << j << ") = "
+		     << geos(j,pos) << "\n" ;
+		}
+	    if (global.geoswap) Save::read_geo_bckt (stage, -bckt-1) ;
+	    }
+	else gripe (format("Invalid generator number {}", j)) ;
+	}
+    else gripe (format("Invalid observable number {}", i)) ;
+    }
+
+void Print::print_geodesic (numb i)		// Print geo eqns for specified Obs
+    {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (i < ObsList::obs.size())
+	{
+	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
+	const auto& geos	{ global.data(stage).geos[bckt] } ;
+
+	for (int j(0) ; j < geos.entry().nrow ; ++j) print_geodesic (i,j) ;
+	}
+    else gripe (format("Invalid observable number {}", i)) ;
+    }
+
+void Print::print_geodesic ()			// Print all geodesic equations
+    {
+    if (ObsList::obs.swapped) Save::reload_obs() ;
+
+    for (const auto& bckt : global.info().bckt)
+	{
+	const auto&	list	{ ObsList::obs } ;
+	const auto&	stage	{ global.stage } ;
+	const auto&	bcktnum	{ bckt[0] } ;
+	const auto&	first	{ bckt[1] } ;
+	const auto&	last	{ bckt[2] } ;
+	const auto&	geos	{ global.data().geos[bcktnum] } ;
+	auto		ngeos	{ geos.entry().ncol } ;
+	auto		neven	{ geos.entry().nrow } ;
+
+	if (global.geoswap) Save::read_geo_bckt (stage, bcktnum) ;
+
+	auto		recptr	{ geos.begin() } ;
+	for (int i(first) ; i < last ; ++i)
+	    {
+	    for (int j(0) ; j < neven ; ++j, ++recptr)
+		{
+		const PolyElem* ptr { &(*recptr) } ;
+		if (ptr->len())
+		    {
+		    cout << " geo (" << i << "," << j << ") = " << "d<" << list(i)
+			 << ">/d(" << global.fg() << j << ") = " << *ptr << "\n" ;
+		    }
+		}
+	    }
+	if (global.geoswap) Save::read_geo_bckt (stage, -bcktnum-1) ;
+	}
+    }
+
 
 void Print::print_spectrum ()
     {
@@ -527,77 +598,6 @@ void Print::print_mode ()
     for (int i(0) ; i < numerics.modes.n_cols ; ++i) print_mode (i) ;
     }
 
-void Print::print_geodesic (numb i, uint j)	// Print specified geodesic equation
-    {
-    const auto&	list  { ObsList::obs } ;
-
-    if (list.swapped) Save::reload_obs() ;
-    if (i < list.size())
-	{
-	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
-	const auto& geos	{ global.data(stage).geos[bckt] } ;
-
-	if (j < geos.entry().nrow)
-	    {
-	    if (global.geoswap) Save::read_geo_bckt (bckt) ;
-	    if (geos(j,pos).len())
-		{
-		cout << " geo (" << i << "," << j << ") = d<"
-		     << list(i) << ">/d("
-		     << global.fg(stage) << j << ") = "
-		     << geos(j,pos) << "\n" ;
-		}
-	    if (global.geoswap) Save::read_geo_bckt (-bckt-1) ;
-	    }
-	else gripe (format("Invalid generator number {}", j)) ;
-	}
-    else gripe (format("Invalid observable number {}", i)) ;
-    }
-
-void Print::print_geodesic (numb i)		// Print geo eqns for specified Obs
-    {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
-    if (i < ObsList::obs.size())
-	{
-	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
-	const auto& geos	{ global.data(stage).geos[bckt] } ;
-
-	for (int j(0) ; j < geos.entry().nrow ; ++j) print_geodesic (i,j) ;
-	}
-    else gripe (format("Invalid observable number {}", i)) ;
-    }
-
-void Print::print_geodesic ()			// Print all geodesic equations
-    {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
-
-    auto& bckt { global.info().bckt } ;
-    for (int bcktnum(0) ; bcktnum < bckt.size() ; ++bcktnum)
-	{
-	const auto&	list	{ ObsList::obs } ;
-	const auto&	geos	{ global.data().geos[bcktnum] } ;
-	auto		ngeos	{ geos.entry().nrow } ;
-	auto		neven	{ geos.entry().ncol } ;
-	auto		recptr	{ geos.begin() } ;
-
-	if (global.geoswap) Save::read_geo_bckt (bcktnum) ;
-
-	for (int i(0) ; i < ngeos ; ++i)
-	    {
-	    for (int j(0) ; j < neven ; ++j, ++recptr)
-		{
-		const Poly* ptr { &(*recptr) } ;
-		if (ptr->len())
-		    {
-		    cout << " geo (" << i << "," << j << ") = " << "d<" << list(i)
-			 << ">/d(" << global.fg() << j << ") = " << *ptr << "\n" ;
-		    }
-		}
-	    }
-	if (global.geoswap) Save::read_geo_bckt (-bcktnum-1) ;
-	}
-    }
-
 void Print::print_cache ()			// Print canonicalization cache
     {
     cout << Canon::cache ;
@@ -613,12 +613,12 @@ void Print::print_sysindex ()			// Print sys data index
 	for (auto& entry : info.sysindex)
 	    {
 	    if (!entry.reclen) continue ;
-	    auto fileend { entry.filepos + entry.reclen * sizeof (RecHdr) } ;
+	    auto fileend { entry.filepos + entry.reclen * sizeof (Element) } ;
 	    cout << RecIndx::idname[(int) entry.id] << "\t"
 		 << std::setw(3)  << (int) entry.nslice << " "
 		 << std::setw(7)  << entry.ncol << " "
 		 << std::setw(9)  << entry.nrow << " "
-		 << std::setw(10)  << entry.reclen << " "
+		 << std::setw(10) << entry.reclen << " "
 		 << std::setw(12) << entry.filepos << " "
 		 << std::setw(12) << fileend << "\n" ;
 	    }

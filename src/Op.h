@@ -15,8 +15,6 @@ enum class OpType : char				// Operator types
     Invalid
     } ;
 
-class OpList ;
-
 class Op : public Str					// Op = generator term
     {
     public:

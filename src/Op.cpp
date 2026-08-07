@@ -50,8 +50,8 @@ void Op::validate()				// Test Op validity
     else if (dim > theory.dim)		err = "exceeds lattice dimension" ;
     else if ( fs && (fs != Fs))		err = "has bad fermion insertions" ;
     else if (!fs && !isclosed())	err = "is not closed loop" ;
-    else if (fs && !isF(front()))	err = "is malformed fermion bilinear" ;
-    else if (fs && !isf(back()))	err = "is malformed fermion bilinear" ;
+    else if (fs && !is_F(front()))	err = "is malformed fermion bilinear" ;
+    else if (fs && !is_f(back()))	err = "is malformed fermion bilinear" ;
     else if (fs > 1)			err = "has excessive fermions" ;
     else if (Es && islink(front()))	err = "is mis-rotated" ;
     else if (Es + fs > 1)		err = "has excessive E's" ;

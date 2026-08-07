@@ -5,8 +5,8 @@
 
 namespace Commute
     {
-    void commute_poly (const Gen&, const ObsPoly&, PolyMap&) ;		 // [Gen,Obs]
-    void commute_poly (const Gen&, const PolyMap&, PolyMap&) ;		 // [Gen,Obs]
+    void commute_poly (const Gen&, const ObsPoly&,  PolyMap&) ;		 // [Gen,Obs]
+    void commute_poly (const Gen&, const PolyMap&,  PolyMap&) ;		 // [Gen,Obs]
     void commute_term (const Gen&, const PolyTerm&, ObsList&, PolyMap&); // [Gen,Obs]
 
     Gen& commute_gen (const Gen&, const Gen&,   Gen&) ;			// [Gen,Gen]

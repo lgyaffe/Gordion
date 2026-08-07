@@ -8,14 +8,14 @@
 
 class Gen ;
 class ObsList ;
-class Poly ;
+class PolyElem ;
 class SysIndex ;
 
-class Polyindx : public array<numb,PSIZ>		// Obs index tuples
+class PolyIndx : public array<numb,PSIZ>		// Obs index tuples
     {
     public:
-    Polyindx (numb i = 0)     : array<numb,PSIZ>{i} {}
-    Polyindx (numb i, numb j) : array<numb,PSIZ>{i,j} { mysort() ; }
+    PolyIndx (numb i = 0)     : array<numb,PSIZ>{i} {}
+    PolyIndx (numb i, numb j) : array<numb,PSIZ>{i,j} { mysort() ; }
 
     void mysort()					// sort indices
 	{ std::sort (begin(), end(), std::greater()) ; }
@@ -32,33 +32,33 @@ class Polyindx : public array<numb,PSIZ>		// Obs index tuples
 	    if ((*this)[i]) return i+1 ;
 	return 0 ;
 	}
-    friend ostream& operator<< (ostream&, const Polyindx&) ;
+    friend ostream& operator<< (ostream&, const PolyIndx&) ;
     } ;
 
-class PolyTerm : public Term<real,Polyindx>		// Polynomial term
+class PolyTerm : public Term<real,PolyIndx>		// Polynomial term
     {
     public:
-    using	Term<real,Polyindx>::Term ;
+    using	Term<real,PolyIndx>::Term ;
 
-    operator	Polyindx()	   const { return item ; }	// Conversion
+    operator	PolyIndx()	   const { return item ; }	// Conversion
     const numb	operator[](uint i) const { return item[i] ; }	// Subscript
     numb&	operator[](uint i)	 { return item[i] ; }	// Subscript
 
     PolyTerm	operator* (const PolyTerm&) const ;		// Combine
-    PolyTerm	operator* (doub z) const			// Scale term
+    PolyTerm	operator* (real z) const			// Scale term
 		{ PolyTerm ans { *this } ; ans.coeff *= z ; return ans ; }
 
     int		order()    const { return item.order() ; }	// Term order
-    bool	validate() const { return item.validate() ; }
-    void	print (ostream&, const ObsList&) const ;
+    bool	validate() const { return item.validate() ; }	// Validate
+    void	print (ostream&, const ObsList&) const ;	// Print
     } ;
 
-struct Polyhash						// Polyindx hash function
+struct Polyhash						// PolyIndx hash function
     {
-    std::size_t operator() (const Polyindx&) const noexcept ;
+    std::size_t operator() (const PolyIndx&) const noexcept ;
     } ;
 
-class PolyMap : public hash<Polyindx,real,Polyhash>	// PolyTerm hash table
+class PolyMap : public hash<PolyIndx,real,Polyhash>	// Observable polynomial
     {
     std::reference_wrapper<ObsList> list ;		// Observable list
 
@@ -67,9 +67,9 @@ class PolyMap : public hash<Polyindx,real,Polyhash>	// PolyTerm hash table
 
     ObsList& obslist() const { return list ; }		// Underlying ObsList
 
-    void add (Polyindx t, real d)			// Add term to PolyMap
+    void add (PolyIndx t, real d)			// Add term to PolyMap
 	{
-	auto [iter, isnew] { try_emplace (t, d) } ;
+	auto [iter, isnew] { try_emplace (t,d) } ;
 	if (!isnew) iter->second += d ;
 	}
     void add (const PolyTerm&& t) { add (t.item, t.coeff) ; }	// Add term
@@ -83,7 +83,7 @@ class PolyMap : public hash<Polyindx,real,Polyhash>	// PolyTerm hash table
 	}
     void purge ()					// Purge zero entries
 	{
-	std::erase_if (*this, [](const pair<Polyindx,real>& p)
+	std::erase_if (*this, [](const pair<PolyIndx,real>& p)
 	    { return !p.second ; }) ;
 	}
     bool allzero () { purge() ; return !size() ; }	// Vanishing Poly?
@@ -96,8 +96,8 @@ class ObsPoly : public vector<PolyTerm>			// Polynomial of Obs
     std::reference_wrapper<ObsList> list ;		// Observable list
 
     public:
-    void	push_map (PolyMap&) ;			// Add PolyMap
-    void	add (const Poly&) ;			// Add Poly
+    void	push_map (PolyMap&) ;			// PolyMap -> ObsPoly
+    void	add (const PolyElem&) ;			// Add term
     void	sort() ;				// Sort terms
     bool	allzero() const ;			// Vanishnig poly?
     ObsPoly&	negate() ; 				// Negate poly
@@ -105,20 +105,20 @@ class ObsPoly : public vector<PolyTerm>			// Polynomial of Obs
 
     ObsPoly (ObsList& l) : list(l) {}			// Constructor
     ObsPoly (numb indx, ObsList& l)			// Constructor
-	: list(l), vector<PolyTerm>(1, PolyTerm(indx)) {}
+	    : list(l), vector<PolyTerm>(1, PolyTerm(indx)) {}
 
     friend ostream& operator<< (ostream&, const ObsPoly&) ;
     } ;
 
-class Poly : public Element				// Packed ObsPoly
+class PolyElem : public Element				// Packed ObsPoly
     {
     public:
-    const Poly* begin() const { return this + 1 ; }
-    const Poly* end()   const { return this + this->hdr.len + 1 ; }
+    const PolyElem* begin() const { return this + 1 ; }
+    const PolyElem* end()   const { return this + this->hdr.len + 1 ; }
 
-    static PolyTerm nextterm (const Poly*& ptr)
+    static PolyTerm nextterm (const PolyElem*& ptr)
 	{
-	PolyTerm term { Polyindx{}, ptr++->coeff } ;
+	PolyTerm term { PolyIndx{}, ptr++->coeff } ;
 	for (int i(0) ; i < PSIZ ; ++i)
 	    {
 	    numb indx { ptr++->index } ;
@@ -128,12 +128,10 @@ class Poly : public Element				// Packed ObsPoly
 	return term ;
 	}
 
-    friend ostream& operator<< (ostream&, const Poly&) ;
-
-    static constexpr int ptermsize = sizeof (PolyTerm) / sizeof (Element) ;
+    friend ostream& operator<< (ostream&, const PolyElem&) ;
     } ;
 
-static_assert (sizeof(Poly) == sizeof(numb)) ;
+static_assert (sizeof(PolyElem) == sizeof(numb)) ;
 
 class PolyRec : public DataRec				// Polynomial data record
     {
@@ -147,7 +145,7 @@ class PolyRec : public DataRec				// Polynomial data record
 
     void clear () { DataRec::clear() ; offset.clear() ; }	// Clear data
 
-    const Poly& operator() (numb k, numb j=0, numb i=0) const	// Indexed Poly
+    const PolyElem& operator() (numb k, numb j=0, numb i=0) const // Indexed Poly
 	{						// N.B. slice/col major!
 	if (offset.empty()) slice_n_dice () ;
 	auto dataptr { begin().ptr } ;
@@ -167,21 +165,21 @@ class PolyRec : public DataRec				// Polynomial data record
 	if (m) gripe (format("Corrupted data block: expected {}, got {}",n,n-m)) ;
 	}
 
-    struct PolyIter					// Packed Poly iterator
+    struct PolyIter					// Packed PolyElem iterator
 	{
-	const Poly*	ptr ;
-	const Poly&	operator*()  { return *ptr ; }
+	const PolyElem*	ptr ;
+	const PolyElem&	operator*()  { return *ptr ; }
 	PolyIter& 	operator++() { ptr += ptr->hdr.len + 1 ; return *this ; }
 	bool		operator!= (const PolyIter& a) { return ptr != a.ptr ; }
 
-	PolyIter (const Poly* p) : ptr(p) {}
+	PolyIter (const PolyElem* p) : ptr(p) {}
 	} ;
 
     const PolyIter begin() const
-	{ return PolyIter (static_cast<const Poly*>(data())) ; }
+	{ return PolyIter (static_cast<const PolyElem*>(data())) ; }
 
     const PolyIter end()   const
-	{ return PolyIter (static_cast<const Poly*>(data()) + size()) ; }
+	{ return PolyIter (static_cast<const PolyElem*>(data()) + size()) ; }
 
     } ;
 

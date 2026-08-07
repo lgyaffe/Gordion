@@ -1,6 +1,8 @@
 #ifndef SYMB_H
 #define SYMB_H
 #include "Gordion.h"
+#include "Theory.h"
+#include <numeric>
 
 namespace Symb					// Symbol namespace
     {
@@ -31,17 +33,23 @@ namespace Symb					// Symbol namespace
     static const symb Null  { 0x36 } ;	// null ligature flag
     static const symb X     { 0x37 } ;	// invalid ligature flag
 
-    inline bool	isstag	  (symb c)	{ return c & 0x01 ; }
-    inline bool	isderiv	  (symb c)	{ return c & 0x01 ; }
-    inline int	flav	  (symb c)	{ return c & 0x02 ; }
-    inline int  axis	  (symb c)	{ return c & 0x03 ; }
-    inline bool isrefl	  (symb c)	{ return c & 0x04 ; }
-    inline bool isconj	  (symb c)	{ return c & 0x04 ; }
-    inline bool	nostep	  (symb c)	{ return c & 0x08 ; }
-    inline int  direction (symb c)	{ return c & 0x07 ; }
-    inline int	tnR	  (symb c)	{ return c >> 2  ; }
     inline int	type	  (symb c)	{ return c >> 3  ; }
+    inline int	tnR	  (symb c)	{ return c >> 2  ; }
 
+    // symb transforms:
+    inline symb stag	  (symb c)	{ return (c ^ 0x01) ; }
+    inline symb refl	  (symb c)	{ return (c ^ 0x04) ; }
+
+    // TnR (= type + reflection) tests:
+    inline bool is_L	  (symb c)	{ return tnR(c) ==  1 ; }
+    inline bool is_LEl	  (symb c)	{ return tnR(c) ==  3 ; }
+    inline bool is_LE	  (symb c)	{ return tnR(c) ==  5 ; }
+    inline bool is_f	  (symb c)	{ return tnR(c) == 10 ; }
+    inline bool is_F	  (symb c)	{ return tnR(c) == 11 ; }
+    inline bool is_ee	  (symb c)	{ return tnR(c) == 12 ; }
+    inline bool is_S	  (symb c)	{ return tnR(c) == 13 ; }
+
+    // Type tests:
     inline bool	nonlink	  (symb c)	{ return type(c) != 0 ; }
     inline bool	nongauge  (symb c)	{ return type(c) >  4 ; }
     inline bool isxtra	  (symb c)	{ return type(c) >  5 ; }
@@ -51,30 +59,26 @@ namespace Symb					// Symbol namespace
     inline bool isEE	  (symb c)	{ return type(c) == 3 ; }
     inline bool isEElink  (symb c)	{ return type(c) == 4 ; }
     inline bool isferm	  (symb c)	{ return type(c) == 5 ; }
-
-    inline bool isL	  (symb c)	{ return tnR(c) ==  1 ; }
-    inline bool isLEl	  (symb c)	{ return tnR(c) ==  3 ; }
-    inline bool isLE	  (symb c)	{ return tnR(c) ==  5 ; }
-    inline bool isf	  (symb c)	{ return tnR(c) == 10 ; }
-    inline bool isF	  (symb c)	{ return tnR(c) == 11 ; }
-    inline bool isEE_F	  (symb c)	{ return tnR(c) == 12 ; }
-    inline bool isentpy	  (symb c)	{ return tnR(c) == 13 ; }
-
-    inline symb stag	  (symb c)	{ return (c ^ 0x01) ; }
-    inline symb refl	  (symb c)	{ return (c ^ 0x04) ; }
+    inline bool	inclE	  (symb c)	{ return type(c)  > 0 &&
+    						 type(c)  < 5 ; }
     inline symb conj	  (symb c)	{ return type(c) != 1 &&
     						 type(c) != 3 ?
 						 refl(c) : c ; }
-    inline bool	inclE	  (symb c)	{ return type(c)  > 0 &&
-    						 type(c)  < 5 ; }
+
+    // symb properties:
+    inline bool	isstag	  (symb c)	{ return c & 0x01 ; }
+    inline bool	isderiv	  (symb c)	{ return c & 0x01 ; }
+    inline int	flav	  (symb c)	{ return c & 0x02 ; }
+    inline int  axis	  (symb c)	{ return c & 0x03 ; }
+    inline bool isrefl	  (symb c)	{ return c & 0x04 ; }
+    inline bool isconj	  (symb c)	{ return c & 0x04 ; }
+    inline bool	nostep	  (symb c)	{ return c & 0x08 ; }
+    inline int  direction (symb c)	{ return c & 0x07 ; }
     inline int	step	  (symb c)	{ return (c & 0x08) ? 0 :
 						 (c & 0x04) ? -1 : 1 ; }
-    inline bool EorElink  (symb c)	{ return isE(c)  || isElink(c)  ; }
-    inline bool EEorEElink(symb c)	{ return isEE(c) || isEElink(c)
-							 || isEE_F(c) ; }
-
-    int		char_to_symb (char) noexcept ;	// char -> symb
-    bool	in_thy	     (symb) noexcept ;	// Valid symb?
+    inline bool singleE	  (symb c)	{ return isE(c)  || isElink(c)  ; }
+    inline bool doubleE	  (symb c)	{ return isEE(c) || isEElink(c)
+							 || is_ee(c) ; }
 
     static const vector<string>	symbname	// symb -> printable map
 	{
@@ -124,7 +128,7 @@ namespace Symb					// Symbol namespace
 	// X := 				-> invalid (excess E's)
 	} ;
 
-    inline int ligature (symb a, symb b)	// Combine symbs?
+    inline int ligature (symb a, symb b)		// Combine symbs?
 	{
 	if (isferm(a) || isferm(b)) return 0 ;
 	if (axis(a) == axis(b))
@@ -132,50 +136,35 @@ namespace Symb					// Symbol namespace
 		return (x == 1) ? Null : ((x << 2) | axis(a)) ;
 	return 0 ;
 	}
+
+    inline bool in_thy(symb c) noexcept		// Valid symb?
+	{
+	if (c >= Nsymb)					return false ;
+	if (c >= YMend && flav(c) >= 2*theory.nf)	return false ;
+	if (c <  YMend && axis(c) >=  theory.dim)	return false ;
+	return true ;
+	}
+
+    inline symb char_to_symb(char c) noexcept	// Map character -> symb
+	{
+	for (symb x(0) ; x < symbname.size() ; ++x)
+	    {
+	    if (symbname[x].size() > 1) continue ;
+	    if (symbname[x].front() == c) return x ;
+	    }
+	return -1 ;
+	}
+
+    inline static constexpr array<symb, Nsymb> countup() // return 0,1,2,...
+	{
+	array<symb,Nsymb> tmp {} ;
+	std::iota (tmp.begin(), tmp.end(), 0) ;
+	return tmp ;
+	}
+    static const auto symblist { countup() } ;		// Symbol list
+
     } ;
 
 using namespace Symb ;
-
-class Str : public string				// Symbol string
-    {
-    public:
-    Str	()		   : string()    {}
-    Str	(const symb c)     : string(1,c) {}
-    Str	(const symb*    p, const symb*   q) : string(p,q) {}
-    Str	(const_iterator p,const_iterator q) : string(p,q) {}
-    Str	(const string& s) ;
-
-    string	print () const ;
-    string	print (const_iterator, const_iterator) const ;
-    int		join (symb) ;	
-    int		join (const_iterator, const_iterator) ;	
-    int		joinends (Str::iterator, Str::iterator) noexcept ;
-    void	excise   (Str::iterator, Str::iterator) noexcept ;	
-    bool	isclosed (const_iterator, const_iterator) const noexcept ;
-    bool	isclosed () const { return isclosed (cbegin(), cend()) ; }
-    Str&	joinends () { resize (joinends (begin(), end())) ; return *this ; }
-
-    static inline bool	dots { false } ;	// print w. symb separators?
-
-    friend ostream& operator<< (ostream&, const Str&) ;
-    } ;
-
-struct Strhash					// Str hash function 
-    {
-    std::size_t operator()(const Str& s) const
-	{
-	return std::hash<string>{}(s) ;
-	}
-    using is_transparent = void ;
-    } ;
-
-struct Str_eq					// Str equality function 
-    {
-    bool operator()(const Str& s, const Str& t) const
-	{
-	return std::equal_to<string>{}(s,t) ;
-	}
-    using is_transparent = void ;
-    } ;
 
 #endif

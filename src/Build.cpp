@@ -30,6 +30,7 @@ void Build::mk_obs (int target)			// Build observables
     if (global.interrupt) return ;
 
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
+    const auto&	info	{ global.stageinfo } ;
     auto&	maxord  { global.maxord() } ;
     auto&	obslist { ObsList::obs } ;
 
@@ -40,7 +41,7 @@ void Build::mk_obs (int target)			// Build observables
 	{
 	clear_obs (1) ;
 	if (target < maxord) clear_obs (0) ;
-	if (global.info(0).nobs <= 1) obslist.obsinit (0) ;
+	if (info[0].nobs <= 1) obslist.obsinit (0) ;
 	auto numobs { obslist.size() } ;
 	while (maxord < target)
 	    {
@@ -53,8 +54,8 @@ void Build::mk_obs (int target)			// Build observables
 	    }
 	if (obslist.size() != numobs)
 	    {
+	    numerics.initialize  (0,info[0].nobs,info[1].nobs) ;
 	    global.clearpolys    (0) ;
-	    numerics.initialize  (0) ;
 	    global.close_streams (0) ;
 	    global.mk_bcktlist   ()  ;
 	    }
@@ -62,9 +63,9 @@ void Build::mk_obs (int target)			// Build observables
     else if (theory.nf) // stage == Global::Fermi
 	{
 	if (target < maxord) clear_obs (1) ;
-	if (!global.info(1).nobs) obslist.obsinit (1) ;
-	auto& oplistG { global.info(0).ops } ;
-	auto& oplistF { global.info(1).ops } ;
+	if (!info[1].nobs) obslist.obsinit (1) ;
+	auto& oplistG { info[0].ops } ;
+	auto& oplistF { info[1].ops } ;
 	auto  numobs  { obslist.size() } ;
 	auto  lambda  { [](const Op& o) { return o.primary && !o.is_coord(); } } ;
 
@@ -91,8 +92,8 @@ void Build::mk_obs (int target)			// Build observables
 	    }
 	if (obslist.size() != numobs)
 	    {
+	    numerics.initialize  (1,info[0].nobs,info[1].nobs) ;
 	    global.clearpolys    (1) ;
-	    numerics.initialize  (1) ;
 	    global.close_streams (1) ;
 	    global.mk_bcktlist   ()  ;
 	    }
@@ -341,12 +342,12 @@ void Build::mk_ham()				// Build canonical H
     auto&	obslist { ObsList::obs  } ;
     auto&	MMAobs  { global.info().MMAfile.obs } ;
     auto&	Hterms	{ global.info().Hterms } ;
-    ushort	nterms	( Hterms.size() ) ;
+    auto	nterms	( Hterms.size() ) ;
     PolyMap	ans	{ obslist } ;
     string	name	{ theory.euclid ? "Free energy" : "Hamiltonian" } ;
 
     if (blab) cout << name << ": " << flush ;
-    for (ushort i(0) ; i < nterms ; ++i)
+    for (int i(0) ; i < nterms ; ++i)
 	{
 	for (const auto& term : Hterms[i].poly)
 	    {
@@ -370,9 +371,9 @@ void Build::mk_grad()				// Build gradient
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	Hterms	{ global.info().Hterms } ;
     const auto&	gens	{ global.info().gens.front() } ;
-    ushort	ngens	{ global.info().neven.front() } ;
+    auto	neven	{ global.info().neven.front() } ;
     auto&	grad	{ global.data().grad } ;
-    ushort	nterms	( Hterms.size() ) ;
+    auto	nterms	( Hterms.size() ) ;
     PolyMap	ans	{ ObsList::obs } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
@@ -380,16 +381,13 @@ void Build::mk_grad()				// Build gradient
 
     grad.clear() ;
     if (blab) cout << "Gradient:    " << flush ;
-    for (ushort i(0) ; i < nterms ; ++i)
+    for (int i(0) ; i < nterms ; ++i)
 	{
-	const ObsPoly& cpoly { Hterms[i].cpoly } ;
-	for (ushort j(0) ; j < ngens ; ++j)
+	const ObsPoly& poly { Hterms[i].cpoly } ;
+	for (int j(0) ; j < neven ; ++j)
 	    {
-	    if (!gens[j].T_odd)
-		{
-		Commute::commute_poly (gens[j], cpoly, ans) ;
-		if (Hterms[i].imag && gens[j].imag) ans.negate() ;
-		}
+	    Commute::commute_poly (gens[j], poly, ans) ;
+	    if (Hterms[i].imag && gens[j].imag) ans.negate() ;
 	    grad.add (ans.negate()) ;
 	    ans.clear() ;
 	    if (global.interrupt) return ;
@@ -397,7 +395,7 @@ void Build::mk_grad()				// Build gradient
 	}
     grad.shrink_to_fit() ;
     grad.entry().ncol   = nterms ;
-    grad.entry().nrow   = ngens ;
+    grad.entry().nrow   = neven ;
     grad.entry().reclen = grad.size() ;
     if (blab) cout << "\t\tdone\n" << flush ;
     }
@@ -418,8 +416,8 @@ void Build::mk_curv (uint repnum)			// Build curvature
     const auto&	gens	{ global.info().gens[repnum] } ;
     const auto&	Hterms	{ global.info().Hterms } ;
     auto&	curv	{ global.data().curv[repnum] } ;
-    ushort	nterms	( Hterms.size() ) ;
-    ushort	ngens   ( gens.size() ) ;
+    auto	nterms	( Hterms.size() ) ;
+    auto	ngens   ( gens.size() ) ;
     ObsList	tmplist { "CurvTemp", repnum == 0 } ;
     PolyMap	ans	{ ObsList::obs } ;
     PolyMap	tmp	{ tmplist } ;
@@ -429,13 +427,13 @@ void Build::mk_curv (uint repnum)			// Build curvature
 
     curv.clear() ;
     if (blab && ngens && nterms) cout << repnam << " curvature:    " << flush ;
-    for (ushort i(0) ; i < nterms ; ++i)
+    for (int i(0) ; i < nterms ; ++i)
 	{
 	const ObsPoly& poly { repnum ? Hterms[i].poly : Hterms[i].cpoly } ;
 
-	for (ushort j(0) ; j < ngens ; ++j)
+	for (int j(0) ; j < ngens ; ++j)
 	    {
-	    for (ushort k(0) ; k < ngens ; ++k)
+	    for (int k(0) ; k < ngens ; ++k)
 		{
 		if (gens[j].T_odd == gens[k].T_odd)
 		    {
@@ -476,11 +474,11 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	repnam	{ Rep::list[repnum].name } ;
     const auto&	gens	{ global.info().gens[repnum] } ;
-    ushort	neven	{ global.info().neven[repnum] } ;
+    auto	neven	{ global.info().neven[repnum] } ;
     auto&	lagr	{ global.data().lagr[repnum] } ;
     auto&	oplist	{ global.info().ops } ;
     auto	opnum	{ oplist.size() } ;
-    ushort	ngens	( gens.size() ) ;
+    auto	ngens	( gens.size() ) ;
     short	trunc	{ SHRT_MAX } ;
     PolyMap	ans	{ ObsList::obs } ;
 
@@ -489,9 +487,9 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
 
     lagr.clear();
     if (ngens && blab) cout << repnam << " Lagrange brkt: " << flush ;
-    for (ushort j(0) ; j < neven ; ++j)
+    for (int j(0) ; j < neven ; ++j)
 	{
-	for (ushort k(neven) ; k < ngens ; ++k)
+	for (int k(neven) ; k < ngens ; ++k)
 	    {
 	    Gen newgen { oplist } ;
 	    Commute::commute_gen (gens[j], gens[k], newgen) ;
@@ -545,7 +543,7 @@ void Build::do_Loop_bckt (const numb3& bckt)		// Do loop build bucket
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
     PolyMap 	tmp	{ obslist } ;
-    PolyTerm 	zero	{ Polyindx(), 0 } ;
+    PolyTerm 	zero	{ PolyIndx(), 0 } ;
     auto	numobs	{ obslist.size() } ;
     numb	bcktnum { bckt[0] } ;
     numb 	first	{ bckt[1] } ;
@@ -596,7 +594,7 @@ void Build::do_Eloop_bckt (const numb3& bckt)		// Do Eloop build bucket
     const auto&	maxord	{ global.maxord() } ;
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
-    PolyTerm	zero	{ Polyindx(), 0 } ;
+    PolyTerm	zero	{ PolyIndx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
     auto	numobs	{ obslist.size() } ;
     numb	bcktnum { bckt[0] } ;
@@ -681,7 +679,7 @@ void Build::do_EEloop_bckt (const numb3& bckt)		// Do EEloop build bckt
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
     auto	numobs	{ obslist.size() } ;
-    PolyTerm	zero	{ Polyindx(), 0 } ;
+    PolyTerm	zero	{ PolyIndx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
     numb	bcktnum { bckt[0] } ;
     numb 	first	{ bckt[1] } ;
@@ -733,7 +731,7 @@ void Build::do_Fermion_bckt (const numb3& bckt)		// Do Fermion build bckt
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
     auto	numobs	{ obslist.size() } ;
-    PolyTerm	zero	{ Polyindx(), 0 } ;
+    PolyTerm	zero	{ PolyIndx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
     numb	bcktnum { bckt[0] } ;
     numb	first	{ bckt[1] } ;
@@ -787,7 +785,7 @@ void Build::do_Efermion_bckt (const numb3& bckt)	// Do Efermion build bckt
     auto&	inbox	{ ObsList::inbox } ;
     auto&	obslist	{ ObsList::obs } ;
     auto	numobs	{ obslist.size() } ;
-    PolyTerm	zero	{ Polyindx(), 0 } ;
+    PolyTerm	zero	{ PolyIndx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
     numb	bcktnum { bckt[0] } ;
     numb 	first	{ bckt[1] } ;
@@ -856,7 +854,7 @@ void Build::do_geo_bckt (const numb3& bckt)		// Do bucket of geodesic eqns
 
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	gens	{ global.info().gens.front() } ;
-    ushort	ngens	{ global.info().neven.front() } ;
+    auto	neven	{ global.info().neven.front() } ;
     auto&	list	{ ObsList::obs } ;
     numb	bcktnum	{ bckt[0] } ;
     numb	first	{ bckt[1] } ;
@@ -876,10 +874,10 @@ void Build::do_geo_bckt (const numb3& bckt)		// Do bucket of geodesic eqns
 	if (list(i).is_fermi() != global.stage)
 	    fatal ("do_geo_bckt: bad obs stage") ;
 
-	for (ushort k(0) ; k < ngens ; ++k)
+	for (int k(0) ; k < neven ; ++k)
 	    {
 	    if (global.interrupt) break ;
-	    if (list(i).type != ObsType::Eloop && !gens[k].T_odd)
+	    if (list(i).type != ObsType::Eloop)
 		{
 		if (blab > 4) cout << "\ndo_geo_bckt " << bcktnum << " [gen " << k
 				   << ", " << list(i) << "]\n" << flush ;
@@ -905,7 +903,7 @@ void Build::do_geo_bckt (const numb3& bckt)		// Do bucket of geodesic eqns
 	}
     geos.shrink_to_fit() ;
     geos.entry().ncol   = bcktsiz ;
-    geos.entry().nrow   = ngens ;
+    geos.entry().nrow   = neven ;
     geos.entry().reclen = geos.size() ;
 
     global.count().ngeos      += ngeo ;
@@ -968,15 +966,16 @@ void Build::do_geostat_bckt (const numb3& bckt)	// Evaluate geo bucket statistic
     {
     if (global.interrupt) return ;
 
-    numb		bcktnum { bckt[0] } ;
-    numb		first	{ bckt[1] } ;
-    numb		last	{ bckt[2] } ;
+    const auto&		stage	{ global.stage } ;
+    const auto&		bcktnum { bckt[0] } ;
+    const auto&		first	{ bckt[1] } ;
+    const auto&		last	{ bckt[2] } ;
+    const auto&		geos	{ global.data().geos[bcktnum] } ;
     ulong		ngeos	(0) ;
     ulong		nterms	(0) ;
     array<ulong,PSIZ+1>	byord	{} ;
-    auto&		geos	{ global.data().geos[bcktnum] } ;
 
-    if (global.geoswap) Save::read_geo_bckt (bcktnum) ;
+    if (global.geoswap) Save::read_geo_bckt (stage, bcktnum) ;
     const auto&		ncol { geos.entry().ncol } ;
     const auto&		nrow { geos.entry().nrow } ;
 
@@ -996,7 +995,7 @@ void Build::do_geostat_bckt (const numb3& bckt)	// Evaluate geo bucket statistic
 	    fatal (format("Inconsistent geo record: bucket {} expected {} got {}",
 		    bcktnum, geos.entry().items(), ngeos)) ;
 	}
-    if (global.geoswap) Save::read_geo_bckt (-bcktnum-1) ;
+    if (global.geoswap) Save::read_geo_bckt (stage, -bcktnum-1) ;
     global.count().ngeos      += ngeos ;
     global.count().geoterms   += nterms ;
     global.count().geotermord += byord ;

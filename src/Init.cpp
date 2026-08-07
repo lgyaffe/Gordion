@@ -11,12 +11,12 @@ ObsList ObsList::redu {"Reduction"} ;		// Gen reduction Obs
 
 void initialize ()
     {
-    Blab::resetblab	  () ;
-    Theory::theoryinit	  () ;
-    Symm::symminit	  () ;
-    Rep::repinit	  () ;
-    Canon::looptblinit	  () ;
-    Canon::spectblinit	  () ;
+    Blab::resetblab	() ;
+    Theory::theoryinit	() ;
+    Symm::symminit	() ;
+    Rep::repinit	() ;
+    Canon::looptblinit	() ;
+    Canon::spectblinit	() ;
 
     for (int stage(0) ; stage < 2 - !theory.nf ; ++stage)
 	{

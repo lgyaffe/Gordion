@@ -5,9 +5,9 @@
 class Coupling : public char8		// Adjustable coupling constant
     {
     public:
-    doub	 value = 0 ;			// Coupling value
-    int		 stage = -1 ;			// Coupling stage
-    const char8& name() const { return *this ; }	// Coupling name
+    doub	 value = dfltval ;		 // Coupling value
+    int		 stage = -1 ;			 // Coupling stage
+    const char8& name() const { return *this ; } // Coupling name
 
     static int indx (const string& s)		// Return coupling index
 	{
@@ -23,17 +23,18 @@ class Coupling : public char8		// Adjustable coupling constant
 	return ptr != list.end() ? ptr - list.begin() : -1 ;
 	}
 
-    Coupling (char8 name) : char8(name) {}	// Constructor
-    Coupling () {}
+    Coupling () {}				// Default constructor
+    Coupling (char8 name, int st)		// Constructor
+	: char8(name), stage(st) {}
 
-    inline static doub		dfltval = 1000; // Default initial value
+    inline static doub		dfltval = 1000;	// Default initial value
     inline static int		ncoupG ;	// # gauge couplings
     static vector<Coupling>	list ;		// Coupling list
 
     static bool	  update (const vector<Coupling>&) ; // Update list values
     static string values () ;			// Printable values
-    static uint   ncoup  () ;			// # couplings for stage
-    static uint   ncoup  (int) ;		// # couplings for stage
+    static uint	  ncoup  () ;			// # couplings for stage
+    static uint	  ncoup  (int) ;		// # couplings for stage
 
     friend ostream& operator<< (ostream& stream, const Coupling& coup)
 	{ return stream << coup.data() ; }
@@ -69,12 +70,12 @@ class AdjTerm                           // ObsPoly times adjustable coupling
     ObsPoly	poly  {ObsList::base} ;		// Observable polynomial
     ObsPoly	cpoly {ObsList::obs} ;		// Canonicalized form
 
-    AdjTerm (Coeff& c, ObsPoly& p, ObsPoly &can, bool img = false)
+    AdjTerm (Coeff& c, ObsPoly& p, bool img = false)
 	: coeff(c), poly(p), imag(img) {}
 
     friend ostream& operator<< (ostream&, const vector<AdjTerm>&) ;
     } ;
 
-inline Couplings Coupling::list ;		// Defined Coupling's
+inline Couplings	Coupling::list ;		// Defined Coupling's
 
 #endif

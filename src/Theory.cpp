@@ -19,7 +19,6 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
     int		lamindx   ( Coupling::indx (lambda) ) ;
     PolyMap	map	  { ObsList::base } ;
     ObsList&	baslist   { ObsList::base } ;
-    ObsList&	obslist   { ObsList::obs  } ;
     symb	link[4]   { 'x', 'y', 'z', 'w' } ;
     symb	Link[4]   { 'X', 'Y', 'Z', 'W' } ;
     symb	ferm[4]   { 'f', 'g', 'h', 'i' } ;
@@ -29,10 +28,8 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 
     if (lamindx < 0)
 	{
-	Coupling::list.emplace_back (lambda) ;
+	Coupling::list.emplace_back (lambda, 0) ;
 	lamindx = Coupling::indx (lambda) ;
-	Coupling::list[lamindx].value = Coupling::dfltval ;
-	Coupling::list[lamindx].stage = 0 ;
 	++Coupling::ncoupG ;
 	}
     Coeff lamcoeff	{{lamindx, 1}} ;
@@ -45,27 +42,25 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	if (isham)				// Hamiltonian gauge kinetic
 	    {
 	    ObsPoly	kinetic  { baslist } ;
-	    ObsPoly	ckinetic { obslist } ;
 	    doub	coeff    { theory.dim > 1 ? 0.25 : 1.0 } ;
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
 		numb	indx	{ baslist.find (Str (KinG + i)) } ;
-		if (indx == UINT_MAX) fatal ("Baselist missing EE") ;
-		kinetic.push_back (PolyTerm (indx,  coeff)) ;
+		if (indx == MAXNUM) fatal ("Baselist missing EE") ;
+		kinetic.push_back (PolyTerm (indx, coeff)) ;
 		}
-	    global.info(0).Hterms.emplace_back (lamcoeff, kinetic, ckinetic) ;
+	    global.info(0).Hterms.emplace_back (lamcoeff, kinetic) ;
 	    }
 	else					// Euclidean gauge entropy
 	    {
 	    ObsPoly	gauge_ent (baslist) ;
 	    numb	indx	{ baslist.find (Str (EntrG)) } ;
-	    if (indx == UINT_MAX) fatal ("Baselist missing S") ;
+	    if (indx == MAXNUM) fatal ("Baselist missing S") ;
 	    gauge_ent.push_back (PolyTerm (indx, -1.0)) ;
-	    global.info(1).Hterms.emplace_back (unitcoeff, gauge_ent, gauge_ent) ;
+	    global.info(1).Hterms.emplace_back (unitcoeff, gauge_ent) ;
 	    }
 
 	ObsPoly plaquette  (baslist) ;
-	ObsPoly cplaquette (obslist) ;
 	if (theory.dim == 1 && theory.box.comp[0])	// Polyakov loop
 	    {
 	    plaquette.push_back  (PolyTerm(0, 2)) ;
@@ -73,10 +68,10 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    Str		LLL	 { string (theory.box.comp[0], Link[0]) } ;
 	    numb	indx	 { baslist.find (lll) } ;
 	    numb	Indx	 { baslist.find (LLL) } ;
-	    if (indx == UINT_MAX) fatal ("Baselist missing polyakov") ;
-	    if (Indx == UINT_MAX) fatal ("Baselist missing Polyakov") ;
-	    plaquette.push_back (PolyTerm (indx,  -1.0)) ;
-	    plaquette.push_back (PolyTerm (Indx,  -1.0)) ;
+	    if (indx == MAXNUM) fatal ("Baselist missing polyakov") ;
+	    if (Indx == MAXNUM) fatal ("Baselist missing Polyakov") ;
+	    plaquette.push_back (PolyTerm (indx, -1.0)) ;
+	    plaquette.push_back (PolyTerm (Indx, -1.0)) ;
 	    }
 	else						// Plaquette terms
 	    {
@@ -92,15 +87,15 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 		    Str		xYXy   { string{link[i],Link[j],Link[i],link[j]} } ;
 		    numb	indx  { baslist.find (xyXY) } ;
 		    numb	Indx  { baslist.find (xYXy) } ;
-		    if (indx == UINT_MAX) fatal ("Baselist missing plaq") ;
-		    if (Indx == UINT_MAX) fatal ("Baselist missing Plaq") ;
-		    plaquette.push_back (PolyTerm (indx,  -1.0)) ;
-		    plaquette.push_back (PolyTerm (Indx,  -1.0)) ;
+		    if (indx == MAXNUM) fatal ("Baselist missing plaq") ;
+		    if (Indx == MAXNUM) fatal ("Baselist missing Plaq") ;
+		    plaquette.push_back (PolyTerm (indx, -1.0)) ;
+		    plaquette.push_back (PolyTerm (Indx, -1.0)) ;
 		    }
 		}
 	    }
 	if (plaquette.size())
-	    global.info(0).Hterms.emplace_back (laminvcoeff, plaquette, cplaquette) ;
+	    global.info(0).Hterms.emplace_back (laminvcoeff, plaquette) ;
 	}
     else if (theory.nf)
 	{
@@ -108,10 +103,8 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	int	massindx { Coupling::indx (mass) } ;
 	if (massindx < 0)
 	    {						// N.B.: fermion 
-	    Coupling::list.emplace_back (mass) ;	// coupling must follow
+	    Coupling::list.emplace_back (mass, 1) ;	// coupling must follow
 	    massindx = Coupling::indx (mass) ;		// all gauge couplings
-	    Coupling::list[massindx].value = 1000 ;
-	    Coupling::list[massindx].stage = 1 ;
 	    }
 	Coeff masscoeff {{massindx,1},{lamindx,MASSSCALE}} ;
 	global.info(1).Hterms.clear() ;
@@ -119,18 +112,16 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	if (isham)
 	    {
 	    ObsPoly kinetic_F  (baslist) ;
-	    ObsPoly ckinetic_F (obslist) ;
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
 		numb    indx	{ baslist.find (Str (KinF + i)) } ;
-		if (indx == UINT_MAX) fatal ("Baselist missing ee") ;
+		if (indx == MAXNUM) fatal ("Baselist missing ee") ;
 		kinetic_F.push_back (PolyTerm (indx,  0.25)) ;
 		}
-	    global.info(1).Hterms.emplace_back (lamcoeff, kinetic_F, ckinetic_F) ;
+	    global.info(1).Hterms.emplace_back (lamcoeff, kinetic_F) ;
 	    }
 
 	ObsPoly hop_term   (baslist) ;
-	ObsPoly chop_term  (obslist) ;
 	for (int i(0) ; i < theory.nf ; i+=2)
 	    {
 	    for (int j(0) ; j < theory.dim ; ++j)
@@ -139,32 +130,30 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 		Str 	FXf	{ string{Ferm[i],Link[j],ferm[i]} } ;
 		numb	indx	{ baslist.find (Fxf) } ;
 		numb	Indx	{ baslist.find (FXf) } ;
-		if (indx == UINT_MAX) fatal ("Baselist missing Fxf") ;
-		if (Indx == UINT_MAX) fatal ("Baselist missing FXf") ;
+		if (indx == MAXNUM) fatal ("Baselist missing Fxf") ;
+		if (Indx == MAXNUM) fatal ("Baselist missing FXf") ;
 		hop_term.push_back (PolyTerm (indx,  0.5)) ;
 		hop_term.push_back (PolyTerm (Indx,  0.5)) ;
 		}
 	    }
-	global.info(1).Hterms.emplace_back (unitcoeff, hop_term, chop_term) ;
+	global.info(1).Hterms.emplace_back (unitcoeff, hop_term) ;
 
 	ObsPoly mass_term  (baslist) ;
-	ObsPoly cmass_term (obslist) ;
-
 	for (int i(0) ; i < theory.nf ; i+=2)
 	    {
 	    numb indx { baslist.find (string {Ferm[i+isham],ferm[i]}) } ;
-	    if (indx == UINT_MAX) fatal ("Baselist missing Ff/Gf") ;
+	    if (indx == MAXNUM) fatal ("Baselist missing Ff/Gf") ;
 	    mass_term.push_back (PolyTerm (indx, 1.0)) ;
 	    }
-	global.info(1).Hterms.emplace_back (masscoeff, mass_term, cmass_term, iseuc) ;
+	global.info(1).Hterms.emplace_back (masscoeff, mass_term, iseuc) ;
 
 	if (iseuc)
 	    {
 	    ObsPoly	fermi_ent (baslist) ;
 	    numb	indx	{ baslist.find (Str {EntrF}) } ;
-	    if (indx == UINT_MAX) fatal ("Baselist missing s") ;
+	    if (indx == MAXNUM) fatal ("Baselist missing s") ;
 	    fermi_ent.push_back (PolyTerm (indx, -1.0)) ;
-	    global.info(1).Hterms.emplace_back (unitcoeff, fermi_ent, fermi_ent) ;
+	    global.info(1).Hterms.emplace_back (unitcoeff, fermi_ent) ;
 	    }
 	}
     }

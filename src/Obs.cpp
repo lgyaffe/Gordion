@@ -62,7 +62,7 @@ void Obs::validate () const					// Test if valid Obs
 	{
 	if (islink(c) && dim <= axis(c))	dim = axis(c)+1 ;
 	if (isferm(c) && nf  <= flav(c))	nf  = flav(c)/2+1 ;
-	if (isentpy(c))				++S ;
+	if (is_S(c))				++S ;
 	if (isferm(c) && !isconj(c))		++fs ;
 	if (isferm(c) &&  isconj(c))		++Fs ;
 	if (isferm(c) && isderiv(c))		++derivs ;
@@ -76,8 +76,8 @@ void Obs::validate () const					// Test if valid Obs
     else if (fs + Fs > 2)		err = "has excessive fermions" ;
     else if (fs + Es > 2)		err = "has excessive E's" ;
     else if (fs == 0 && !isclosed())	err = "is not closed loop" ;
-    else if (fs && !isF(front()))	err = "is malformed fermion bilinear" ;
-    else if (fs && !isf(back()))	err = "is malformed fermion bilinear" ;
+    else if (fs && !is_F(front()))	err = "is malformed fermion bilinear" ;
+    else if (fs && !is_f(back()))	err = "is malformed fermion bilinear" ;
     else if (Es && islink(front()))	err = "is mis-rotated" ;
     else if (iseuc && derivs)		err = "has Grassmann derivative" ;
     else if (fs &&  Es  && type != ObsType::Efermion) err = "has wrong type" ;
@@ -101,11 +101,11 @@ short Obs::middleE() const				// Set & return midE location
     {
     if (midE < 0)
 	{
-	if (!EEorEElink(front()))
+	if (!doubleE(front()))
 	    {
 	    for (auto ptr = cbegin() ; ++ptr < cend() ;)
 		{
-		if (EorElink(*ptr)) return midE = ptr - cbegin() ;
+		if (singleE (*ptr)) return midE = ptr - cbegin() ;
 		}
 	    fatal (format ("Missing midE in obs {}, type {}", print(), (int)type)) ;
 	    }
@@ -118,7 +118,7 @@ bool Obs::Esublat() const				// E sublattice ?
     {
     short midE { middleE() } ;
     symb  c { (*this)[midE] } ;
-    return is_Efermion() ? !(midE % 2) ^ (isLE(c) || isLEl(c)) : false ;
+    return is_Efermion() ? !(midE % 2) ^ (is_LE(c) || is_LEl(c)) : false ;
     }
 
 ObsType Obs::obstype (const string s)			// Determine Obs type
@@ -156,7 +156,7 @@ int Obs::findstart() noexcept				// Rotate to preferred start
 	    }
 	if (a) rotate (begin(), begin() + a, end()) ;
 	}
-    else if (is_EEloop() && !EEorEElink(front()))
+    else if (is_EEloop() && !doubleE(front()))
 	{
 	const auto&	blab { Blab::level(Blab::OBS) } ;
 	int		a(0), b(middleE()), k(0) ;
@@ -225,38 +225,37 @@ ObsList::ObsList (const string s, bool can, bool clsfy)		// Construct ObsList
 
 PolyTerm ObsList::is_known (Obs&& a) const			// Find in ObsList
     {
-    doub	sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
+    int		sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
     numb	indx { find (a) } ;
 
-    return (indx < UINT_MAX-1) ? PolyTerm (Polyindx(indx), sgn)
-			       : PolyTerm (Polyindx(),     0.0) ;
+    return (indx < MAXNUM-1) ? PolyTerm (PolyIndx(indx), sgn)
+			     : PolyTerm (PolyIndx(),     0.0) ;
     }
 
 PolyTerm ObsList::is_known (Obs&& a, Obs&& b) const		// Find in ObsList
     {
-    doub	sgna  ( canonicalize ? a.canon() : a.findstart() ) ;
-    doub	sgnb  ( canonicalize ? b.canon() : b.findstart() ) ;
+    int		sgna  ( canonicalize ? a.canon() : a.findstart() ) ;
+    int		sgnb  ( canonicalize ? b.canon() : b.findstart() ) ;
     numb	indxa { find (a) } ;
     numb	indxb { find (b) } ;
 
-    return (indxa < UINT_MAX-1 && indxb < UINT_MAX-1) ?
-	PolyTerm (Polyindx(indxa, indxb), sgna * sgnb) :
-	PolyTerm (Polyindx(), 0.0) ;
+    return (indxa < MAXNUM-1 && indxb < MAXNUM-1) ?
+	PolyTerm (PolyIndx(indxa, indxb), sgna * sgnb) :
+	PolyTerm (PolyIndx(), 0.0) ;
     }
 
 PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
     {							// N.B. pass by value
-    const auto&	blab { Blab::level(Blab::OBS) } ;
+    const auto& blab { Blab::level(Blab::OBS) } ;
     if (blab > 1) cout << "catalog " << name << ": " << a << "\n" ;
     if (Obs::check) a.validate() ;
 
     int  sgn  { canonicalize ? a.canon() : a.findstart() } ;
     numb indx { find(a) } ;
-    if (indx < UINT_MAX-1)
+    if (indx < MAXNUM-1)
 	{
-	if (blab > 1)
-	    cout << "catalog " << name << ": found "
-		 << a << " at " << indx << "\n" ;
+	if (blab > 1) cout << "catalog " << name << ": found "
+			   << a << " at " << indx << "\n" ;
 	return PolyTerm (indx, sgn) ;
 	}
     else if (classify && !a.known_xord())
@@ -269,11 +268,8 @@ PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
 	gripe (format("Cannot catalog {} into frozen list {}",
 		a.print(), name)) ;
     PolyTerm ans (store(a), sgn) ;
-    if (blab > 1)
-	{
-	cout << "catalog " << name << ": stored " << a
-	     << " -> " << ans[0] << "\n" ;
-	}
+    if (blab > 1) cout << "catalog " << name << ": stored " << a
+		       << " -> " << ans[0] << "\n" ;
     return ans ;
     }
 
@@ -288,13 +284,13 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
     numb indxa { find(a) } ;
     numb indxb { find(b) } ;
 
-    if (indxa < UINT_MAX-1 && indxb < UINT_MAX-1)
+    if (indxa < MAXNUM-1 && indxb < MAXNUM-1)
 	{
 	if (blab > 1)
 	    cout << "catalog " << name << ": found "
 		 << a << " at " << indxa << ", "
 		 << b << " at " << indxb << "\n" ;
-	return PolyTerm (Polyindx (indxa,indxb), sgna * sgnb) ;
+	return PolyTerm (PolyIndx (indxa,indxb), sgna * sgnb) ;
 	}
     if (frozen())
 	gripe (format("Cannot catalog {} {} into frozen list ()",
@@ -311,7 +307,7 @@ PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
 	    fatal (format("Failed classify: {} ({},{}) in {}",
 		b.print(), b.corder, b.xorder, name)) ;
 	}
-    PolyTerm ans (Polyindx(store(a), store(b)), sgna * sgnb) ;
+    PolyTerm ans (PolyIndx(store(a), store(b)), sgna * sgnb) ;
     if (blab > 1)
 	{
 	cout << "catalog " << name << ": stored/found " << a << " & "
@@ -349,7 +345,7 @@ numb ObsList::store (const Obs& o)			// Store Obs in ObsList
 	    {
 	    auto& info { global.info(o.is_fermi()) } ;
 	    hasher (info.obshash, o) ;
-	    if (info.nobs == MAXOBS)
+	    if (info.nobs == MAXNUM-1)
 		gripe ("Max # Obs exceeded: recompile without NUM32!") ;
 	    ++info.nobs ;
 	    }
@@ -378,10 +374,10 @@ void ObsList::purge (numb limit)			// Purge entries
 	{
 	auto& nobsG { global.info(0).nobs } ;
 	auto& nobsF { global.info(1).nobs } ;
+	nobsF -= std::erase_if (map, [&](const auto& p)
+	    { return p.second >= limit && p.second >= nobsG; }) ;
 	nobsG -= std::erase_if (map, [&](const auto& p)
 	    { return p.second >= limit && p.second <  nobsG; }) ;
-	nobsF -= std::erase_if (map, [&](const auto& p)
-	    { return p.second >= limit && p.second >= nobsG; })  ;
 	if (nobsG + nobsF != size())
 	    abort ("purge: Inconsistent ObsList size") ;
 	rehash () ;
@@ -396,6 +392,12 @@ void ObsList::rehash () const			// Recalculate list hashes
 	{
 	hasher (global.info(ptr->is_fermi()).obshash, *ptr) ;
 	}
+    }
+
+void ObsList::hasher (ulong& hash, const Obs& o) const	// List hasher
+    {
+    ulong x { std::hash<string>{}(o) } ;
+    hash ^= x + 0x9e3779b9 + (hash << 6) + (hash >> 2) ;
     }
 
 void ObsList::ondisk ()			// Leave ObsList::obs on disk
@@ -428,12 +430,6 @@ void ObsList::ondisk ()			// Leave ObsList::obs on disk
 	}
     list.clear() ;
     ObsList::swapped = true ;
-    }
-
-void ObsList::hasher (ulong& hash, const Obs& o) const	// List hasher
-    {
-    ulong x { std::hash<string>{}(o) } ;
-    hash ^= x + 0x9e3779b9 + (hash << 6) + (hash >> 2) ;
     }
 
 void ObsList::obsinit (int stage)		// Load basic Obs

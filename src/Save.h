@@ -17,7 +17,7 @@ namespace Save
     string addsubdir	(string,int) ;	// Add subdirectory
 
     void write_header	(fstream&,uint=0,uint=0) ; // Write file header
-    int  read_header	(fstream&,string) ;	   // Read file header
+    int  read_header	(fstream&,const string&) ; // Read file header
 
     void write_sysindex	() ;		// Save SysIndex
     void read_sysindex	() ;		// Load SysIndex
@@ -47,7 +47,7 @@ namespace Save
     void read_geos	() ;		// Load geodesics
 
     void write_geo_bckt	(int) ;		// Save geo bucket
-    void read_geo_bckt	(int) ;		// Load geo bucket
+    void read_geo_bckt	(int,int) ;	// Load geo bucket
 
     void write_coup	 () ;		// Save Couplings
     Couplings* read_coup (int,bool) ;	// Load Couplings
@@ -61,16 +61,16 @@ namespace Save
 
     ulong vevsize	() ;		// Vev record size
     ulong coupsize	() ;		// Coupling record size
-    ulong cvsetsize	() ;		// Coup + Vev size
+    ulong datasetsize	() ;		// Coup + Vev record size
 
     static inline struct FileHdr	// Save file header
 	{
-	char8	name ;
-	Version	version ;
-	ushort	ncoup ;
-	uint	nvev ;
+	char8	name ;			// theory name
+	Version	version ;		// program version
+	ushort	ncoup ;			// # couplings
+	uint	nvev ;			// # vev's
 	ulong	hashG ;			// Gauge obs hash
-	ulong	hashF ;			// Fermi obs hash
+	ulong	hashF ;			// Fermion obs hash
 
 	bool is_sysfile() const { return !ncoup && !nvev ; }
 	bool is_vevfile() const { return  ncoup ||  nvev ; }

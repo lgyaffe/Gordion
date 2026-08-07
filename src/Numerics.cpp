@@ -81,7 +81,7 @@ int Numerics::do_step (doub tol)		// Do geodesic integration step
     const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
     Ode		ode	{ do_dvev, err_norm, odetol, rk, maxode } ;
     doub	dnorm	{ eval_delta() } ;
-    long	n	{ global.info().nobs } ;
+    long	n	{ nvev (global.stage) } ;
     doub	s (0) ;
     bool	ok ;
 
@@ -92,7 +92,7 @@ int Numerics::do_step (doub tol)		// Do geodesic integration step
 
     if (n != vev.size())				// integrate vev subvec
 	{
-	real*	vevptr { &vev [global.stage ? global.info(0).nobs : 0] } ; 
+	real*	vevptr { &vev [global.stage ? nvevG : 0] } ; 
 	Rvec	subvev ( vevptr, n, false, true ) ;
 	ok = ode.integrate (s, 1.0, subvev) ;
 	}
@@ -173,8 +173,8 @@ const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
 	    {
 	    if (gens[j].active)
 		{
-		const Poly* ptr { &(*recptr) } ;
-		const Poly* end { ptr++->end() } ;
+		const PolyElem* ptr { &(*recptr) } ;
+		const PolyElem* end { ptr++->end() } ;
 		doub	    val ( 0.0 ) ;
 		while (ptr < end) val += termvalue (ptr) ;
 		gradient [j] += coeff * val ;
@@ -219,8 +219,8 @@ const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curv
 		if (j < neven && gens[j].active &&
 		    k < neven && gens[k].active)
 		    {
-		    const Poly*	ptr { &(*recptr) } ;
-		    const Poly*	end { ptr++->end() } ;
+		    const PolyElem*	ptr { &(*recptr) } ;
+		    const PolyElem*	end { ptr++->end() } ;
 		    doub	val ( 0.0 ) ;
 		    while (ptr < end) val += termvalue (ptr) ;
 		    curvature (j,k) += coeff * val ;
@@ -273,8 +273,8 @@ const Dmtx& Numerics::eval_metr (uint repnum, int print)	// Evaluate T-odd curva
 		if (j < ngen && j >= neven && gens[j].active &&
 		    k < ngen && k >= neven && gens[k].active)
 		    {
-		    const Poly* ptr { &(*recptr) } ;
-		    const Poly* end { ptr++->end() } ;
+		    const PolyElem* ptr { &(*recptr) } ;
+		    const PolyElem* end { ptr++->end() } ;
 		    doub	val ( 0.0 ) ;
 		    while (ptr < end) val += termvalue (ptr) ;
 		    metric (j-neven,k-neven) += coeff * val ;
@@ -321,8 +321,8 @@ const Dmtx& Numerics::eval_lagr (uint repnum, int print)	// Evaluate Lagrange br
 	    {
 	    if (gens[i].active && gens[j].active)
 		{
-		const Poly* ptr { &(*recptr) } ;
-		const Poly* end { ptr++->end() } ;
+		const PolyElem* ptr { &(*recptr) } ;
+		const PolyElem* end { ptr++->end() } ;
 		doub	    val ( 0.0 ) ;
 		while (ptr < end) val += termvalue (ptr) ;
 		lagrange (i,j-neven) = val ;
@@ -357,7 +357,7 @@ doub Numerics::eval_delta (bool print)			// Evaluate delta vector
 
     check_curv (curv) ;
     if (svdcut)	del = -arma::pinv (curv,svdcut) * grad ;
-    else	del = -arma::solve (curv,grad) ;
+    else	del = -arma::solve (curv,grad,opts) ;
 
     delta.zeros(ngens) ;
     delta(use) = del ;
@@ -418,9 +418,9 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
     const auto&	geos	{ global.data().geos } ;
     const auto&	bckt	{ global.info().bckt } ;
-    long	offset	{ global.stage ? global.info(0).nobs : 0 } ;
+    long	offset	{ global.stage ? numerics.nvevG : 0 } ;
     int		ngens	{ global.info().neven.front() } ;
-    long	n	{ global.info().nobs } ;
+    long	n	{ numerics.nvev(global.stage) } ;
 
     if (global.interrupt) return ;
     if (numerics.delta.n_elem != ngens) gripe ("Need to (re)evaluate delta!"); 
@@ -474,12 +474,13 @@ void Numerics::do_dvev_bckt (const numb3& bucket)		// Evaluate dvev bucket
     {
     if (global.interrupt) return ;
 
-    numb	bcktnum	{ bucket[0] } ;
-    numb	first	{ bucket[1] } ;
-    numb	last	{ bucket[2] } ;
-    long	offset	{ global.stage ? global.info(0).nobs : 0 } ;
-    const auto&	delta	{ numerics.delta } ;
+    const auto&	bcktnum	{ bucket[0] } ;
+    const auto&	first	{ bucket[1] } ;
+    const auto&	last	{ bucket[2] } ;
+    const auto&	stage	{ global.stage } ;
     const auto&	geos	{ global.data().geos[bcktnum] } ;
+    const auto&	delta	{ numerics.delta } ;
+    long	offset	{ global.stage ? numerics.nvevG : 0 } ;
     real*	dv 	{ numerics.dvev_buf } ;
     const real*	v	{ numerics.vev_buf } ;
     int		ngens	( delta.size() ) ;
@@ -493,7 +494,7 @@ void Numerics::do_dvev_bckt (const numb3& bucket)		// Evaluate dvev bucket
 	gripe ("\nNeed to (re)build geodesic equations!") ;
 	}
 
-    if (global.geoswap) Save::read_geo_bckt (bcktnum) ;
+    if (global.geoswap) Save::read_geo_bckt (stage, bcktnum) ;
     auto recptr	{ geos.begin() } ;
     for (int i(first) ; i <= last ; ++i)
 	{
@@ -502,8 +503,8 @@ void Numerics::do_dvev_bckt (const numb3& bucket)		// Evaluate dvev bucket
 	    if (global.interrupt) return ;
 	    if (doub coef { delta[j] })
 		{
-		const Poly* ptr  { &(*recptr) } ;
-		const Poly* end  { ptr++->end() } ;
+		const PolyElem* ptr  { &(*recptr) } ;
+		const PolyElem* end  { ptr++->end() } ;
 		doub	    val  ( 0.0 ) ;
 		while (ptr < end) val += termvalue (ptr,v) ;
 		dv [i - offset] += coef * val ;
@@ -512,7 +513,7 @@ void Numerics::do_dvev_bckt (const numb3& bucket)		// Evaluate dvev bucket
 	}
     if (recptr != geos.end())
 	fatal ("Inconsistent geodesic record") ;
-    if (global.geoswap) Save::read_geo_bckt (-bcktnum-1) ;
+    if (global.geoswap) Save::read_geo_bckt (stage, -bcktnum-1) ;
     }
 
 doub Numerics::err_norm (const Rvec& err, const Rvec& y)	// ODE error vector norm
@@ -644,7 +645,7 @@ bool Numerics::check_curv (const Dmtx& curv)			// OK curvature eigs?
     if (curv.n_rows) 
 	{
 	Cvec	eigs  { arma::eig_gen(curv) } ;
-	Uvec	reals { arma::sort_index (arma::real (eigs),"ascent")  } ;
+	Uvec	reals { arma::sort_index (arma::real (eigs),"ascend")  } ;
 	Uvec	imags { arma::sort_index (arma::imag (eigs),"descend") } ;
 	bool	negok { theory.euclid && global.stage } ;
 	uint	minr  ( reals[0] ) ;
@@ -774,13 +775,18 @@ string Numerics::MMAform (doub x)			// Convert to MMA input form
     return s ;
     }
 
+void Numerics::initialize (int stage, numb nobsG, numb nobsF)
+    {
+    nvevG = nobsG ;
+    nvevF = nobsF ;
+    initialize (stage) ;
+    }
+
 void Numerics::initialize (int stage)			// Initialize expectation values
     {
-    const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
-    const auto& nobsG	{ global.info(0).nobs } ;
-    const auto& nobsF	{ global.info(1).nobs } ;
+    const auto&	blab { Blab::level(Blab::NUMERICS) } ;
 
-    vev.resize(nobsG + nobsF) ;
+    vev.resize(nvevG + nvevF) ;
     vev[0] = 1.0 ;
 
     if (stage == 0)				// gauge vev's
@@ -789,9 +795,9 @@ void Numerics::initialize (int stage)			// Initialize expectation values
 	vev[0] = 1.0 ;
 	if (blab) cout << "(Re)initialized gauge vev's\n" ;
 	}
-    if (nobsF)					// fermion vev's
+    if (nvevF)					// fermion vev's
 	{
-	vev.tail(nobsF).zeros() ;
+	vev.tail(nvevF).zeros() ;
 
 	char8	mass { "mass" } ;
 	int	indx { Coupling::indx (mass) } ;

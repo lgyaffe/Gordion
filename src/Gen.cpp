@@ -264,7 +264,7 @@ void Gen::normalize (int repnum)			// Normalize generator
 		    PolyTerm reindx { tmplist.catalog (obs) } ;
 		    normsq += std::abs(ans[reindx]) ;
 		    }
-		else normsq += ans[Polyindx()] ;
+		else normsq += ans[PolyIndx()] ;
 		}
 	    }
 	}
@@ -363,7 +363,7 @@ void Gen::inner_commute ()			 	// Generator reduction
 	for (const auto& opterm : *this)
 	    {
 	    Obs		eloop  { oplist()[opterm.item] } ;
-	    PolyTerm	factor { Polyindx(), opterm.coeff } ;
+	    PolyTerm	factor { PolyIndx(), opterm.coeff } ;
 	    Commute::do_inner (eloop, factor, reduction.obslist(), map) ;
 	    }
 	}
@@ -511,6 +511,7 @@ void Gen::geninit (int stage)			// Generator initialization
 	OpType	ferm { OpType::Fermion } ;
 
 	for (int k(0) ; k < theory.nf ; k += 2)		// Fxf, Gxf
+	    {
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
 		Op Gxf { string {F[k+1],l[i],f[k]}, ferm, 1 } ;
@@ -519,6 +520,7 @@ void Gen::geninit (int stage)			// Generator initialization
 		Op Fxf { string {F[k],l[i],f[k]}, ferm, 1 } ;
 		project (Fxf) ;
 		}
+	    }
 	list.setprimary () ;
 	}
     }

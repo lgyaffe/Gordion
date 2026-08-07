@@ -45,7 +45,7 @@ void Commute::commute_term (const Gen& gen, const PolyTerm& term, ObsList& list,
     const auto&	oplist	{ gen.oplist() } ;
     ObsList&	anslist	{ ans.obslist() } ;
     bool	newlist	{ list.neq(anslist) } ;
-    Polyindx	indx	{ term } ;
+    PolyIndx	indx	{ term } ;
     int		sgnprod	{ 1 } ;
     int		sgn[PSIZ] ;
 
@@ -66,7 +66,7 @@ void Commute::commute_term (const Gen& gen, const PolyTerm& term, ObsList& list,
 	if (!term[i]) continue ;
 
 	Obs b { list(term[i]) } ;
-	if (isEE_F(b.front())) b.front() -= 0x18 ;
+	if (is_ee(b.front())) b.front() -= 0x18 ;
 
 	if (b.is_Entropy())			// handle Entropy special case
 	    {
@@ -85,7 +85,7 @@ void Commute::commute_term (const Gen& gen, const PolyTerm& term, ObsList& list,
 	    }
 	else				// collect non-differentiated terms
 	    {
-	    PolyTerm factor { Polyindx(), 1 } ;
+	    PolyTerm factor { PolyIndx(), 1 } ;
 	    for (int j(0) ; j < PSIZ-1 ; ++j)
 		{
 		factor[j] = j < i ? indx[j] : indx[j+1] ;
@@ -455,7 +455,7 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 			PolyTerm terms2 { list.assess(oa) * list.assess(ob) } ;
 			if (factor.coeff && terms2.coeff)
 			    {
-			    int sgn1 { b.Esublat() ^ !(i%2) ^ isL(y) ? 1 : -1 } ;
+			    int sgn1 { b.Esublat() ^ !(i%2) ^ is_L(y) ? 1 : -1 } ;
 			    ans.add (terms2 * factor * sgn1 * coef) ;
 			    }
 			}
@@ -536,7 +536,7 @@ void Commute::do_split (doub coeff, const ObsPoly& redu, const Obs& b, ObsList& 
     //
     {
     const auto&		blab	{ Blab::level(Blab::COMMUTE) } ;
-    static PolyTerm	one	{ Polyindx(), 1 } ;
+    static PolyTerm	one	{ PolyIndx(), 1 } ;
     ObsList		tmplist	{ "SplitTemp" } ;
 
     if (redu.size())

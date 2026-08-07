@@ -2,7 +2,7 @@
 #include "Gen.h"
 #include "Save.h"
 
-std::size_t Polyhash::operator()(const Polyindx& t)	// Polyindx hash function
+std::size_t Polyhash::operator()(const PolyIndx& t)	// PolyIndx hash function
     const noexcept
     {
     std::hash<numb> hasher ;
@@ -63,12 +63,12 @@ ObsPoly& ObsPoly::negate ()				// Negate ObsPoly
     return *this ;
     }
 
-void ObsPoly::add (const Poly& poly)			// Add Poly
+void ObsPoly::add (const PolyElem& poly)		// Add Poly
     {
     if (obslist().neq (ObsList::obs)) abort ("Bad ObsPoly::add call") ;
     for (auto pptr { poly.begin() } ; pptr < poly.end() ;)
 	{
-	PolyTerm t { Poly::nextterm (pptr) } ;
+	PolyTerm t { PolyElem::nextterm (pptr) } ;
 	if (t.coeff) push_back (t) ;
 	}
     shrink_to_fit() ;
@@ -114,8 +114,7 @@ void PolyRec::add (const ObsPoly& obspoly)		// Add ObsPoly to PolyRec
 	for (int i(0) ; indx && i < PSIZ-1 ; ++i)
 	    {
 	    auto next { term.item[i+1] } ;
-	    if (next) { push_back (-indx) ; ++n ;
-	    indx = next ; }
+	    if (next) { push_back (-indx) ; ++n ; indx = next ; }
 	    else break ;
 	    }
 	push_back (indx) ; ++n ;
@@ -130,7 +129,7 @@ void PolyRec::add (PolyMap& map)	// Add PolyMap to PolyRec
     add (obspoly) ;
     }
 
-ostream& operator<< (ostream& stream, const Polyindx& t)	// Print Polyindx
+ostream& operator<< (ostream& stream, const PolyIndx& t)	// Print PolyIndx
     {
     char c { '(' } ;
     for (auto k : t) { stream << c << k ; c = ',' ; }
@@ -164,7 +163,7 @@ ostream& operator<< (ostream& stream, const PolyMap& map)	// Print PolyMap
     return stream << (count ? "" : " 0") ;
     }
 
-ostream& operator<< (ostream& stream, const Poly& poly)		// Print Poly
+ostream& operator<< (ostream& stream, const PolyElem& poly)		// Print Poly
     {
     //string	sep	{ poly.hdr.len > 3 ? "\n\t" : " " } ;
     string	sep	{ "\n\t" } ;
@@ -175,7 +174,7 @@ ostream& operator<< (ostream& stream, const Poly& poly)		// Print Poly
     for (auto pptr { poly.begin() } ; pptr < poly.end() ;)
 	{
 	if (count++) stream << sep ;
-	PolyTerm t { Poly::nextterm (pptr) } ;
+	PolyTerm t { PolyElem::nextterm (pptr) } ;
 	t.print (stream, ObsList::obs) ;
 	}
     return stream << (count ? "" : " 0") ;

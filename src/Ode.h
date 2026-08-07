@@ -28,11 +28,11 @@ class Ode : public RKdef			// Runge-Kutta ODE integrator
 
     static struct Stats
 	{
-	static inline uint32_t steps   { 0 } ;		// # total steps
-	static inline uint32_t rejects { 0 } ;		// # steps rejected
-	static inline uint32_t derivs  { 0 } ;		// # derivative evals
-	static inline uint32_t integs  { 0 } ;		// # integrations
-	static inline uint32_t fails   { 0 } ;		// # failed integrations
+	static inline uint steps   { 0 } ;		// # total steps
+	static inline uint rejects { 0 } ;		// # steps rejected
+	static inline uint derivs  { 0 } ;		// # derivative evals
+	static inline uint integs  { 0 } ;		// # integrations
+	static inline uint fails   { 0 } ;		// # failed integrations
 	} stats ;
 
     static constexpr int dfltmax = 1500 ;	// Default max steps

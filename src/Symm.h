@@ -33,7 +33,12 @@ struct Symmhash						// Symm hash function
     std::size_t operator()(const Symm&) const noexcept ;
     } ;
 
-using Symmmap = hash<Symm,uint,Symmhash> ;
+struct Symm_eq						// Symm equality test
+    {
+    bool operator()(const Symm&, const Symm&) const ;
+    } ;
+
+using Symmmap = hash<Symm,uint,Symmhash,Symm_eq> ;
 
 class Symm						// Symmetry transformation
     {
@@ -43,7 +48,7 @@ class Symm						// Symmetry transformation
     string			name ;			// Symmetry name
     int				indx = -1 ;		// Symmetry number
 
-    Symm() : map(idmap) {}				// default constructor
+    Symm() : map (Symb::symblist) {}			// default constructor
 
     pair<int,Op>	operator()(const Op&) const ;		// Transform Op
     int			operator()(const Symm&) const noexcept ;// Compose tranformations
@@ -53,16 +58,13 @@ class Symm						// Symmetry transformation
 
     friend ostream& operator<< (ostream&, const Symm&) ;
 
-    static constexpr int		Cbit = Nsymb ;	// conjugating symm bit number
-    static const array<symb,Nsymb>	idmap ;		// Identity transformation map
-    static Index<Symm>			list ;		// Lattice (x C) symmetry transforms
-    static Symmmap			trans2indx ;	// transform to index map
-
-    static SymmTerm	known (const string&&) ;	// Return named Symm
-    static void		symminit () ;			// Initialize symmetries
+    static constexpr int	Cbit = Nsymb ;		// conjugating symm bit number
+    static Index<Symm>		list ;			// Lattice (x C) symmetry transforms
+    inline static Symmmap	trans2indx ;		// transform to index map
+    static SymmTerm		known (const string&&); // Return named Symm
+    static void			symminit () ;		// Initialize symmetries
     } ;
 
-inline Symmmap		Symm::trans2indx ;
 inline Index<Symm>	Symm::list ;			// Defined Symm's
 
 #endif

@@ -11,8 +11,8 @@ static constexpr int specchunksize = !theory.euclid		// Spec chunk size
 				   : theory.dim == 4 ? 6 :
 				     theory.dim == 3 ? 7 : 8 ;
 
-static constexpr int loopbits = 3 ;				// Loop score bits
-static constexpr int specbits = theory.euclid ? 3 : 6 ;		// Spec score bits
+static constexpr int loopbase = 8 ;				// Loop score base
+static constexpr int specbase = theory.euclid ? 8 : 64 ;	// Spec score base
 
 static constexpr ulong looptblsize (int len = loopchunksize)	// Loop table size
     {
@@ -26,8 +26,10 @@ static constexpr ulong spectblsize (int len = specchunksize)	// Special table si
 	   2 * ipow (2 * theory.dim, len) * (4 + 2 * !!theory.nf) * len ;
     }
 
-static_assert (ipow(2,loopbits*loopchunksize) < UINT_MAX, "loopchunksize too big") ;
-static_assert (ipow(2,specbits*specchunksize) < UINT_MAX, "specchunksize too big") ;
+static_assert (ipow(loopbase,loopchunksize) < UINT_MAX, "loopchunksize too big") ;
+static_assert (ipow(specbase,specchunksize) < UINT_MAX, "specchunksize too big") ;
+
+using SymmSet = vector<uint> ;	 			// Trial symmetry subset
 
 class CanonCache : public hash<Str,int,Strhash,Str_eq>	// Short Obs cache
     {
@@ -43,8 +45,6 @@ class CanonCache : public hash<Str,int,Strhash,Str_eq>	// Short Obs cache
 
     friend ostream& operator<< (ostream&, const CanonCache&) ;
     } ;
-
-using SymmSet = vector<uint> ;	 			// Trial symmetry subset
 
 class Node						// Canonicalization chunk data
     {

@@ -21,9 +21,9 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
     if (blab > 1) cout << "assess " << depth << "| "
 		       << (sgn < 0 ? "-" : "") << a << "\n" ;
 
-    if (indx != UINT_MAX)			// found in list
+    if (indx != MAXNUM)			// found in list
 	{
-	if (indx < UINT_MAX-1)			// do consistency check
+	if (indx < MAXNUM-1)			// do consistency check
 	    {
 	    const Obs& b { (*this)(indx) } ;
 	    if (classify && a.corder >= 0 && a.corder < b.corder) 
@@ -40,7 +40,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	    }
 	--depth ;
 	++global.count().found ;
-	return PolyTerm {Polyindx(indx), sgn} ;
+	return PolyTerm {PolyIndx(indx), sgn} ;
 	}
     else if (frozen())			// script generation phase, no additions
 	{
@@ -70,7 +70,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 		 << " absent " << a << "\n" ;
 	    }
 	--depth ;
-	return PolyTerm (Polyindx(), 0) ;
+	return PolyTerm (PolyIndx(), 0) ;
 	}
     else if (classify)			// Obs generation phase, determine xorder
 	{
@@ -89,7 +89,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 		    }
 		--depth ;
 		++global.count().stored ;
-		return PolyTerm (Polyindx(UINT_MAX-1), sgn) ;
+		return PolyTerm (PolyIndx(MAXNUM-1), sgn) ;
 		}
 	    else if (a.order() < maxord)
 		{
@@ -104,7 +104,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	    }
 	--depth ;
 	++global.count().discarded ;
-	return PolyTerm (Polyindx(), 0) ;
+	return PolyTerm (PolyIndx(), 0) ;
 	}
     else					// Temp list: just store
 	{
@@ -117,7 +117,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 		 << name << " #" << indx << "\n" ;
 	    }
 	--depth ;
-	return PolyTerm (Polyindx(indx), sgn) ;
+	return PolyTerm (PolyIndx(indx), sgn) ;
 	}
     }
 
@@ -292,7 +292,7 @@ bool Obs::factorize (short xmin, const ObsList& list)	// Factorize no-E Obs
 
 bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E's
     {
-    PolyTerm	one   { Polyindx(), 1 } ;
+    PolyTerm	one   { PolyIndx(), 1 } ;
     bool	prev  { list.freezeif() } ;
     bool	isham { !theory.euclid } ;
     const auto&	blab  { Blab::level(Blab::ASSESS) } ;
@@ -503,7 +503,7 @@ PolyTerm Obs::approximate (const ObsList& list) const		// Approximate Obs?
 	++global.count().nointersect ;
 	}
     if (blab > 1) cout << "approximate " << depth << ":: " << *this << " failed \n" ;
-    return PolyTerm (Polyindx(), 0) ;
+    return PolyTerm (PolyIndx(), 0) ;
     }
 
 SiteVec& Obs::sitelist () const		// Return sorted list of site coords
@@ -524,8 +524,8 @@ SiteVec& Obs::sitelist () const		// Return sorted list of site coords
 	char dir ( axis(c) ) ;
 	x.comp[dir] += step(c) ;
 	x.modlen (dir,theory.box) ;
-	if (EorElink(c))	nEs++ ;
-	else if (EEorEElink(c))	nEs += 2 ;
+	if (singleE (c))	nEs++ ;
+	else if (doubleE(c))	nEs += 2 ;
 	}
     for (short i(1) ; p < cend() ; ++p, ++i)
 	{
@@ -535,7 +535,7 @@ SiteVec& Obs::sitelist () const		// Return sorted list of site coords
 	char dir ( axis(c) ) ;
 	x.comp[dir] += step(c) ;
 	x.modlen (dir,theory.box) ;
-	if (EorElink(c)) nEs++ ;
+	if (singleE (c)) nEs++ ;
 	}
     std::stable_sort (sites.begin(), sites.end()) ;
     return sites ;
@@ -638,7 +638,7 @@ short Obs::noEbound (const ObsList& list) const	// Lower bound xorder, Obs w. E'
     ObsType	ntype { is_Efermion() ? ObsType::Fermion : ObsType::Loop } ;
     Obs		obs   { buf, ntype, corder, -1 } ; obs.canon() ;
     numb	indx  { list.find (obs) } ;
-    short	xord  ( indx == UINT_MAX ? SHRT_MAX : list(indx).xorder ) ;
+    short	xord  ( indx == MAXNUM ? SHRT_MAX : list(indx).xorder ) ;
     if (blab > 1)
 	{
 	cout << "noEbound " << depth << ":: " << *this << " -> "

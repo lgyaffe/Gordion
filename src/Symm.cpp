@@ -1,37 +1,29 @@
 #include "Symm.h"
-#include <sstream>
-#include <cstring>
-
-const array<symb,Nsymb> Symm::idmap				// Identity map
-    {
-    '\x00','\x01','\x02','\x03','\x04','\x05','\x06','\x07',
-    '\x08','\x09','\x0a','\x0b','\x0c','\x0d','\x0e','\x0f',
-    '\x10','\x11','\x12','\x13','\x14','\x15','\x16','\x17',
-    '\x18','\x19','\x1a','\x1b','\x1c','\x1d','\x1e','\x1f',
-    '\x20','\x21','\x22','\x23','\x24','\x25','\x26','\x27',
-    '\x28','\x29','\x2a','\x2b','\x2c','\x2d','\x2e','\x2f'
-    } ;
 
 std::size_t Symmhash::operator()(const Symm& s) const noexcept	// Symm hash function
     {
-    string buf(s.map.size()+1, '\0') ;
-    std::memcpy (&buf[0], s.map.begin(), s.map.size()) ;
+    string buf { s.map.data(), s.map.size() } ;
     std::size_t h1 = std::hash<std::string>{}(buf) ;
     std::size_t h2 = std::hash<std::bitset<Nsymb+1>>{}(s.sgn) ;
     return h1 ^ (h2 << 1) ;
     }
 
-SymmSum SymmTerm::operator+(SymmTerm a) const			// Add two symmetries
+bool Symm_eq::operator()(const Symm& s, const Symm& t) const	// Equality?
+    {
+    return s.map == t.map && s.sgn == t.sgn ;
+    }
+
+SymmSum SymmTerm::operator+(SymmTerm a) const			// Add SymmTerm's
     {
     return SymmSum { *this, a } ;
     }
 
-SymmSum SymmTerm::operator-(SymmTerm a) const			// Subtract symmetries
+SymmSum SymmTerm::operator-(SymmTerm a) const			// Subtract SymmTerm's
     {
     return SymmSum { *this, SymmTerm { a.item, -a.coeff } } ;
     }
 
-SymmSum& SymmSum::operator+(SymmTerm a)				// Add symmetry term to sum
+SymmSum& SymmSum::operator+(SymmTerm a)				// Add SymmTerm to sum
     {
     this->push_back(a) ;
     return *this ;
@@ -43,7 +35,7 @@ SymmSum& SymmSum::operator-(SymmTerm a)				// Subtract term from sum
     return *this ;
     } ;
 
-SymmSum SymmSum::operator*(SymmSum v)				// Multiply symmetry sums
+SymmSum SymmSum::operator*(SymmSum v)				// Multiply SymmSum's
     {
     SymmSum prod ;
     for (const auto& a : *this)
@@ -68,7 +60,7 @@ SymmSum SymmSum::operator*(SymmTerm b)				// Multiply sum by term
     return prod ;
     }
 
-int Symm::operator() (const Symm& a) const noexcept		// Compose tranformations
+int Symm::operator() (const Symm& a) const noexcept		// Compose Symm's
     {
     Symm c(a) ;
     for (symb x(0) ; x < Nsymb ; ++x)
@@ -105,7 +97,7 @@ pair<int,Op> Symm::operator()(const Op& a) const		// Transform Op
 	}
     else if (a.type == OpType::Loop) b.findstart() ;
 
-    return make_pair ((neg ? -1 : 1), b) ;
+    return std::make_pair ((neg ? -1 : 1), b) ;
     }
 
 bool Symm::operator==(const Symm&s) const noexcept		// Compare transformation
@@ -180,12 +172,12 @@ void Symm::symminit()				// Initialize symmetry group data
 		    if (R & (0x1 << perm[a]))
 			{
 			trans.map[c] ^= Rflag ;
-			if (EorElink(c)) trans.sgn.flip(c) ;
+			if (singleE(c)) trans.sgn.flip(c) ;
 			}
 		    if (C)
 			{
 			if (!isE(c) && !isEE(c)) trans.map[c] ^= Rflag ;
-			if (EorElink(c)) trans.sgn.flip(c) ;
+			if (singleE(c))		 trans.sgn.flip(c) ;
 			}
 		    }
 

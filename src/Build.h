@@ -32,7 +32,6 @@ namespace Build
     void do_geostat_bckt  (const numb3&) ;
     void check_xorder	  (numb, const Gen&, const PolyMap&) ;
     void clear_obs	  (int) ;
-    void close_streams	  () ;
 
     inline static int		cord ;			// Current creation order
     inline static Obsset	newobs ;		// Newly generated Obs

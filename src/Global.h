@@ -76,7 +76,7 @@ struct StageInfo				// Stage-specific info
     short		maxgen  { 0 } ;		// Max Gen order
     short		maxord  { 0 } ;		// Max Obs sc order
     long		nobs    { 0 } ;		// # Obs
-    ulong		obshash { 0 } ;		// Obs list hash
+    ulong		obshash { 0 } ;		// Obs list hash code
     OpList		ops ;			// Operators
     array<Genvec,NREP>	gens ;	 		// Generators
     array<ushort,NREP>	neven ;	 		// # T-even generators
@@ -93,13 +93,13 @@ class Global					// Global data
     {
     public:
     using atombool = std::atomic<bool> ;
-    using Stage = enum { Gauge = 0, Fermi = 1 } ;
+    using Stage = enum { Gauge = 0, Fermi = 1 } ;	
     
-    Stage	stage ;
     StageInfo	stageinfo [2] ;
     SerialData	stagedata [2] { stageinfo[0].sysindex,
 				stageinfo[1].sysindex } ;
 
+    Stage	stage ;				// Minimization stage
     short	repnum     { 0 } ;		// Active irrep number
     short	approx     { 0 } ;		// Approximate Obs's?
     uint	maxthread  { 0 } ;		// Thread limit
@@ -124,7 +124,7 @@ class Global					// Global data
     numb	nobs	()	{ return info().nobs   ; }
 
     string	stageabbrev (int, const string&) ; // File name info
-    string	mk_filename (const string&&) ;	// Default file names
+    string	mk_filename (const string&&) ;	// Output file names
     string	addsubdir     (string, int) ;	// Add theory subdir
     string	addsubdir     (string) ;	// Add theory subdir
     void	mk_bcktlist   ()    ;		// Make bucket list
@@ -145,7 +145,7 @@ inline DataRec::DataRec (SysIndex& indx, RecordID id)	// DataRec constructor
 template <size_t N>					// PolyArr constructor
 template <size_t... Is> constexpr
 inline PolyArr<N>::PolyArr (std::index_sequence<Is...>, SysIndex& indx, RecordID id)
-    : std::array<PolyRec,N> { PolyRec ( (static_cast<void>(Is), indx), id )... } 
+    : array<PolyRec,N> { PolyRec ( (static_cast<void>(Is), indx), id )... } 
     {}
 
 #endif

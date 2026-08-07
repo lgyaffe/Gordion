@@ -318,11 +318,13 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"vevappend") && parse_args (line,flag))
 	    {
-	    global.info().vevfile.append = flag ;
+	    global.info(0).vevfile.append = flag ;
+	    global.info(1).vevfile.append = flag ;
 	    }
 	else if (isword(word,"MMAappend") && parse_args (line,flag))
 	    {
-	    global.info().MMAfile.append = flag ;
+	    global.info(0).MMAfile.append = flag ;
+	    global.info(1).MMAfile.append = flag ;
 	    }
 	else if (isword(word,"MMAdir") && parse_args (line,word))
 	    {
@@ -338,7 +340,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		int	sgn	{ o.canon() } ;
 		int	stage	{ o.is_fermi() } ;
 		numb	indx	{ ObsList::obs.find (o) } ;
-		if (indx != UINT_MAX)
+		if (indx < MAXNUM)
 		    {
 		    global.info(stage).MMAfile.obs.emplace (indx,o) ;
 		    }
@@ -580,7 +582,7 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 			    try {
 				Obs  o { word } ; o.canon() ;
 				numb indx { ObsList::obs.find (o) } ;
-				if (indx != UINT_MAX && order < 0)
+				if (indx < MAXNUM && order < 0)
 				    order = ObsList::obs(indx).corder ;
 				}
 			    catch (const BadInput&) {}
@@ -727,7 +729,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	else if (isword(word,"spectrum")    && eos(line) &&  isH) print_spectrum    () ;
 	else if (isword(word,"baseobs")     && eos(line))	print_base      () ;
 	else if (isword(word,"blablevels")  && eos(line))	print_blab      () ;
-	else if (isword(word,"bcktlist")    && eos(line))	print_bcktlist  () ;
+	else if (isword(word,"bucketlist")  && eos(line))	print_bcktlist  () ;
 	else if (isword(word,"cache")       && eos(line))	print_cache     () ;
 	else if (isword(word,"couplings")   && eos(line))	print_couplings () ;
 	else if (isword(word,"fermiinit")   && eos(line))	print_fermiinit () ;
@@ -846,7 +848,7 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    {
 	    Op  	op	{ word, -1 } ;
 	    Obs 	obs	{ word2 } ;
-	    PolyTerm	factor	{ Polyindx(), 1 } ;
+	    PolyTerm	factor	{ PolyIndx(), 1 } ;
 	    ObsList	tmplist	{ "ParseTemp" } ;
 	    PolyMap	ans	{ tmplist } ;
 
@@ -877,7 +879,7 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    if (obs.is_Eloop())
 		{
 		ObsList	tmplist { "ParseTemp" } ;
-		PolyTerm	factor { Polyindx(), 1 } ;
+		PolyTerm	factor { PolyIndx(), 1 } ;
 		PolyMap	ans { tmplist } ;
 
 		Commute::do_inner (obs, factor, tmplist, ans) ;
