@@ -34,6 +34,8 @@ class Numerics
     ushort	lastrep ;		// Symmetry representation
     numb	nvevG ;			// # gauge vev's
     numb	nvevF ;			// # fermion vev's
+    ulong	hashG ;			// gauge Obs hash
+    ulong	hashF ;			// fermi Obs hash
 
     Rvec	vev_tmp ;		// Temporary vev vector
     const real*	vev_buf ;		// Pointer to vev buffer data
@@ -66,8 +68,8 @@ class Numerics
     const Uvec&	eval_inuse	(uint,bool=false) ;	// Active generator list
     const Cvec&	eval_spectra	(uint,bool=false) ;	// Evaluate spectrum
     const Cvec&	eval_spectra	(string,bool=false) ;	// Evaluate spectrum
-    void	initialize	(int,numb,numb) ;	// Initialize
-    void	initialize	(int = global.stage) ;	// Initialize
+    void	init		(int) ;			// Initialize
+    void	initialize	(int = global.stage) ;	// Initialize & reset
     void	status_rpt	(uint,uint) ;		// Report status
     bool	check_loops	() ;			// Loop vevs < 1?
     bool	open_MMA	() ;			// Open MMA output file
@@ -96,7 +98,11 @@ class Numerics
 	return z * v[indx] ;
 	}
 
-    numb nvev (int stage) { return stage ? nvevF : nvevG ; }	// # active vev
+    numb nvev (int stage = global.stage)
+	{ return stage ? nvevF : nvevG ; }			// # vev's
+
+    numb obshash (int stage = global.stage)
+	{ return stage ? hashF : hashG ; }			// Obs hash
 
     inline static Status status ;				// Status info
 

@@ -43,14 +43,14 @@ void Global::close_streams (int keep)		// Close output streams
 	}
     }
 
-string Global::stageabbrev (int stage, const string& ext)
+string Global::stageabbrev (int st, const string& ext)
     {
-    int		obsord	{ info(stage).maxord } ;
-    int		genord	{ info(stage).maxgen } ;
-    string	answer	{ format ("_{}{}{}", genord, fg(stage), obsord) } ;
+    int		obsord	{ info(st).maxord } ;
+    int		genord	{ info(st).maxgen } ;
+    string	answer	{ format ("_{}{}{}", genord, fg(st), obsord) } ;
     if (ext != "m")
 	{
-	ulong	obshash	{ info(stage).obshash } ;
+	ulong	obshash	{ ext == "vev" ? numerics.obshash(st) : info(st).obshash } ;
 	string	suffix	{ char('A' + obshash % 26), char('A' + (obshash * 7) % 26) } ;
 	answer += suffix ;
 	}

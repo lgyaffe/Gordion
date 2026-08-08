@@ -12,7 +12,7 @@ void Build::clear_obs (int stage)		// Clear prior observables
     if (stage == 0)
 	{
 	Canon::cache.clear () ;
-	ObsList::obs.clear () ;
+	global.obs.clear () ;
 	global.clearpolys (0) ;
 	global.clearpolys (1) ;
 	}
@@ -20,7 +20,7 @@ void Build::clear_obs (int stage)		// Clear prior observables
 	{
 	cout << "Purging fermion observables" ;
 	Canon::cache.purge (global.info(0).nobs) ;
-	ObsList::obs.purge (global.info(0).nobs) ;
+	global.obs.purge (global.info(0).nobs) ;
 	global.clearpolys (1) ;
 	}
     }
@@ -32,10 +32,10 @@ void Build::mk_obs (int target)			// Build observables
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	info	{ global.stageinfo } ;
     auto&	maxord  { global.maxord() } ;
-    auto&	obslist { ObsList::obs } ;
+    ObsList&	obslist { global.obs } ;
 
     obslist.approx  = false ;
-    ObsList::freeze = false ;
+    global.obs.freeze = false ;
     Canon::cache.freeze = false ;
     if (global.stage == Global::Gauge)
 	{
@@ -54,7 +54,7 @@ void Build::mk_obs (int target)			// Build observables
 	    }
 	if (obslist.size() != numobs)
 	    {
-	    numerics.initialize  (0,info[0].nobs,info[1].nobs) ;
+	    numerics.init	 (0) ;
 	    global.clearpolys    (0) ;
 	    global.close_streams (0) ;
 	    global.mk_bcktlist   ()  ;
@@ -86,26 +86,26 @@ void Build::mk_obs (int target)			// Build observables
 	int initfail { obslist.do_fermiinit () } ;
 	if (blab)
 	    {
-	    cout << "Fermion initializations: " << ObsList::fermiinit.size() ;
+	    cout << "Fermion initializations: " << global.obs.fermiinit.size() ;
 	    if (initfail) cout << " + " << initfail << " missing loop partners" ;
 	    cout << "\n" ;
 	    }
 	if (obslist.size() != numobs)
 	    {
-	    numerics.initialize  (1,info[0].nobs,info[1].nobs) ;
+	    numerics.init	 (1) ;
 	    global.clearpolys    (1) ;
 	    global.close_streams (1) ;
 	    global.mk_bcktlist   ()  ;
 	    }
 	}
     Obsset().swap (newobs) ;
-    Obsset().swap (ObsList::inbox) ;
+    Obsset().swap (global.obs.inbox) ;
     Canon::cache.freeze = true ;
-    ObsList::freeze = true ;
+    global.obs.freeze = true ;
     obslist.approx = global.approx ;
     obslist.shrink() ;
 
-    if (blab) cout << "Total # Obs:\t" << ObsList::obs.size() << "\n" << flush ;
+    if (blab) cout << "Total # Obs:\t" << global.obs.size() << "\n" << flush ;
     if (global.info().Hterms[0].cpoly.empty()) mk_ham () ;
     }
 
@@ -117,7 +117,7 @@ void Build::mk_loops ()				// Build Loop's
     const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
-    auto&	obslist	{ ObsList::obs } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	numobs	{ obslist.size() } ;
 
     for (cord = maxord/2 ; cord <= maxord - 4 ; cord += 2)
@@ -162,7 +162,7 @@ void Build::mk_Eloops ()			// Build Eloop's
     const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
-    auto&	obslist	{ ObsList::obs } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	numobs	{ obslist.size() } ;
     int		maxcord	{ maxord - (maxord > 4 ? 4 : 2) } ;
 
@@ -208,7 +208,7 @@ void Build::mk_EEloops ()			// Build EEloop's
     const auto&	bckt	{ global.info(0).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
-    auto&	obslist	{ ObsList::obs } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	numobs	{ obslist.size() } ;
 
     for (cord = maxord/2 - 2 ; cord <= maxord - 4 ; cord += 2)
@@ -253,7 +253,7 @@ void Build::mk_fermions ()			// Build Fermion's
     const auto&	bckt	{ global.info(1).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
-    auto&	obslist	{ ObsList::obs } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	numobs	{ obslist.size() } ;
 
     for (cord = maxord/2 ; cord <= maxord - 2 ; ++cord)
@@ -298,7 +298,7 @@ void Build::mk_Efermions ()			// Build Efermion's
     const auto&	bckt	{ global.info(1).bckt } ;
     auto&	maxord	{ global.maxord() } ;
     auto	prev	{ global.maxthread } ;
-    auto&	obslist	{ ObsList::obs } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	numobs	{ obslist.size() } ;
 
     for (cord = maxord/2 ; cord <= maxord - 1 ; ++cord)
@@ -338,8 +338,8 @@ void Build::mk_Efermions ()			// Build Efermion's
 void Build::mk_ham()				// Build canonical H
     {
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
-    auto&	baslist { ObsList::base } ;
-    auto&	obslist { ObsList::obs  } ;
+    ObsList&	baslist { global.base } ;
+    ObsList&	obslist { global.obs  } ;
     auto&	MMAobs  { global.info().MMAfile.obs } ;
     auto&	Hterms	{ global.info().Hterms } ;
     auto	nterms	( Hterms.size() ) ;
@@ -366,7 +366,7 @@ void Build::mk_ham()				// Build canonical H
 void Build::mk_grad()				// Build gradient
     {
     if (global.interrupt) return ;
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	Hterms	{ global.info().Hterms } ;
@@ -374,7 +374,7 @@ void Build::mk_grad()				// Build gradient
     auto	neven	{ global.info().neven.front() } ;
     auto&	grad	{ global.data().grad } ;
     auto	nterms	( Hterms.size() ) ;
-    PolyMap	ans	{ ObsList::obs } ;
+    PolyMap	ans	{ global.obs } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
     if (grad.entry().id != RecordID::Grad) fatal ("mk_grad: bad record ID!") ;
@@ -409,7 +409,7 @@ void Build::mk_curv (string word)			// Build curvature
 void Build::mk_curv (uint repnum)			// Build curvature
     {
     if (global.interrupt) return ;
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	repnam	{ Rep::list[repnum].name } ;
@@ -419,7 +419,7 @@ void Build::mk_curv (uint repnum)			// Build curvature
     auto	nterms	( Hterms.size() ) ;
     auto	ngens   ( gens.size() ) ;
     ObsList	tmplist { "CurvTemp", repnum == 0 } ;
-    PolyMap	ans	{ ObsList::obs } ;
+    PolyMap	ans	{ global.obs } ;
     PolyMap	tmp	{ tmplist } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
@@ -469,7 +469,7 @@ void Build::mk_lagr (string word)			// Build Lagrange bracket
 void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     {
     if (global.interrupt) return ;
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	repnam	{ Rep::list[repnum].name } ;
@@ -480,7 +480,7 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     auto	opnum	{ oplist.size() } ;
     auto	ngens	( gens.size() ) ;
     short	trunc	{ SHRT_MAX } ;
-    PolyMap	ans	{ ObsList::obs } ;
+    PolyMap	ans	{ global.obs } ;
 
     if (!global.maxord()) gripe ("Make some observables first!") ;
     if (lagr.entry().id != RecordID::Lagr) fatal ("mk_lagr: bad record ID!") ;
@@ -515,7 +515,7 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
 void Build::mk_geos()				// Build geodesic equations
     {
     if (global.interrupt) return ;
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	bckt	{ global.info().bckt } ;
@@ -523,7 +523,7 @@ void Build::mk_geos()				// Build geodesic equations
     if (blab && blab < 3) cout << "geodesics: " << flush;
     if (!global.maxord()) gripe ("Make some observables first!") ;
 
-    ObsList::freeze = true ;
+    global.obs.freeze = true ;
     Canon::cache.freeze = true ;
     global.count().cleargeostats() ;
     if (global.autosave) Save::save_sys() ;
@@ -540,8 +540,8 @@ void Build::do_Loop_bckt (const numb3& bckt)		// Do loop build bucket
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
-    auto&	inbox	{ ObsList::inbox } ;
-    auto&	obslist	{ ObsList::obs } ;
+    ObsList&	obslist	{ global.obs } ;
+    auto&	inbox	{ global.obs.inbox } ;
     PolyMap 	tmp	{ obslist } ;
     PolyTerm 	zero	{ PolyIndx(), 0 } ;
     auto	numobs	{ obslist.size() } ;
@@ -549,7 +549,7 @@ void Build::do_Loop_bckt (const numb3& bckt)		// Do loop build bucket
     numb 	first	{ bckt[1] } ;
     numb 	last	{ bckt[2] } ;
 
-    ObsList::freeze = false ;
+    global.obs.freeze = false ;
     for (numb i(first) ; i <= last ; ++i)
 	{
 	if (obslist(i).type != ObsType::Loop)	continue ;
@@ -571,7 +571,7 @@ void Build::do_Loop_bckt (const numb3& bckt)		// Do loop build bucket
 	    if (global.interrupt) break ;
 	    }
 	}
-    ObsList::freeze = true ;
+    global.obs.freeze = true ;
     if (inbox.size())
 	{
 	std::lock_guard<std::mutex> lock (obsmutex) ;
@@ -592,8 +592,8 @@ void Build::do_Eloop_bckt (const numb3& bckt)		// Do Eloop build bucket
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
-    auto&	inbox	{ ObsList::inbox } ;
-    auto&	obslist	{ ObsList::obs } ;
+    auto&	inbox	{ global.obs.inbox } ;
+    ObsList&	obslist	{ global.obs } ;
     PolyTerm	zero	{ PolyIndx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
     auto	numobs	{ obslist.size() } ;
@@ -601,7 +601,7 @@ void Build::do_Eloop_bckt (const numb3& bckt)		// Do Eloop build bucket
     numb 	first	{ bckt[1] } ;
     numb 	last	{ bckt[2] } ;
 
-    ObsList::freeze = false ;
+    global.obs.freeze = false ;
     for (numb i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
@@ -611,7 +611,7 @@ void Build::do_Eloop_bckt (const numb3& bckt)		// Do Eloop build bucket
 	    if (obslist(i).corder != cord) continue ;
 
 	    Op op { obslist(i) } ;
-	    for (const Obs* EE : ObsList::base)
+	    for (const Obs* EE : global.base)
 		{
 		if (EE->size() != 1 || !isEE(EE->front())) continue ;
 		if (blab > 3)
@@ -655,7 +655,7 @@ void Build::do_Eloop_bckt (const numb3& bckt)		// Do Eloop build bucket
 		}
 	    }
 	}
-    ObsList::freeze = true ;
+    global.obs.freeze = true ;
     if (inbox.size())
 	{
 	std::lock_guard<std::mutex> lock (obsmutex) ;
@@ -676,8 +676,8 @@ void Build::do_EEloop_bckt (const numb3& bckt)		// Do EEloop build bckt
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	oplist	{ global.info(0).ops } ;
     const auto&	maxord	{ global.maxord() } ;
-    auto&	inbox	{ ObsList::inbox } ;
-    auto&	obslist	{ ObsList::obs } ;
+    auto&	inbox	{ global.obs.inbox } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	numobs	{ obslist.size() } ;
     PolyTerm	zero	{ PolyIndx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
@@ -685,7 +685,7 @@ void Build::do_EEloop_bckt (const numb3& bckt)		// Do EEloop build bckt
     numb 	first	{ bckt[1] } ;
     numb 	last	{ bckt[2] } ;
 
-    ObsList::freeze = false ;
+    global.obs.freeze = false ;
     for (numb i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
@@ -708,7 +708,7 @@ void Build::do_EEloop_bckt (const numb3& bckt)		// Do EEloop build bckt
 	    if (global.interrupt) return ;
 	    }
 	}
-    ObsList::freeze = true ;
+    global.obs.freeze = true ;
     if (inbox.size())
 	{
 	std::lock_guard<std::mutex> lock (obsmutex) ;
@@ -728,8 +728,8 @@ void Build::do_Fermion_bckt (const numb3& bckt)		// Do Fermion build bckt
 
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	maxord	{ global.maxord() } ;
-    auto&	inbox	{ ObsList::inbox } ;
-    auto&	obslist	{ ObsList::obs } ;
+    auto&	inbox	{ global.obs.inbox } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	numobs	{ obslist.size() } ;
     PolyTerm	zero	{ PolyIndx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
@@ -737,7 +737,7 @@ void Build::do_Fermion_bckt (const numb3& bckt)		// Do Fermion build bckt
     numb	first	{ bckt[1] } ;
     numb	last	{ bckt[2] } ;
 
-    ObsList::freeze = false ;
+    global.obs.freeze = false ;
     for (numb i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
@@ -761,7 +761,7 @@ void Build::do_Fermion_bckt (const numb3& bckt)		// Do Fermion build bckt
 	    if (global.interrupt) return ;
 	    }
 	}
-    ObsList::freeze = true ;
+    global.obs.freeze = true ;
     if (inbox.size())
 	{
 	std::lock_guard<std::mutex> lock (obsmutex) ;
@@ -782,8 +782,8 @@ void Build::do_Efermion_bckt (const numb3& bckt)	// Do Efermion build bckt
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	oplist	{ global.info(1).ops } ;
     const auto&	maxord	{ global.maxord() } ;
-    auto&	inbox	{ ObsList::inbox } ;
-    auto&	obslist	{ ObsList::obs } ;
+    auto&	inbox	{ global.obs.inbox } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	numobs	{ obslist.size() } ;
     PolyTerm	zero	{ PolyIndx(), 0 } ;
     PolyMap	tmp	{ obslist } ;
@@ -791,7 +791,7 @@ void Build::do_Efermion_bckt (const numb3& bckt)	// Do Efermion build bckt
     numb 	first	{ bckt[1] } ;
     numb 	last	{ bckt[2] } ;
 
-    ObsList::freeze = false ;
+    global.obs.freeze = false ;
     for (numb i(first) ; i <= last ; ++i)
 	{
 	if (global.interrupt) break ;
@@ -801,7 +801,7 @@ void Build::do_Efermion_bckt (const numb3& bckt)	// Do Efermion build bckt
 
 	    Op op { obslist(i) } ;
 	    if (!theory.euclid) op.front() = stag(op.front()) ;
-	    for (const Obs* EE : ObsList::base)
+	    for (const Obs* EE : global.base)
 		{
 		if (EE->size() != 1 || !isEE(EE->front())) continue ;
 		if (blab > 3)
@@ -834,7 +834,7 @@ void Build::do_Efermion_bckt (const numb3& bckt)	// Do Efermion build bckt
 		}
 	    }
 	}
-    ObsList::freeze = true ;
+    global.obs.freeze = true ;
     if (inbox.size())
 	{
 	std::lock_guard<std::mutex> lock (obsmutex) ;
@@ -855,13 +855,13 @@ void Build::do_geo_bckt (const numb3& bckt)		// Do bucket of geodesic eqns
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	gens	{ global.info().gens.front() } ;
     auto	neven	{ global.info().neven.front() } ;
-    auto&	list	{ ObsList::obs } ;
+    ObsList&	list	{ global.obs } ;
     numb	bcktnum	{ bckt[0] } ;
     numb	first	{ bckt[1] } ;
     numb	last	{ bckt[2] } ;
     numb	bcktsiz	{ last - first + 1 } ;
     auto&	geos	{ global.data().geos[bcktnum] } ;
-    PolyMap	ans	{ ObsList::obs } ;
+    PolyMap	ans	{ global.obs } ;
 
     ulong		ngeo	(0) ;
     ulong		nterms	(0) ;

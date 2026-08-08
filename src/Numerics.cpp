@@ -617,9 +617,9 @@ void Numerics::write_data ()				// Write data to MMAfile
 
 bool Numerics::check_loops ()					// Loop vevs < 1?
     {
-    if (ObsList::swapped) return false ;
+    if (global.obs.swapped) return false ;
     
-    const auto&	obslist { ObsList::obs } ;
+    const auto&	obslist { global.obs } ;
     auto 	beg	{ obslist.begin() } ;
     auto 	end	{ obslist.end()   } ;
     doub	maxv	(0.0) ;
@@ -775,10 +775,12 @@ string Numerics::MMAform (doub x)			// Convert to MMA input form
     return s ;
     }
 
-void Numerics::initialize (int stage, numb nobsG, numb nobsF)
+void Numerics::init (int stage)
     {
-    nvevG = nobsG ;
-    nvevF = nobsF ;
+    nvevG    = global.info(0).nobs ;
+    nvevF    = global.info(1).nobs ;
+    hashG = global.info(0).obshash ;
+    hashF = global.info(1).obshash ;
     initialize (stage) ;
     }
 
@@ -808,7 +810,7 @@ void Numerics::initialize (int stage)			// Initialize expectation values
 	if (theory.euclid)	condensate = -1.0 / m ;
 	else			condensate = m > 0 ? -0.5 : 0.5 ;
 
-	for (const auto& [indx_f,indx_g] : ObsList::fermiinit)
+	for (const auto& [indx_f,indx_g] : global.obs.fermiinit)
 	    {
 	    vev[indx_f] = vev[indx_g] * condensate ;
 	    }
