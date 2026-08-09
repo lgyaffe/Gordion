@@ -7,6 +7,8 @@ class Proj ;
 
 class Gen : public OpSum		// Coherence algebra generator
     {
+    static inline ObsList redu { "Reduction" }; // Reduction Obs
+
     public:
     short	order { -1 } ;			// Generator order
     OpType	type { OpType::Invalid } ;	// Generator type
@@ -14,7 +16,7 @@ class Gen : public OpSum		// Coherence algebra generator
     bool	imag ;				// Imaginary coefficient?
     bool	active { true } ;		// Active generator?
     real	coeff { 1 } ;			// Overall coefficient
-    ObsPoly	reduction { ObsList::redu } ;	// "inner" commutator
+    ObsPoly	reduction { redu } ;		// "inner" commutator
 
     Gen (OpList& l) : OpSum (l) {}		// Constructor
     Gen (const Op&) ;				// Constructor

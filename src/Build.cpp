@@ -1,7 +1,7 @@
 #include "Build.h"
 #include "Canon.h"
 #include "Commute.h"
-#include "Numerics.h"
+#include "Global.h"
 #include "Rep.h"
 #include "Save.h"
 #include "Blab.h"
@@ -16,16 +16,16 @@ void Build::clear_obs (int stage)		// Clear prior observables
 	global.clearpolys (0) ;
 	global.clearpolys (1) ;
 	}
-    else if (stage && global.info(1).nobs)
+    else if (stage && global.obs.nobsF)
 	{
 	cout << "Purging fermion observables" ;
-	Canon::cache.purge (global.info(0).nobs) ;
-	global.obs.purge (global.info(0).nobs) ;
+	Canon::cache.purge (global.obs.nobsG) ;
+	global.obs.purge   (global.obs.nobsG) ;
 	global.clearpolys (1) ;
 	}
     }
 
-void Build::mk_obs (int target)			// Build observables
+void Build::mk_obs (uint target)		// Build observables
     {
     if (global.interrupt) return ;
 
@@ -41,7 +41,7 @@ void Build::mk_obs (int target)			// Build observables
 	{
 	clear_obs (1) ;
 	if (target < maxord) clear_obs (0) ;
-	if (info[0].nobs <= 1) obslist.obsinit (0) ;
+	if (obslist.nobsG <= 1) obslist.obsinit (0) ;
 	auto numobs { obslist.size() } ;
 	while (maxord < target)
 	    {
@@ -54,7 +54,12 @@ void Build::mk_obs (int target)			// Build observables
 	    }
 	if (obslist.size() != numobs)
 	    {
-	    numerics.init	 (0) ;
+	    global.info(0).validvev = false ;
+	    global.info(1).validvev = false ;
+	    global.obs.nobsG = obslist.nobsG ;
+	    global.obs.nobsF = obslist.nobsF ;
+	    global.obs.hashG = obslist.hashG ;
+	    global.obs.hashF = obslist.hashF ;
 	    global.clearpolys    (0) ;
 	    global.close_streams (0) ;
 	    global.mk_bcktlist   ()  ;
@@ -63,7 +68,7 @@ void Build::mk_obs (int target)			// Build observables
     else if (theory.nf) // stage == Global::Fermi
 	{
 	if (target < maxord) clear_obs (1) ;
-	if (!info[1].nobs) obslist.obsinit (1) ;
+	if (!obslist.nobsF) obslist.obsinit (1) ;
 	auto& oplistG { info[0].ops } ;
 	auto& oplistF { info[1].ops } ;
 	auto  numobs  { obslist.size() } ;
@@ -92,7 +97,9 @@ void Build::mk_obs (int target)			// Build observables
 	    }
 	if (obslist.size() != numobs)
 	    {
-	    numerics.init	 (1) ;
+	    global.info(1).validvev = false ;
+	    global.obs.nobsF = obslist.nobsF ;
+	    global.obs.hashF = obslist.hashF ;
 	    global.clearpolys    (1) ;
 	    global.close_streams (1) ;
 	    global.mk_bcktlist   ()  ;
@@ -100,13 +107,13 @@ void Build::mk_obs (int target)			// Build observables
 	}
     Obsset().swap (newobs) ;
     Obsset().swap (global.obs.inbox) ;
-    Canon::cache.freeze = true ;
-    global.obs.freeze = true ;
+    Canon::cache.freeze	= true ;
+    global.obs.freeze	= true ;
     obslist.approx = global.approx ;
     obslist.shrink() ;
 
     if (blab) cout << "Total # Obs:\t" << global.obs.size() << "\n" << flush ;
-    if (global.info().Hterms[0].cpoly.empty()) mk_ham () ;
+//    if (global.info().Hterms[0].cpoly.empty()) mk_ham () ;
     }
 
 void Build::mk_loops ()				// Build Loop's
@@ -144,14 +151,14 @@ void Build::mk_loops ()				// Build Loop's
 	    cout << "\n" << std::left << std::setw(12) << "Loops"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "# gauge obs = " << global.info(0).nobs << "\n" << flush ;
+		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
 	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Loops     (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
 	     << obslist.size() - numobs << " added, # gauge obs = "
-	     << global.info(0).nobs << "\n" << flush ;
+	     << obslist.nobsG << "\n" << flush ;
     }
 
 void Build::mk_Eloops ()			// Build Eloop's
@@ -190,14 +197,14 @@ void Build::mk_Eloops ()			// Build Eloop's
 	    cout << "\n" << std::left << std::setw(12) << "Eloops"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "# gauge obs = " << global.info(0).nobs << "\n" << flush ;
+		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
 	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Eloops    (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
 	     << obslist.size() - numobs << " added, # gauge obs = "
-	     << global.info(0).nobs << "\n" << flush ;
+	     << obslist.nobsG << "\n" << flush ;
     }
 
 void Build::mk_EEloops ()			// Build EEloop's
@@ -235,14 +242,14 @@ void Build::mk_EEloops ()			// Build EEloop's
 	    cout << "\n" << std::left << std::setw(12) << "EEloops"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "# gauge obs = " << global.info(0).nobs << "\n" << flush ;
+		 << "# gauge obs = " << obslist.nobsG << "\n" << flush ;
 	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "EEloops   (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
 	     << obslist.size() - numobs << " added, # gauge obs = "
-	     << global.info(0).nobs << "\n" << flush ;
+	     << obslist.nobsG << "\n" << flush ;
     }
 
 void Build::mk_fermions ()			// Build Fermion's
@@ -280,14 +287,14 @@ void Build::mk_fermions ()			// Build Fermion's
 	    cout << "\n" << std::left << std::setw(12) << "Fermions"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "# fermion obs = " << global.info(1).nobs << "\n" << flush ;
+		 << "# fermion obs = " << obslist.nobsF << "\n" << flush ;
 	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Fermions  (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
 	     << obslist.size() - numobs << " added, # fermion obs = "
-	     << global.info(1).nobs << "\n" << flush ;
+	     << obslist.nobsF << "\n" << flush ;
     }
 
 void Build::mk_Efermions ()			// Build Efermion's
@@ -325,14 +332,30 @@ void Build::mk_Efermions ()			// Build Efermion's
 	    cout << "\n" << std::left << std::setw(12) << "Efermions"
 		 << "(" << cord << "," << maxord-cord << "): \t"
 		 << std::right << std::setw(9) << delta_n << " added, "
-		 << "# fermion obs = " << global.info(1).nobs << "\n" << flush ;
+		 << "# fermion obs = " << obslist.nobsF << "\n" << flush ;
 	if (global.interrupt) return ;
 	}
     if (blab == 1 && numobs < obslist.size())
 	cout << "Efermions (" << maxord << "):  \t"
 	     << std::right << std::setw(9)
 	     << obslist.size() - numobs << " added, # fermion obs = "
-	     << global.info(1).nobs << "\n" << flush ;
+	     << obslist.nobsF << "\n" << flush ;
+    }
+
+void Build::mk_eqns (string word)		// Build polynomial scripts
+    {
+    try { mk_eqns (Rep::known (word)) ; }
+    catch (const exception& e) { gripe ("Unknown representation " + word) ; }
+    }
+
+void Build::mk_eqns (uint rep)			// Build polynomial scripts
+    {
+    bool	isH  { !theory.euclid } ;
+    if (!rep) { mk_ham  () ;
+		mk_grad () ; }
+		mk_curv (rep) ;
+    if (isH)	mk_lagr (rep) ;
+    if (!rep)	mk_geos () ;
     }
 
 void Build::mk_ham()				// Build canonical H

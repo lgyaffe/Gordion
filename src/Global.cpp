@@ -43,14 +43,14 @@ void Global::close_streams (int keep)		// Close output streams
 	}
     }
 
-string Global::stageabbrev (int st, const string& ext)
+string Global::stageabbrev (int stage, const string& ext)
     {
-    int		obsord	{ info(st).maxord } ;
-    int		genord	{ info(st).maxgen } ;
-    string	answer	{ format ("_{}{}{}", genord, fg(st), obsord) } ;
+    int		obsord	{ info(stage).maxord } ;
+    int		genord	{ info(stage).maxgen } ;
+    string	answer	{ format ("_{}{}{}", genord, fg(stage), obsord) } ;
     if (ext != "m")
 	{
-	ulong	obshash	{ ext == "vev" ? numerics.obshash(st) : info(st).obshash } ;
+	ulong	obshash	{ stage ? global.obs.hashF : global.obs.hashG } ;
 	string	suffix	{ char('A' + obshash % 26), char('A' + (obshash * 7) % 26) } ;
 	answer += suffix ;
 	}
@@ -59,11 +59,12 @@ string Global::stageabbrev (int st, const string& ext)
 
 void Global::mk_bcktlist ()			// Make Obs bucket list
     {
-    auto&	bckt  { info().bckt } ;
-    long	count { info().nobs } ;
-    long	start { stage ? info(0).nobs : 0 } ;
-    numb	end   ( start + count ) ;
-    numb	chunk ( 1024 ) ;
+    auto&	bckt	{ info().bckt } ;
+    ObsList&	list	{ global.obs } ;
+    numb	count	{ list.nobs(stage) } ;
+    numb	start	{ stage ? list.nobsG : 0 } ;
+    numb	end	( start + count ) ;
+    numb	chunk	( 1024 ) ;
 
     if (count >= MAXBCKT * chunk) chunk = 1 + (count - 1)/MAXBCKT ;
 
@@ -76,8 +77,8 @@ void Global::mk_bcktlist ()			// Make Obs bucket list
 
 numb3 Global::bckt_pos (numb i)			// Return stage/bucket/indx
     {
-    int		stage { i >= info(0).nobs } ;
-    long	start { stage ? info(0).nobs : 0 } ;
+    int		stage { i >= obs.nobsG } ;
+    long	start { stage ? obs.nobsG : 0 } ;
     const auto& bckt  { info(stage).bckt } ;
 
     if (bckt.size())

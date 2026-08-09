@@ -140,11 +140,16 @@ using Obsmap = hash<Obs,numb,Strhash,Str_eq> ;
 class ObsList: vector<const Obs*>
     {
     Obsmap 		map ;			// Hash table
+
     public:
     string		name ;			// List name
     bool		canonicalize ;		// Canonicalize entries?
     bool		classify ;		// Classify entries?
     bool		approx {false} ;	// Approximate exclusions?
+    numb		nobsG = 0 ;		// # gauge Obs
+    numb		nobsF = 0 ;		// # fermi Obs
+    ulong		hashG = 0 ;		// gauge Obs hash
+    ulong		hashF = 0 ;		// fermi Obs hash
 
     using vector::const_iterator ;		// Base const_iterator
     const_iterator begin() const { return vector::cbegin() ; }
@@ -158,17 +163,6 @@ class ObsList: vector<const Obs*>
     auto	size() const { return vector::size() ; } // List size
     auto	shrink() { return shrink_to_fit() ; }	// Shrink
 
-    numb	find (const Str& s) const	// Find Obs, return index
-		    {
-		    auto p1 { map.find(s) } ;
-		    if (p1 != map.end()) return p1->second ;
-		    if (this == &ObsList::obs && inbox.size())
-			{
-			auto p2 { inbox.find(s) } ;
-			if (p2 != inbox.end()) return MAXNUM-1 ;
-			}
-		    return MAXNUM ;
-		    }
     void	reserve (int len)		// Reserve space
 		    {
 		    vector::reserve (len) ;
@@ -179,28 +173,12 @@ class ObsList: vector<const Obs*>
 		    reserve (size() + set.size()) ;
 		    for (const auto& obs : set) store (obs) ;
 		    }
-    bool	frozen () const			// Frozen master list?
-		    {
-		    return this == &ObsList::obs && ObsList::freeze ;
-		    }
-    bool	freezeif () const		// Freeze if master list
-		    {
-		    if (this == &ObsList::obs)
-			{
-			bool prev { ObsList::freeze } ;
-			ObsList::freeze = true ;
-			return prev ;
-			}
-		    return false ;
-		    }
-    void	refreezeif (bool prev) const	// Reset freeze if master list
-		    {
-		    if (this == &ObsList::obs)
-			{
-			ObsList::freeze = prev ;
-			}
-		    }
-    bool	 neq  (const ObsList& l) const { return this != &l ; }
+
+    bool	neq  (const ObsList& l) const { return this != &l ; }
+    numb	find (const Str&) const ;	// Find Obs, return index
+    bool	frozen   () const ;		// Frozen master list?
+    bool	freezeif () const ;		// Freeze if master list
+    void	refreezeif (bool) const ;	// Reset freeze if master list
 
     int		do_fermiinit () ;		// Load Fermion -> Loop map
     void	obsinit	(int) ;			// Load basic Obs
@@ -210,25 +188,19 @@ class ObsList: vector<const Obs*>
     numb	store	 (const Obs&) ;		// Store in list
     void	purge	 (numb)	;		// Purge entries
     void	clear	 () ;			// Clear list
-    void	rehash	 () const ; 		// Recalculate hashes
-    void	hasher	 (ulong&,const Obs&) const ; // List hasher
+    void	ondisk	 () ;			// Leave ObsList on disk
+    void	rehash	 () ; 			// Recalculate hashes
+    void	hasher	 (ulong&,const Obs&) ;	// ObsList hasher
     PolyTerm	catalog  (Obs) ;		// Catalog Obs
     PolyTerm	catalog  (Obs, Obs) ;		// Catalog Obs
     PolyTerm	is_known (Obs&&) const ;	// Find in list
     PolyTerm	is_known (Obs&&, Obs&&) const ;	// Find in list
     PolyTerm	assess   (Obs&) ;		// Store, approx or discard?
 
-    static ObsList			obs  ;		// Canonicalized Obs
-    static ObsList			base ;		// Basic defined Obs
-    static ObsList			redu ;		// Gen reductions
-    static inline vector<numb2>		fermiinit ;	// Fermion -> Loop map
-    static inline thread_local Obsset	inbox ;		// Obs awaiting insertion
-    static inline thread_local bool	freeze {true} ;	// Freeze master list?
-    static inline bool			swapped {false};// Swapped to disk?
+    numb&  nobs	(int stage) { return stage ? nobsF : nobsG ; }
+    ulong& hash	(int stage) { return stage ? hashF : hashG ; }
 
-    static void	ondisk () ;			// Leave ObsList::obs on disk
-    static void	retain (const Obs& o)		// Retain for later insertion
-	{ inbox.insert (o) ; }
+    static void	retain (const Obs&) ;		// Retain for later insertion
     } ;
 
 class ObsSubset : public std::map<numb,Obs>		// Obs subset

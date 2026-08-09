@@ -62,12 +62,12 @@ int Obs::canon()				// Canonicalize observable
 
 		if (!Canon::cache.freeze && corder >= 0)
 		    {
-		    if (!known_xord()) factorize (0, ObsList::obs) ;
+		    if (!known_xord()) factorize (0, global.obs) ;
 		    if (known_xord() && order() <= global.maxord())
 			{
 			shrink_to_fit() ;
 			if (blab) cout << "canon: storing " << *this << "\n" ;
-			numb	indx { ObsList::obs.store (*this) } ;
+			numb	indx { global.obs.store (*this) } ;
 			int	maxrot { theory.dim > 1 ? len : 0 } ;
 
 			for (int rot(0) ; rot < maxrot ; ++rot)	// add cache entries
@@ -91,7 +91,7 @@ int Obs::canon()				// Canonicalize observable
 		}
 	    else					// cache hit
 		{
-		*this = ObsList::obs (search->second) ;
+		*this = global.obs (search->second) ;
 		if (blab > 1) cout << "canon L0 returning: " << *this << "\n" << flush ;
 		++global.count().cachehits ;
 		}
@@ -254,15 +254,15 @@ int Obs::canon()				// Canonicalize observable
 		    if (!known_xord())
 			{
 			if (blab) cout << "canon: classify " << *this << "\n" << flush ;
-			if (has_Es())	reduce    (0, ObsList::obs) ;
-			else		factorize (0, ObsList::obs) ;
+			if (has_Es())	reduce    (0, global.obs) ;
+			else		factorize (0, global.obs) ;
 			if (blab) cout << "canon:: classify done\n" ;
 			}
 		    if (known_xord() && order() <= global.maxord())
 			{
 			shrink_to_fit() ;
 			if (blab) cout << "canon: storing " << *this << "\n" ;
-			numb indx { ObsList::obs.store (*this) } ;
+			numb indx { global.obs.store (*this) } ;
 
 			for (int shot(0) ; shot < maxtry ; ++shot) // add cache entries
 			    {
@@ -294,7 +294,7 @@ int Obs::canon()				// Canonicalize observable
 	    else					// cache hit
 		{
 		sgn1  = search->second < 0 ? -1 : 1 ;
-		*this = ObsList::obs (abs(search->second)) ;
+		*this = global.obs (abs(search->second)) ;
 		if (blab > 1) cout << "canon S0 returning: " << sgn0 * sgn1
 			       << " " << *this << "\n" << flush ;
 		++global.count().cachehits ;
@@ -682,7 +682,7 @@ void CanonCache::load (const Obsset& inbox)	// Load short inbox Obs into cache
 void CanonCache::reload ()			// Reload cache
     {
     freeze = false ;
-    for (const auto* ptr : ObsList::obs)
+    for (const auto* ptr : global.obs)
 	{
 	if (ptr->is_Loop()  && ptr->size() > loopchunksize) continue ;
 	if (!ptr->is_Loop() && ptr->size() > specchunksize) continue ;
@@ -697,7 +697,7 @@ ostream& operator<< (ostream& stream, const CanonCache& cache)
     stream << "Short Obs cache:\n" ;
     for (const auto& [key,indx] : cache)
 	{
-	const Obs& a { ObsList::obs (abs(indx)) } ;
+	const Obs& a { global.obs (abs(indx)) } ;
 	stream	<< std::left  << std::setw(12) << Str(key).print() << " -> "
 		<< std::right << std::setw(2) << indx << ": " << a << "\n" ;
 	}

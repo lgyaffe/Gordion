@@ -73,10 +73,9 @@ struct StageInfo				// Stage-specific info
     {
     using Genvec = vector<Gen> ;
 
-    short		maxgen  { 0 } ;		// Max Gen order
-    short		maxord  { 0 } ;		// Max Obs sc order
-    long		nobs    { 0 } ;		// # Obs
-    ulong		obshash { 0 } ;		// Obs list hash code
+    short		maxgen   { 0 } ;	// Max Gen order
+    short		maxord   { 0 } ;	// Max Obs sc order
+    bool		validvev { false } ;	// Vev list valid?
     OpList		ops ;			// Operators
     array<Genvec,NREP>	gens ;	 		// Generators
     array<ushort,NREP>	neven ;	 		// # T-even generators
@@ -89,15 +88,33 @@ struct StageInfo				// Stage-specific info
     Counters		count ;			// Statistics counters
     } ;
 
+class ObsInfo : public ObsList			// Canonical Obs info
+    {
+    public:
+    using ObsList::ObsList ;
+
+    static inline numb			nobsG ;		// shadows ObsList::nobsG
+    static inline numb			nobsF ;		// shadows ObsList::nobsF
+    static inline ulong			hashG ;		// shadows ObsList::hashG
+    static inline ulong			hashF ;		// shadows ObsList::hashF
+    static inline std::vector<numb2>	fermiinit ;	// Fermion -> Loop map
+    static inline bool			swapped {false};// Swapped to disk?
+    static inline thread_local bool	freeze {true} ;	// Freeze master list?
+    static inline thread_local Obsset	inbox ;		// Obs awaiting insertion
+    } ;
+
 class Global					// Global data
     {
     public:
     using atombool = std::atomic<bool> ;
     using Stage = enum { Gauge = 0, Fermi = 1 } ;	
     
-    StageInfo	stageinfo [2] ;
+    StageInfo	stageinfo [2] ;			// Stage-specific info
     SerialData	stagedata [2] { stageinfo[0].sysindex,
 				stageinfo[1].sysindex } ;
+
+    ObsList	base {"Basic" } ;		// Basic Obs
+    ObsInfo	obs  {"Canonical",true,true} ;	// Canonicalized Obs
 
     Stage	stage ;				// Minimization stage
     short	repnum     { 0 } ;		// Active irrep number
@@ -106,9 +123,6 @@ class Global					// Global data
     bool	autosave   { false } ;		// Write savefile on bulid
     bool	geoswap    { false } ;		// Swap geo bckts to disk
     bool	obsswap    { false } ;		// Swap obs list to disk
-    bool	symcurv    { true } ;		// Symmetrize curvature?
-    bool	fermivev   { false } ;		// Non-base fermi vev's?
-    bool	oknegeig   { false } ;		// Negative curvature OK?
     atombool	interrupt  { false } ;		// Interrupt flag
     string	savedir    { "./save/" } ;	// Save file directory
     string	MMAdir	   { "./MMA/"  } ;	// MMA result directory
@@ -116,12 +130,12 @@ class Global					// Global data
 
     auto&	info	(int i)	{ return stageinfo[i] ; }
     auto&	data	(int i)	{ return stagedata[i] ; }
-    auto&	info	()	{ return stageinfo[stage] ; }
-    auto&	data	()	{ return stagedata[stage] ; }
-    auto&	maxgen	()	{ return info().maxgen ; }
-    auto&	maxord	()	{ return info().maxord ; }
-    auto&	count	()	{ return info().count  ; }
-    numb	nobs	()	{ return info().nobs   ; }
+    auto&	info	 ()	{ return stageinfo[stage] ; }
+    auto&	data	 ()	{ return stagedata[stage] ; }
+    auto&	maxgen	 ()	{ return info().maxgen ; }
+    auto&	maxord	 ()	{ return info().maxord ; }
+    auto&	count	 ()	{ return info().count  ; }
+    numb	nobs	 ()	{ return stage ? obs.nobsF : obs.nobsG ; }
 
     string	stageabbrev (int, const string&) ; // File name info
     string	mk_filename (const string&&) ;	// Output file names
@@ -136,7 +150,7 @@ class Global					// Global data
     char	fg ()		const { return fg (this->stage) ; }
     } ;
 
-extern Global global ;					// Global information
+inline Global global ;					// Global information
 
 inline DataRec::DataRec (SysIndex& indx, RecordID id)	// DataRec constructor
     : indexref { indx.next() }

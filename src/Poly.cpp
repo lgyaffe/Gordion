@@ -1,5 +1,6 @@
 #include "Poly.h"
 #include "Gen.h"
+#include "Global.h"
 #include "Save.h"
 
 std::size_t Polyhash::operator()(const PolyIndx& t)	// PolyIndx hash function
@@ -65,7 +66,7 @@ ObsPoly& ObsPoly::negate ()				// Negate ObsPoly
 
 void ObsPoly::add (const PolyElem& poly)		// Add Poly
     {
-    if (obslist().neq (ObsList::obs)) abort ("Bad ObsPoly::add call") ;
+    if (obslist().neq (global.obs)) abort ("Bad ObsPoly::add call") ;
     for (auto pptr { poly.begin() } ; pptr < poly.end() ;)
 	{
 	PolyTerm t { PolyElem::nextterm (pptr) } ;
@@ -124,7 +125,7 @@ void PolyRec::add (const ObsPoly& obspoly)		// Add ObsPoly to PolyRec
 
 void PolyRec::add (PolyMap& map)	// Add PolyMap to PolyRec
     {
-    ObsPoly obspoly { ObsList::obs } ;
+    ObsPoly obspoly { global.obs } ;
     obspoly.push_map (map) ;			// copy to ObsPoly for sorting
     add (obspoly) ;
     }
@@ -169,13 +170,13 @@ ostream& operator<< (ostream& stream, const PolyElem& poly)		// Print Poly
     string	sep	{ "\n\t" } ;
     int		count	(0) ;
 
-    if (ObsList::swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
     for (auto pptr { poly.begin() } ; pptr < poly.end() ;)
 	{
 	if (count++) stream << sep ;
 	PolyTerm t { PolyElem::nextterm (pptr) } ;
-	t.print (stream, ObsList::obs) ;
+	t.print (stream, global.obs) ;
 	}
     return stream << (count ? "" : " 0") ;
     }

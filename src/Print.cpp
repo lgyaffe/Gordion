@@ -39,45 +39,45 @@ ostream& Print::coeffprt (ostream& stream, doub c)	// Pretty print coefficient
     return stream ;
     } ;
 
-void Print::print_obs (numb i, numb j)		// Print ObsList::obs range
+void Print::print_obs (numb i, numb j)		// Print global.obs range
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
-    if (i < ObsList::obs.size() && j < ObsList::obs.size())
+    if (i < global.obs.size() && j < global.obs.size())
 	{
-	for (int k(i) ; k <= j ; ++k) ObsList::obs.print (cout, k) ;
+	for (int k(i) ; k <= j ; ++k) global.obs.print (cout, k) ;
 	}
     else cout << "Invalid observable number " << i << " or " << j << "\n" ;
     }
 
 void Print::print_obs (numb i)			// Print indexed Obs
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
-    if (i < ObsList::obs.size())
+    if (i < global.obs.size())
 	{
-	ObsList::obs.print (cout, i) ;
+	global.obs.print (cout, i) ;
 	}
     else gripe (format("Invalid observable number {}", i)) ;
     }
 
 void Print::print_obs (const string& word)	// Print specified Obs
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
-    numb indx { ObsList::obs.find (Str (word)) } ;
-    if (indx < MAXNUM) ObsList::obs.print (cout, indx) ;
+    if (global.obs.swapped) Save::reload_obs() ;
+    numb indx { global.obs.find (Str (word)) } ;
+    if (indx < MAXNUM) global.obs.print (cout, indx) ;
     else gripe (format("Observable {} not known", word)) ;
     }
 
-void Print::print_obs ()			// Print ObsList::obs
+void Print::print_obs ()			// Print global.obs
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
-    ObsList::obs.print (cout) ;
+    if (global.obs.swapped) Save::reload_obs() ;
+    global.obs.print (cout) ;
     }
 
 void Print::print_obs_select (const string& word)	// Print order-selected Obs
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
     std::regex	patt3 { "\\((\\d+),(\\d+),([A-Z]+[a-z]+)\\)" } ;
     std::regex	patt2 { "\\((\\d+),(\\d+)\\)" } ;
@@ -92,12 +92,12 @@ void Print::print_obs_select (const string& word)	// Print order-selected Obs
 	if (ptr != Obs::obstypes.end())
 	    {
 	    ObsType type { ptr->second } ;
-	    for (int k(0) ; k < ObsList::obs.size() ; ++k)
+	    for (int k(0) ; k < global.obs.size() ; ++k)
 		{
-		const Obs& obs { ObsList::obs(k) } ;
+		const Obs& obs { global.obs(k) } ;
 		if (obs.corder == cord && obs.xorder == xord && obs.type == type)
 		    {
-		    ObsList::obs.print (cout, k) ;
+		    global.obs.print (cout, k) ;
 		    }
 		}
 	    }
@@ -107,12 +107,12 @@ void Print::print_obs_select (const string& word)	// Print order-selected Obs
 	{
 	int	cord { stoi (match[1].str()) } ;
 	int	xord { stoi (match[2].str()) } ;
-	for (int k(0) ; k < ObsList::obs.size() ; ++k)
+	for (int k(0) ; k < global.obs.size() ; ++k)
 	    {
-	    const Obs& obs { ObsList::obs(k) } ;
+	    const Obs& obs { global.obs(k) } ;
 	    if (obs.corder == cord && obs.xorder == xord)
 		{
-		ObsList::obs.print (cout, k) ;
+		global.obs.print (cout, k) ;
 		}
 	    }
 	}
@@ -123,12 +123,12 @@ void Print::print_obs_select (const string& word)	// Print order-selected Obs
 	if (ptr != Obs::obstypes.end())
 	    {
 	    ObsType type { ptr->second } ;
-	    for (int k(0) ; k < ObsList::obs.size() ; ++k)
+	    for (int k(0) ; k < global.obs.size() ; ++k)
 		{
-		const Obs& obs { ObsList::obs(k) } ;
+		const Obs& obs { global.obs(k) } ;
 		if (obs.type == type)
 		    {
-		    ObsList::obs.print (cout, k) ;
+		    global.obs.print (cout, k) ;
 		    }
 		}
 	    }
@@ -137,9 +137,9 @@ void Print::print_obs_select (const string& word)	// Print order-selected Obs
     else gripe (format ("Don't understand {}",word)) ;
     }
 
-void Print::print_base ()			// Print ObsList::base
+void Print::print_base ()			// Print global.base
     {
-    ObsList::base.print (cout) ;
+    global.base.print (cout) ;
     }
 
 void Print::print_op (numb i, numb j)		// Print OpList range
@@ -177,11 +177,11 @@ void Print::print_primary ()			// Print primary Op's
 
 void Print::print_fermiinit ()			// Print fermi init map
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
-    const auto& list { ObsList::obs } ;
+    const auto& list { global.obs } ;
     cout << "Fermion initializations:\n" ;
-    for (const auto& [indx_f,indx_g] : ObsList::fermiinit)
+    for (const auto& [indx_f,indx_g] : global.obs.fermiinit)
 	{
 	cout << "<" << list(indx_f) << "> = -<"
 		    << list(indx_g) << ">/2\n" ;
@@ -501,7 +501,7 @@ void Print::print_lagrange ()			// Print Lagrange bracket
 
 void Print::print_geodesic (numb i, uint j)	// Print specified geodesic equation
     {
-    const auto&	list  { ObsList::obs } ;
+    const auto&	list  { global.obs } ;
 
     if (list.swapped) Save::reload_obs() ;
     if (i < list.size())
@@ -528,8 +528,8 @@ void Print::print_geodesic (numb i, uint j)	// Print specified geodesic equation
 
 void Print::print_geodesic (numb i)		// Print geo eqns for specified Obs
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
-    if (i < ObsList::obs.size())
+    if (global.obs.swapped) Save::reload_obs() ;
+    if (i < global.obs.size())
 	{
 	auto [stage,bckt,pos]	{ global.bckt_pos (i) } ;
 	const auto& geos	{ global.data(stage).geos[bckt] } ;
@@ -541,11 +541,11 @@ void Print::print_geodesic (numb i)		// Print geo eqns for specified Obs
 
 void Print::print_geodesic ()			// Print all geodesic equations
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
     for (const auto& bckt : global.info().bckt)
 	{
-	const auto&	list	{ ObsList::obs } ;
+	const auto&	list	{ global.obs } ;
 	const auto&	stage	{ global.stage } ;
 	const auto&	bcktnum	{ bckt[0] } ;
 	const auto&	first	{ bckt[1] } ;
@@ -683,12 +683,12 @@ void Print::print_stats ()			// Print global statistics
     {
     try { cout.imbue (std::locale("en_US.UTF-8")) ; }
     catch (const std::exception&) {}
-    cout << "  Basic obs:            " << ObsList::base.size()      << "\n" ;
-    cout << "  Canonical obs:        " << ObsList::obs.size()       << "\n" ;
-    cout << "      # gauge obs:      " << global.info(0).nobs       << "\n" ;
-    cout << "      # fermi obs:      " << global.info(1).nobs       << "\n" ;
-    cout << "      gauge obs hash:   " << global.info(0).obshash    << "\n" ;
-    cout << "      fermi obs hash:   " << global.info(1).obshash    << "\n" ;
+    cout << "  Basic obs:            " << global.base.size()        << "\n" ;
+    cout << "  Canonical obs:        " << global.obs.size()         << "\n" ;
+    cout << "      # gauge obs:      " << global.obs.nobsG          << "\n" ;
+    cout << "      # fermi obs:      " << global.obs.nobsF          << "\n" ;
+    cout << "      gauge obs hash:   " << global.obs.hashG	    << "\n" ;
+    cout << "      fermi obs hash:   " << global.obs.hashF	    << "\n" ;
     cout << "  Operators:            " << global.info(0).ops.size()
     					+ global.info(1).ops.size() << "\n" ;
     cout << "      gauge:            " << global.info(0).ops.size() << "\n" ;
@@ -741,8 +741,6 @@ void Print::print_state ()			// Print global state variables
     cout << " Geo swap:           " << global.geoswap    << "\n" ;
     cout << " Obs swap:           " << global.obsswap    << "\n" ;
     cout << " Auto save:          " << global.autosave   << "\n" ;
-    cout << " Neg curvature ok:   " << global.oknegeig   << "\n" ;
-    cout << " Symmetrize curv:    " << global.symcurv    << "\n" ;
     cout << " Auto T-odd gens:    " << Gen::autoToddgens << "\n" ;
     cout << " Check obs:          " << Obs::check        << "\n" ;
     cout << " Dot obs:            " << Str::dots         << "\n" ;
@@ -750,6 +748,8 @@ void Print::print_state ()			// Print global state variables
     cout << " Max Newton iters:   " << numerics.maxnewt  << "\n" ;
     cout << " Max ODE steps:      " << numerics.maxode   << "\n" ;
     cout << " Minimize tolerance: " << numerics.mintol   << "\n" ;
+    cout << " Neg curvature ok:   " << numerics.oknegeig << "\n" ;
+    cout << " Symmetrize curv:    " << numerics.symcurv  << "\n" ;
     cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
     cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
@@ -784,9 +784,9 @@ void Print::print_bcktlist ()			// Print bucket list
 
 void Print::print_obsstats ()			// Print observable statistics
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
-    ObsStats		obsstats { ObsList::obs } ;
+    ObsStats		obsstats { global.obs } ;
     auto		maxc { obsstats.maxc } ;
     auto		maxx { obsstats.maxx } ;
     auto		maxl { obsstats.maxloop } ;

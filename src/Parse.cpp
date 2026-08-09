@@ -218,11 +218,11 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"approx") && parse_args (line,flag))
 	    {
-	    global.approx = ObsList::obs.approx = flag ;
+	    global.approx = global.obs.approx = flag ;
 	    }
 	else if (isword(word,"approx") && parse_args (line,i))
 	    {
-	    global.approx = ObsList::obs.approx = i ;
+	    global.approx = global.obs.approx = i ;
 	    }
 	else if (isword(word,"autoToddgens") && parse_args (line,flag))
 	    {
@@ -287,7 +287,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"oknegeig") && parse_args (line,flag))
 	    {
-	    global.oknegeig = flag ;
+	    numerics.oknegeig = flag ;
 	    }
 	else if (isword(word,"rkmethod") && parse_args (line,word))
 	    {
@@ -310,7 +310,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"symcurv") && parse_args (line,flag))
 	    {
-	    global.symcurv = flag ;
+	    numerics.symcurv = flag ;
 	    }
 	else if (isword(word,"timing") && parse_args (line,flag))
 	    {
@@ -334,12 +334,12 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"MMAobs") && line >> word)
 	    {
-	    if (ObsList::obs.swapped) Save::reload_obs() ;
+	    if (global.obs.swapped) Save::reload_obs() ;
 	    do  {
 		Obs	o	{ word } ;
 		int	sgn	{ o.canon() } ;
 		int	stage	{ o.is_fermi() } ;
-		numb	indx	{ ObsList::obs.find (o) } ;
+		numb	indx	{ global.obs.find (o) } ;
 		if (indx < MAXNUM)
 		    {
 		    global.info(stage).MMAfile.obs.emplace (indx,o) ;
@@ -392,33 +392,35 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
     int		i ;
     bool	valid { true } ;
     bool	isH   { !theory.euclid } ;
-    auto&	rep   { global.repnum } ;
+    const auto&	rep   { global.repnum } ;
     auto	nrep  { Rep::list.size() } ;
     string	word ;
     if (line >> word)
 	{
-	if (isword(word,"observable") && parse_args (line,i))
-	    {
-	    Build::mk_obs (i) ;
-	    }
-	else if (isword(word,"all") && parse_args (line,i))
+	if (isword(word,"observable") && parse_args (line,i))	Build::mk_obs (i) ;
+	else if (isword(word,"hamiltonian")&& eos(line) && isH)	Build::mk_ham  () ;
+	else if (isword(word,"freeenergy") && eos(line) &&!isH)	Build::mk_ham  () ;
+	else if (isword(word,"gradient")   && eos(line))	Build::mk_grad () ;
+	else if (isword(word,"geodesics")  && eos(line))	Build::mk_geos () ;
+	else if (isword(word,"equations")  && eos(line))	Build::mk_eqns (rep) ;
+	else if (isword(word,"curvature")  && eos(line))	Build::mk_curv (rep) ;
+	else if (isword(word,"lagrange")   && eos(line) && isH)	Build::mk_lagr (rep) ;
+	else if (isword(word,"all")	   && parse_args (line,i))
 	    {
 								Build::mk_obs  (i) ;
-								Build::mk_grad () ;
-	    for (int j(0) ; j < nrep ; ++j)			Build::mk_curv (j) ;
-	    if (isH) for (int j(0) ; j < nrep ; ++j)		Build::mk_lagr (j) ;
-								Build::mk_geos () ;
+	    for (int j(0) ; j < nrep ; ++j)			Build::mk_eqns (j) ;
 	    }
-	else if (isword(word,"geodesics") && eos(line))		Build::mk_geos () ;
-	else if (isword(word,"gradient")  && eos(line))		Build::mk_grad () ;
-	else if (isword(word,"curvature") && eos(line))		Build::mk_curv (rep) ;
-	else if (isword(word,"curvature") && parse_args(line,word))
+	else if (isword(word,"equations")  && parse_args(line,word))
+	    {
+	    if (!isword(word,"all"))				Build::mk_eqns (word) ;
+	    else for (int j(0) ; j < nrep ; ++j)		Build::mk_eqns (j) ;
+	    }
+	else if (isword(word,"curvature")  && parse_args(line,word))
 	    {
 	    if (!isword(word,"all"))				Build::mk_curv (word) ;
 	    else for (int j(0) ; j < nrep ; ++j)		Build::mk_curv (j) ;
 	    }
-	else if (isword(word,"lagrange") && eos(line) && isH)	Build::mk_lagr (rep) ;
-	else if (isword(word,"lagrange") && parse_args(line,word) && isH)
+	else if (isword(word,"lagrange")   && parse_args(line,word) && isH)
 	    {
 	    if (!isword(word,"all"))				Build::mk_lagr (word) ;
 	    else for (int j(0) ; j < nrep ; ++j)		Build::mk_lagr (j) ;
@@ -570,7 +572,7 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 	    switch (action)
 		{
 		case 1:				// Add generator
-		    if (ObsList::obs.swapped) Save::reload_obs() ;
+		    if (global.obs.swapped) Save::reload_obs() ;
 		    do  {
 			if (!(line >> coef))
 			    {
@@ -581,9 +583,9 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 			    {
 			    try {
 				Obs  o { word } ; o.canon() ;
-				numb indx { ObsList::obs.find (o) } ;
+				numb indx { global.obs.find (o) } ;
 				if (indx < MAXNUM && order < 0)
-				    order = ObsList::obs(indx).corder ;
+				    order = global.obs(indx).corder ;
 				}
 			    catch (const BadInput&) {}
 			    if (order >= 0)
@@ -756,7 +758,7 @@ bool Parse::parse_purge (istringstream& line)		// Parse "swap" commands
 
     if (line >> word && isword(word,"observables") && eos(line))
 	{
-	ObsList::ondisk() ;
+	global.obs.ondisk() ;
 	global.obsswap = true ;
 	}
     else valid = false ;
@@ -766,7 +768,7 @@ bool Parse::parse_purge (istringstream& line)		// Parse "swap" commands
 bool Parse::parse_test (istringstream& line)		// Parse "test" commands
     {
     numb	i(0) ;
-    auto	nobs  { ObsList::obs.size() } ;
+    auto	nobs  { global.obs.size() } ;
     bool	valid { true } ;
     string	word, word2 ;
 
@@ -774,7 +776,7 @@ bool Parse::parse_test (istringstream& line)		// Parse "test" commands
 	{
 	if (isword(word,"jacobi"))
 	    {
-	    if (ObsList::obs.swapped) Save::reload_obs() ;
+	    if (global.obs.swapped) Save::reload_obs() ;
 	    if (eos(line))
 		{
 		Test::jacobi () ;
@@ -803,7 +805,7 @@ bool Parse::parse_test (istringstream& line)		// Parse "test" commands
 
 bool Parse::parse_call (istringstream& line)		// Parse "call" commands
     {
-    if (ObsList::obs.swapped) Save::reload_obs() ;
+    if (global.obs.swapped) Save::reload_obs() ;
 
     string	word, word2 ;
     numb	i, j ;
@@ -819,7 +821,7 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    {
 	    Obs		obs	{ word } ;
 	    const char*	sgn	{ obs.canon() < 0 ? "-" : "" } ;
-	    bool	ok	{ obs.classify (ObsList::obs) } ;
+	    bool	ok	{ obs.classify (global.obs) } ;
 	    cout << word << " -> " << sgn << obs << "\n" ;
 	    if (ok) cout << "classified: " << obs
 			 << " xorder " << obs.xorder << "\n" ;
@@ -829,12 +831,12 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    {
 	    auto&	gens  { global.info().gens[global.repnum] } ;
 	    uint	ngens ( gens.size() ) ;
-	    numb	nobs  ( ObsList::obs.size() ) ;
+	    numb	nobs  ( global.obs.size() ) ;
 
 	    if (i < ngens && j < nobs)
 		{
-		const Obs&	obs	{ ObsList::obs(j) } ;
-		ObsPoly		poly	{ j, ObsList::obs } ;
+		const Obs&	obs	{ global.obs(j) } ;
+		ObsPoly		poly	{ j, global.obs } ;
 		ObsList		tmplist	{ "ParseTemp" } ;
 		PolyMap		ans	{ tmplist } ;
 
@@ -915,7 +917,7 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	else if (isword(word,"noEbound") && parse_args (line,word))
 	    {
 	    Obs		obs	{ word } ;
-	    short	xord	{ obs.noEbound(ObsList::obs) } ;
+	    short	xord	{ obs.noEbound (global.obs) } ;
 	    cout << obs << ": xorder >= " << xord << "\n" ;
 	    }
 	else return false ;
@@ -927,12 +929,15 @@ void Parse::parse_help ()					// Print command help
     {
     cout << "Usage: " << program << cmdargs << "\n" ;
     cout << R"(Commands:
-build		observables	<maxorder>
-		geodesics
+build		all		<maxorder>
+		observables	<maxorder>
+		equations	[all | <repname>]
+		hamiltonian (+)
+		freeenergy (++)
 		gradient
+		geodesics
 		curvature	[all | <repname>]
 		lagrange (+)	[all | <repname>]
-		all		<maxorder>
 
 call		canon		<obs>
 		compose		<symm1> <symm2>

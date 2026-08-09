@@ -355,8 +355,8 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
 			    {
 			    cout << "reduce " << depth
 				 << " [" <<  op << "," << *this << "] -> "
-				 << ObsList::obs(indx[0]) << " . "
-				 << ObsList::obs(indx[1]) << " xorder "
+				 << global.obs(indx[0]) << " . "
+				 << global.obs(indx[1]) << " xorder "
 				 << xorder << " -> " << xord << "\n" ;
 			    }
 			xorder = xord ;
@@ -389,8 +389,8 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
 			    {
 			    cout << "reduce " << depth
 				 << " [" <<  op << "," << *this << "] -> "
-				 << ObsList::obs(indx[0]) << " . "
-				 << ObsList::obs(indx[1]) << " xorder "
+				 << global.obs(indx[0]) << " . "
+				 << global.obs(indx[1]) << " xorder "
 				 << xorder << " -> " << xord << "\n" ;
 			    }
 			xorder = xord ;

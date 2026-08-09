@@ -223,6 +223,48 @@ ObsList::ObsList (const string s, bool can, bool clsfy)		// Construct ObsList
     store (Obs(Str(), ObsType::Loop, 0, 0)) ;
     }
 
+numb ObsList::find (const Str& s) const			// Find Obs, return index
+    {
+    auto	p1	{ map.find(s) } ;
+    auto&	inbox	{ global.obs.inbox } ;
+    if (p1 != map.end()) return p1->second ;
+    if (this == &global.obs && inbox.size())
+	{
+	auto p2 { inbox.find(s) } ;
+	if (p2 != inbox.end()) return MAXNUM-1 ;
+	}
+    return MAXNUM ;
+    }
+
+bool ObsList::frozen () const				// Frozen master list?
+    {
+    return this == &global.obs && global.obs.freeze ;
+    }
+
+bool ObsList::freezeif () const				// Freeze if master list
+    {
+    if (this == &global.obs)
+	{
+	bool prev { global.obs.freeze } ;
+	global.obs.freeze = true ;
+	return prev ;
+	}
+    return false ;
+    }
+
+void ObsList::refreezeif (bool prev) const		// Reset freeze if master list
+    {
+    if (this == &global.obs)
+	{
+	global.obs.freeze = prev ;
+	}
+    }
+
+void ObsList::retain (const Obs& o)			// Retain for later insertion
+    {
+    global.obs.inbox.insert (o) ;
+    }
+
 PolyTerm ObsList::is_known (Obs&& a) const			// Find in ObsList
     {
     int		sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
@@ -340,28 +382,20 @@ numb ObsList::store (const Obs& o)			// Store Obs in ObsList
     numb indx { iter->second } ;
     if (isnew)
 	{
+	if (size() == MAXNUM-1)
+	    gripe ("Max # Obs exceeded: recompile without NUM32!") ;
 	push_back (&(iter->first)) ;
-	if (!neq (ObsList::obs))
-	    {
-	    auto& info { global.info(o.is_fermi()) } ;
-	    hasher (info.obshash, o) ;
-	    if (info.nobs == MAXNUM-1)
-		gripe ("Max # Obs exceeded: recompile without NUM32!") ;
-	    ++info.nobs ;
-	    }
+	int stage { o.is_fermi() } ;
+	hasher (hash(stage), o) ;
+	++nobs (stage) ;
 	}
     return indx ;
     }
 
 void ObsList::clear ()					// Empty list
     {
-    if (!neq (ObsList::obs))
-	{
-	global.info(0).nobs = 0 ;
-	global.info(1).nobs = 0 ;
-	global.info(0).obshash = 0 ;
-	global.info(1).obshash = 0 ;
-	}
+    nobsF = nobsG = 0 ;
+    hashF = hashF = 0 ;
     Obsmap().swap (map) ;
     vector<const Obs*>().swap (*this) ;
     store (Obs(Str(), ObsType::Loop, 0, 0)) ;
@@ -370,66 +404,55 @@ void ObsList::clear ()					// Empty list
 void ObsList::purge (numb limit)			// Purge entries
     {
     resize (limit) ;
-    if (!neq (ObsList::obs))
-	{
-	auto& nobsG { global.info(0).nobs } ;
-	auto& nobsF { global.info(1).nobs } ;
-	nobsF -= std::erase_if (map, [&](const auto& p)
-	    { return p.second >= limit && p.second >= nobsG; }) ;
-	nobsG -= std::erase_if (map, [&](const auto& p)
-	    { return p.second >= limit && p.second <  nobsG; }) ;
-	if (nobsG + nobsF != size())
-	    abort ("purge: Inconsistent ObsList size") ;
-	rehash () ;
-	}
+    nobsF -= std::erase_if (map, [&](const auto& p)
+	{ return p.second >= limit && p.second >= nobsG; }) ;
+    nobsG -= std::erase_if (map, [&](const auto& p)
+	{ return p.second >= limit && p.second <  nobsG; }) ;
+    if (nobsG + nobsF != size())
+	abort ("purge: Inconsistent ObsList size") ;
+    rehash () ;
     }
 
-void ObsList::rehash () const			// Recalculate list hashes
+void ObsList::rehash ()			// Recalculate list hashes
     {
-    global.info(0).obshash = 0 ;
-    global.info(1).obshash = 0 ;
+    hashF = hashG = 0 ;
     for (const auto& ptr : *this)
 	{
-	hasher (global.info(ptr->is_fermi()).obshash, *ptr) ;
+	hasher (hash(ptr->is_fermi()), *ptr) ;
 	}
     }
 
-void ObsList::hasher (ulong& hash, const Obs& o) const	// List hasher
+void ObsList::hasher (ulong& hash, const Obs& o)	// List hasher
     {
     ulong x { std::hash<string>{}(o) } ;
     hash ^= x + 0x9e3779b9 + (hash << 6) + (hash >> 2) ;
     }
 
-void ObsList::ondisk ()			// Leave ObsList::obs on disk
+void ObsList::ondisk ()			// Leave global.obs on disk
     {
-    auto	stage	{ global.stage } ;
-    const auto&	infoG	{ global.info(0) } ;
-    const auto&	infoF	{ global.info(1) } ;
-    auto&	list	{ ObsList::obs } ;
-    auto	nobsG	{ infoG.nobs } ;
-    auto	nobsF	{ infoF.nobs } ;
+    auto stage	{ global.stage } ;
 
-    if (list.size() > 1) cout << "Swapping master Obs list to disk\n" ;
+    if (size() > 1) cout << "Swapping " << name << " Obs list to disk\n" ;
     if (nobsG > 1)
 	{
-	bool		is_open	{ infoG.sysfile.stream.is_open() } ;
+	bool		is_open	{ global.info(0).sysfile.stream.is_open() } ;
 	const auto&	obs	{ global.data(0).obs } ;
-	const auto&	nobs	{ obs.entry().items() } ;
+	const auto&	obsnum	{ obs.entry().items() } ;
 	global.stage = Global::Gauge ;
-	if (!is_open || nobsG != nobs) Save::save_sys () ;
+	if (!is_open || nobsG != obsnum) Save::save_sys () ;
 	global.stage = stage ;
 	}
     if (nobsF > 0)
 	{
-	bool		is_open	{ infoF.sysfile.stream.is_open() } ;
+	bool		is_open	{ global.info(1).sysfile.stream.is_open() } ;
 	const auto&	obs	{ global.data(1).obs } ;
-	const auto&	nobs	{ obs.entry().items() } ;
+	const auto&	obsnum	{ obs.entry().items() } ;
 	global.stage = Global::Fermi ;
-	if (!is_open || nobsF != nobs) Save::save_sys () ;
+	if (!is_open || nobsF != obsnum) Save::save_sys () ;
 	global.stage = stage ;
 	}
-    list.clear() ;
-    ObsList::swapped = true ;
+    clear() ;
+    global.obs.swapped = true ;
     }
 
 void ObsList::obsinit (int stage)		// Load basic Obs
@@ -438,7 +461,7 @@ void ObsList::obsinit (int stage)		// Load basic Obs
     char link[4] { 'x', 'y', 'z', 'w' } ;
     char Link[4] { 'X', 'Y', 'Z', 'W' } ;
 
-    freeze = false ;
+    global.obs.freeze = false ;
     if (stage == 0)
 	{
 	if (iseuc)				// gauge entropy
@@ -476,7 +499,7 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 		catalog (Obs(Polyakov,ObsType::Loop,2,2)) ;
 		}
 	    }
-	if (!neq (ObsList::obs)) global.info(0).maxord = 2 ;
+	if (!neq (global.obs)) global.info(0).maxord = 2 ;
 	}
     else if (theory.nf)
 	{
@@ -510,28 +533,27 @@ void ObsList::obsinit (int stage)		// Load basic Obs
 		catalog (Obs(FXf,ObsType::Fermion,1,1)) ;
 		}
 	    }
-	if (!neq (ObsList::obs))
+	if (!neq (global.obs))
 	    {
 	    global.info(1).maxord = 1 ;
 	    do_fermiinit() ;
 	    }
 	}
-    freeze = true ;
+    global.obs.freeze = true ;
 
-    if (!neq (ObsList::obs) && global.info(0).nobs + global.info(1).nobs != size())
+    if (nobsG + nobsF != size())
 	abort (format("Inconsistent ObsList size: {} + {} != {}",
-	    global.info(0).nobs, global.info(1).nobs, size())) ;
+	    nobsG, nobsF, size())) ;
     }
 
 int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
     {
     const auto&	blab	{ Blab::level(Blab::OBS) } ;
-    long	beg	{ global.info(0).nobs } ;
     uint	initfail (0) ;
     if (blab > 3) cout << "do_fermiinit start\n" << flush ;
 
-    fermiinit.clear () ;
-    for (long i(beg) ; i < size() ; ++i)
+    global.obs.fermiinit.clear () ;
+    for (numb i(nobsG) ; i < size() ; ++i)
 	{
 	const Obs& a { (*this)(i) } ;
 	if (!a.is_Fermion() || !a.isclosed()) continue ;
@@ -545,15 +567,16 @@ int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
 	    ++initfail ;
 	    if (blab > 1) cout << "Warning: Cannot initialize " << a << "\n" ;
 	    }
-	else fermiinit.emplace_back (i, term[0]) ;
+	else global.obs.fermiinit.emplace_back (i, term[0]) ;
 	}
     return initfail ;
     }
 
 ostream& ObsList::print (ostream& stream, numb indx) const	// Print indexed Obs
     {
-    bool	addvev	 { !neq(ObsList::obs) } ;
+    bool	addvev	 { !neq(global.obs) } ;
     auto	prevprec { stream.precision(12) } ;
+
     const Obs&	obs	 { *at(indx) } ;
     stream << name << " Obs #" << indx << ": " << std::setprecision(12) ;
     stream << obs ;
@@ -578,7 +601,7 @@ ostream& operator<< (ostream& stream, const Obs& obs)		// Print Obs -> stream
 
 ostream& ObsList::print (ostream& stream) const			// Print ObsList -> stream
     {
-    bool	addvev	 { !neq(ObsList::obs) } ;
+    bool	addvev	 { !neq(global.obs) } ;
     auto	prevprec { stream.precision(12) } ;
     stream << name << " observables:\n" << std::setprecision(12) ;
     for (int indx(0) ; indx < size() ; ++indx)

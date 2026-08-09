@@ -62,16 +62,16 @@ class Coeff : public vector<Factor>
 	}
     } ;
 
-class AdjTerm                           // ObsPoly times adjustable coupling
+class AdjTerm			// ObsPoly times adjustable coupling
     {
     public:
-    Coeff	coeff ;				// Adjustable coefficient
-    bool	imag  ;				// Imaginary coefficient?
-    ObsPoly	poly  {ObsList::base} ;		// Observable polynomial
-    ObsPoly	cpoly {ObsList::obs} ;		// Canonicalized form
+    Coeff	coeff ;			// Adjustable coefficient
+    bool	imag  ;			// Imaginary coefficient?
+    ObsPoly	poly  ;			// Observable polynomial
+    ObsPoly	cpoly ;			// Canonicalized form
 
-    AdjTerm (Coeff& c, ObsPoly& p, bool img = false)
-	: coeff(c), poly(p), imag(img) {}
+    AdjTerm () ;				
+    AdjTerm (Coeff&, ObsPoly&, bool = false) ;
 
     friend ostream& operator<< (ostream&, const vector<AdjTerm>&) ;
     } ;

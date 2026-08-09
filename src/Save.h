@@ -59,9 +59,9 @@ namespace Save
     void write_stat	() ;		// Save Statistics
     void rewrite_stat	() ;		// Save Statistics
 
-    ulong vevsize	() ;		// Vev record size
-    ulong coupsize	() ;		// Coupling record size
-    ulong datasetsize	() ;		// Coup + Vev record size
+    long vevsize	() ;		// Vev record size
+    long coupsize	() ;		// Coupling record size
+    long datasetsize	() ;		// Coup + Vev record size
 
     static inline struct FileHdr	// Save file header
 	{

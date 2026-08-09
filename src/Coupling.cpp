@@ -1,7 +1,19 @@
 #include "Coupling.h"
 #include "Global.h"
 
-uint Coupling::ncoup ()		// # couplings for stage
+AdjTerm::AdjTerm ()				// Default constructor
+    : poly { global.base }, cpoly { global.obs }
+    {}
+
+AdjTerm::AdjTerm (Coeff& c, ObsPoly& p, bool img)	// Construct
+    :
+    coeff (c),
+    imag  (img),
+    poly  (p),
+    cpoly { global.obs }
+    {}
+
+uint Coupling::ncoup ()				// # couplings for stage
     {
     return ncoup (global.stage) ;
     }
@@ -11,7 +23,7 @@ uint Coupling::ncoup (int stage)
     return stage ? list.size() : ncoupG ;
     }
 
-string Coupling::values ()	// Make comma-separated coupling values
+string Coupling::values ()	// comma-separated coupling values
     {
     std::stringstream buf ;
     string sep {""} ;

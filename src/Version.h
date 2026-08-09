@@ -5,7 +5,7 @@
 class Version					// Program version
     {
     static constexpr uchar	majornum = 2 ;
-    static constexpr uchar	minornum = 1 ;
+    static constexpr uchar	minornum = 2 ;
     static constexpr bool	r_is_f { sizeof (real) == sizeof (float) } ;
     static constexpr ushort	mkversion { (majornum << 4) | (minornum << 1) | r_is_f } ;
 

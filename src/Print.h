@@ -4,8 +4,8 @@
 
 namespace Print
     {
-    inline bool is_one (doub c) { return std::abs(c - 1) < 1.e-15 ; }
-    inline bool is_int (doub c) { return std::abs(c - std::round(c)) < 1.e-15 ; }
+    inline bool is_one (doub c) { return std::abs(c - 1) < 1.e-13 ; }
+    inline bool is_int (doub c) { return std::abs(c - std::round(c)) < 1.e-13 ; }
 
     ostream& coeffprt (ostream&, doub) ;
 

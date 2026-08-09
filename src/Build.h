@@ -8,21 +8,24 @@ class PolyMap ;
 
 namespace Build
     {
-    void mk_obs		(int) ;
     void mk_ham		() ;
     void mk_grad	() ;
-    void mk_curv	(uint) ;
-    void mk_lagr	(uint) ;
-    void mk_curv	(string) ;
-    void mk_lagr	(string) ;
     void mk_geos	() ;
     void mk_loops	() ;
     void mk_Eloops	() ;
     void mk_EEloops	() ;
     void mk_fermions	() ;
     void mk_Efermions	() ;
-    void do_geostats	() ;
 
+    void mk_obs		(uint) ;
+    void mk_eqns	(uint) ;
+    void mk_curv	(uint) ;
+    void mk_lagr	(uint) ;
+    void mk_eqns	(string) ;
+    void mk_curv	(string) ;
+    void mk_lagr	(string) ;
+
+    void do_geostats	  () ;
     void do_geo_bckt	  (const numb3&) ;
     void do_Loop_bckt	  (const numb3&) ;
     void do_Eloop_bckt	  (const numb3&) ;

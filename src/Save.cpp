@@ -68,7 +68,7 @@ void Save::save_sys ()					// Save sys info
 void Save::save_vev ()					// Save vev data
     {
     const auto&	blab		{ Blab::level(Blab::SAVE) } ;
-    const auto&	nvev		{ numerics.nvev() } ;
+    const auto&	nvev		{ global.nobs() } ;
     const auto& savedir		{ global.savedir } ;
     auto&	vevpath		{ global.info().vevfile.path } ;
     auto&	vevstream	{ global.info().vevfile.stream } ;
@@ -120,12 +120,10 @@ void Save::save_vev ()					// Save vev data
 
 void Save::write_header (fstream& stream, uint ncoup, uint nvev) // Write file header
     {
-    auto hashG { ncoup || nvev ? numerics.hashG : global.info(0).obshash } ;
-    auto hashF { ncoup || nvev ? numerics.hashF : global.info(1).obshash } ;
     filehdr.version	= global.version ;
     filehdr.name	= global.stage ? theory.name : theory.parent() ;
-    filehdr.hashF	= global.stage ? hashF : 0 ;
-    filehdr.hashG	= hashG ;
+    filehdr.hashF	= global.stage ? global.obs.hashF : 0 ;
+    filehdr.hashG	= global.obs.hashG ;
     filehdr.ncoup	= ncoup ;
     filehdr.nvev	= nvev ;
     stream.write (cast_to<char*>(&filehdr), sizeof filehdr) ;
@@ -172,10 +170,10 @@ void Save::write_op ()						// Write Op record
 void Save::write_obs ()					// Write Obs record
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
-    const auto&	nobs	{ global.info().nobs } ;
+    const auto&	nobs	{ global.nobs() } ;
     auto&	record	{ global.data().obs  } ;
     auto&	stream	{ global.info().sysfile.stream } ;
-    long	start	{ global.stage ? global.info(0).nobs : 0 } ;
+    long	start	{ global.stage ? global.obs.nobsG : 0 } ;
 
     if (global.obs.swapped) reload_obs() ;
     if (record.entry().id == RecordID::Obs) record.clear() ;
@@ -440,7 +438,7 @@ void Save::write_coup ()				// Write Coupling's
 void Save::write_vev ()					// Write Vev's
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
-    long	start	{ global.stage ? numerics.nvevG : 0 } ;
+    long	start	{ global.stage ? global.obs.nobsG : 0 } ;
     auto&	stream	{ global.info().vevfile.stream } ;
     auto	ptr	{ numerics.vev.memptr() + start } ;
 
@@ -514,14 +512,13 @@ void Save::load_vev (int set)			// Load vev data set
 
 int Save::read_header (fstream& stream, const string& path) // Read save file header
     {
-    const auto& ncoupG	 { Coupling::ncoup(0) } ;
-    const auto& ncoupF	 { Coupling::ncoup(1) } ;
-    const auto& nvevG	 { numerics.nvevG } ;
-    const auto& nvevF	 { numerics.nvevF } ;
-    const auto& vevhashG { numerics.hashG } ;
-    const auto& vevhashF { numerics.hashF } ;
-    const auto& obshashG { global.info(0).obshash } ;
-    auto&	hdr	 { filehdr } ;
+    const auto& ncoupG	{ Coupling::ncoup(0) } ;
+    const auto& ncoupF	{ Coupling::ncoup(1) } ;
+    const auto& nvevG	{ global.obs.nobsG } ;
+    const auto& nvevF	{ global.obs.nobsF } ;
+    const auto& hashG	{ global.obs.hashG } ;
+    const auto& hashF	{ global.obs.hashF } ;
+    auto&	hdr	{ filehdr } ;
 
     stream.read (cast_to<char*>(&hdr), sizeof hdr) ;
     if (stream.fail()) ioerror ("read_header: I/O error!") ;
@@ -552,22 +549,22 @@ int Save::read_header (fstream& stream, const string& path) // Read save file he
 	    gripe (format (numcup, path, hdr.ncoup, ncoupG)) ;
 	if (hdr.nvev  != nvevG)
 	    gripe (format (numobs, path, hdr.nvev,  nvevG))  ;
-	if (hdr.hashG != vevhashG)
-	    gripe (format (badset, path, hdr.hashG, vevhashG)) ;
+	if (hdr.hashG != hashG)
+	    gripe (format (badset, path, hdr.hashG, hashG)) ;
 	return 0 ;						// YM vev file
 	}
     else if (theory.name == hdr.name && theory.nf)		// QCD save file
 	{
-	if (hdr.hashG != obshashG)
-	    gripe (format (badset, path, hdr.hashG, obshashG));
+	if (hdr.hashG != hashG)
+	    gripe (format (badset, path, hdr.hashG, hashG));
 	if (hdr.ncoup == 0 && hdr.nvev == 0)
 	    return 1 ;						// QCD sys file
 	if (hdr.ncoup != ncoupF)
 	    gripe (format (numcup, path, hdr.ncoup, ncoupF));
 	if (hdr.nvev  != nvevF)
 	    gripe (format (numobs, path, hdr.nvev,  nvevF)) ;
-	if (hdr.hashF != vevhashF)
-	    gripe (format (badset, path, hdr.hashF, vevhashF));
+	if (hdr.hashF != hashF)
+	    gripe (format (badset, path, hdr.hashF, hashF));
 	return 1 ;						// QCD vev file
 	}
     else if (theory.name != theory.parent())
@@ -634,7 +631,7 @@ void Save::read_obs ()					// Read Obs record
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	stream	{ global.info().sysfile.stream } ;
     auto&	record	{ global.data().obs } ;
-    auto&	obslist	{ global.obs } ;
+    ObsList&	obslist	{ global.obs } ;
     auto	nobs	{ record.entry().nelem } ;
 
     if (record.entry().id != RecordID::Obs)
@@ -645,7 +642,7 @@ void Save::read_obs ()					// Read Obs record
     record.readrec (stream) ;
     if (stream.fail()) ioerror ("read_obs: I/O error!") ;
 
-    long	start	{ global.stage ? global.info(0).nobs : 0 } ;
+    long	start	{ global.stage ? global.obs.nobsG : 0 } ;
     long	indx    { start } ;
     Element*	elemptr	{ record.data() } ;
     Element*	recend	{ elemptr + record.size() } ;
@@ -669,21 +666,27 @@ void Save::read_obs ()					// Read Obs record
 
 	elemptr += len ;
 	}
+    global.obs.nobsG = obslist.nobsG ;
+    global.obs.nobsF = obslist.nobsF ;
+    global.obs.hashG = obslist.hashG ;
+    global.obs.hashF = obslist.hashF ;
+
     record.free() ;
     if (indx - start != nobs)
 	abort ("read_obs: Inconsistent save record!") ;
-    if (global.info(0).nobs + global.info(1).nobs != obslist.size())
+    if (global.obs.nobsG + global.obs.nobsF != obslist.size())
 	abort ("read_obs: Inconsistent ObsList size") ;
+    if (global.obs.hashG != filehdr.hashG)
+	abort ("read_obs: Inconsistent gauge Obs hash") ;
+    if (global.obs.hashF != filehdr.hashF)
+	abort ("read_obs: Inconsistent fermi Obs hash") ;
 
     if (blab > 1) cout << "Loaded Obs\n" << flush ;
     global.mk_bcktlist () ;
-    if (global.stage) global.obs.do_fermiinit() ;
     Canon::cache.reload () ;
-    numerics.hashG = global.info(0).obshash = filehdr.hashG ;
-    numerics.hashF = global.info(1).obshash = filehdr.hashF ;
-    numerics.nvevG = global.info(0).nobs ;
-    numerics.nvevF = global.info(1).nobs ;
-    numerics.initialize () ;
+    global.info().validvev = false ;
+    if (!global.stage)	global.info(1).validvev = false ;
+    else		global.obs.do_fermiinit() ;
     }
 
 void Save::reload_obs ()			// Reload Obs record
@@ -702,7 +705,7 @@ void Save::reload_obs ()			// Reload Obs record
 	    ioerror ("reload_obs: I/O error!") ;
 
 	cout << "Reloading Obs: " << flush ;
-	long		start	{ stage ? global.info(0).nobs : 0 } ;
+	long		start	{ stage ? global.obs.nobsG : 0 } ;
 	long		indx    { start } ;
 	long		nobs	( record.entry().nelem ) ;
 	Element*	elemptr	{ record.data() } ;
@@ -727,7 +730,7 @@ void Save::reload_obs ()			// Reload Obs record
 	if (indx - start != nobs)
 	    abort ("reload_obs: Inconsistent save record!") ;
 	}
-    if (global.info(0).nobs + global.info(1).nobs != obslist.size())
+    if (global.obs.nobsG + global.obs.nobsF != obslist.size())
 	abort ("reload_obs: Inconsistent ObsList size") ;
 
     global.obs.swapped = false ;
@@ -961,17 +964,17 @@ void Save::read_stat ()					// Read Stat record
     if (blab > 1) cout << "Loaded Stat\n" << flush ;
     }
 
-ulong Save::vevsize ()				// Vev record bytes
+long Save::vevsize ()				// Vev record bytes
     {
-    return numerics.nvev() * sizeof (real) ;
+    return global.nobs() * sizeof (real) ;
     }
 
-ulong Save::coupsize ()				// Coupling record bytes
+long Save::coupsize ()				// Coupling record bytes
     {
     return Coupling::ncoup() * sizeof (Coupling) ;
     }
 
-ulong Save::datasetsize ()			// coup + vev record size
+long Save::datasetsize ()			// coup + vev record size
     {
     return coupsize() + vevsize() ;
     }
@@ -981,7 +984,7 @@ Couplings* Save::read_coup (int set, bool update)	// Read Coupling set
     static Couplings	list ;
     const auto&		blab	{ Blab::level(Blab::SAVE) } ;
     auto&		stream	{ global.info().vevfile.stream } ;
-    ulong		offset	{ set * datasetsize() } ;
+    long		offset	{ set * datasetsize() } ;
 
     if (set < 0) stream.seekg (offset, ios_base::end) ;
     else	 stream.seekg (offset + sizeof filehdr, ios_base::beg) ;
@@ -1001,7 +1004,7 @@ Couplings* Save::read_coup (int set, bool update)	// Read Coupling set
 	    if (blab > 1) cout << "Loaded Coup\n" << flush ;
 	    return &Coupling::list ;
 	    }
-	else gripe ("Incompatible coupling sets in specified data set") ;
+	else gripe ("Incompatible coupling values in specified data set") ;
 	}
     return &list ;
     }
@@ -1009,9 +1012,13 @@ Couplings* Save::read_coup (int set, bool update)	// Read Coupling set
 void Save::read_vev (int set)				// Read Vev data
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    const auto&	nobs	{ global.nobs() } ;
+
+    if (numerics.vev.n_elem != nobs) numerics.vev.set_size (nobs) ;
+
     auto&	stream	{ global.info().vevfile.stream } ;
-    long	start	{ global.stage ? numerics.nvevG : 0 } ;
-    ulong	offset	{ coupsize() + set * datasetsize() } ;
+    long	start	{ global.stage ? global.obs.nobsG : 0 } ;
+    long	offset	{ coupsize() + set * datasetsize() } ;
     auto	ptr	{ numerics.vev.memptr() + start } ;
 
     if (set < 0) stream.seekg (offset, ios_base::end) ;

@@ -32,10 +32,6 @@ class Numerics
     Uvec	Tevens ;		// T-even active generators
     Uvec	Todds ;			// T-odd active generators
     ushort	lastrep ;		// Symmetry representation
-    numb	nvevG ;			// # gauge vev's
-    numb	nvevF ;			// # fermion vev's
-    ulong	hashG ;			// gauge Obs hash
-    ulong	hashF ;			// fermi Obs hash
 
     Rvec	vev_tmp ;		// Temporary vev vector
     const real*	vev_buf ;		// Pointer to vev buffer data
@@ -47,6 +43,8 @@ class Numerics
     doub	odetol  = dflttol ;	// ODE integration tolerance
     uint	maxode	= Ode::dfltmax ;// Max ODE integration steps
     uint	maxnewt = 500 ;		// Max Newton iterations
+    bool	oknegeig { false } ;	// Negative curvature OK?
+    bool	symcurv  { true } ;	// Symmetrize curvature?
     RKdef	rk ;			// RK method
 
     struct
@@ -68,7 +66,6 @@ class Numerics
     const Uvec&	eval_inuse	(uint,bool=false) ;	// Active generator list
     const Cvec&	eval_spectra	(uint,bool=false) ;	// Evaluate spectrum
     const Cvec&	eval_spectra	(string,bool=false) ;	// Evaluate spectrum
-    void	init		(int) ;			// Initialize
     void	initialize	(int = global.stage) ;	// Initialize & reset
     void	status_rpt	(uint,uint) ;		// Report status
     bool	check_loops	() ;			// Loop vevs < 1?
@@ -97,12 +94,6 @@ class Numerics
 	for (; indx < 0 ; indx = (ptr++)->index) z *= v[-indx] ;
 	return z * v[indx] ;
 	}
-
-    numb nvev (int stage = global.stage)
-	{ return stage ? nvevF : nvevG ; }			// # vev's
-
-    numb obshash (int stage = global.stage)
-	{ return stage ? hashF : hashG ; }			// Obs hash
 
     inline static Status status ;				// Status info
 

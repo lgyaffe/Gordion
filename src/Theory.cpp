@@ -17,8 +17,8 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
     Coeff	unitcoeff {} ;
     char8	lambda	  {"lambda"} ;
     int		lamindx   ( Coupling::indx (lambda) ) ;
-    PolyMap	map	  { ObsList::base } ;
-    ObsList&	baslist   { ObsList::base } ;
+    PolyMap	map	  { global.base } ;
+    ObsList&	baslist   { global.base } ;
     symb	link[4]   { 'x', 'y', 'z', 'w' } ;
     symb	Link[4]   { 'X', 'Y', 'Z', 'W' } ;
     symb	ferm[4]   { 'f', 'g', 'h', 'i' } ;

@@ -4,11 +4,6 @@
 #include "Rep.h"
 #include "Blab.h"
 
-Global	global ;				// Global information
-ObsList ObsList::obs  {"Canonical",true,true} ;	// Canonical Obs
-ObsList ObsList::base {"Basic"} ;		// Basic defined Obs
-ObsList ObsList::redu {"Reduction"} ;		// Gen reduction Obs
-
 void initialize ()
     {
     Blab::resetblab	() ;
@@ -20,7 +15,7 @@ void initialize ()
 
     for (int stage(0) ; stage < 2 - !theory.nf ; ++stage)
 	{
-	ObsList::base.obsinit	(stage) ;
+	global.base.obsinit	(stage) ;
 	Theory::theorydefn	(stage) ;
 	Gen::geninit		(stage) ;
 	}

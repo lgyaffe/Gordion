@@ -40,8 +40,8 @@ void Test::irreps ()					// Test irrep projector validity
 void Test::jacobi (const string& w1, const string& w2, numb obsindx) // Test specific Jacobi identity
     {
     ObsList	list	{ "JacobiTemp" } ;
-    ObsPoly	poly	{ obsindx, ObsList::obs } ;
-    Obs		obs	{ ObsList::obs(obsindx) } ;
+    ObsPoly	poly	{ obsindx, global.obs } ;
+    Obs		obs	{ global.obs(obsindx) } ;
     PolyMap	ans	{ list } ;
     PolyMap	tmp1	{ list } ;
     PolyMap	tmp2	{ list } ;
@@ -71,7 +71,7 @@ void Test::jacobi (numb obsindx)				// Test Jacobi identities on Obs
     uint	ngens	( gens.size() ) ;
     uint	opnum	( oplist.size() ) ;
     ObsList	list	{ "JacobiTemp" } ;
-    Obs		obs	{ ObsList::obs(obsindx) } ;
+    Obs		obs	{ global.obs(obsindx) } ;
 
     for (int i(0) ; i < ngens ; ++i)
 	{
