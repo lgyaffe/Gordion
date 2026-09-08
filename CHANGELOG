@@ -210,3 +210,17 @@ August 8, 2026:
 	read/write_vev to use global.obs info.  read_obs sets
 	global.info.validvev, but no longer calls numerics.initialize.
 
+September 8, 2026:
+    Version 2.3 upload.
+    Build.cpp: Added tests for Gen initialization to mk_grad, mk_curv, mk_lagr.
+	Added code to support Obs additions during mk_grad, mk_curv, mk_lagr.
+    Gen.cpp: Changed autoToddgens back to autoEgens.
+	Make adding flipped-T fermion generators automatic in add_gen.
+    Global.h: Added global.xtraobs.
+	Changed autoToddgens back to autoEgens.
+    Init.cpp: Added call to OpList::opinit, removed call to Gen::geninit.
+    Op.cpp: Added Oplist::opinit to initialize Op's at startup.
+    Poly.cpp: Changed add_gen to add unknown Obs if global.xtraobs set true.
+    Save.{h,cpp}: Changed FileHdr to make nvev ulong.  BREAKS OLD SYS FILES.
+	Added maxobs to FileHdr, removed inferring maxobs in read_obs.
+
