@@ -13,11 +13,11 @@ void initialize ()
     Canon::looptblinit	() ;
     Canon::spectblinit	() ;
 
-    for (int stage(0) ; stage < 2 - !theory.nf ; ++stage)
+    for (uint stage(0) ; stage < 2 - !theory.nf ; ++stage)
 	{
 	global.base.obsinit	(stage) ;
 	Theory::theorydefn	(stage) ;
-	Gen::geninit		(stage) ;
+	OpList::opinit		(stage) ;
 	}
     global.stage = Global::Gauge ;
     numerics.rk  = RKdef() ;

@@ -9,7 +9,7 @@ namespace Symb					// Symbol namespace
     // Symbol code bits:
     //   0,1:   link direction or fermion type & flavor
     //   2:	reflection (gauge) or conjugation (fermion) flag
-    //   3,4,5: symbol type (link, E, Elink, EE, EElink, fermion)
+    //   3,4,5: symbol type (l, E, El, EE, EEl, f)
     //   3:	zero step flag
     // masks:
     //   0x03:  link axis
@@ -162,7 +162,6 @@ namespace Symb					// Symbol namespace
 	return tmp ;
 	}
     static const auto symblist { countup() } ;		// Symbol list
-
     } ;
 
 using namespace Symb ;

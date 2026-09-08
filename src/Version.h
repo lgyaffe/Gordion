@@ -2,16 +2,16 @@
 #define VERSION_H
 #include "Gordion.h"
 
-class Version					// Program version
+class Version				// Program version
     {
     static constexpr uchar	majornum = 2 ;
-    static constexpr uchar	minornum = 2 ;
+    static constexpr uchar	minornum = 3 ;
     static constexpr bool	r_is_f { sizeof (real) == sizeof (float) } ;
     static constexpr ushort	mkversion { (majornum << 4) | (minornum << 1) | r_is_f } ;
 
     ushort	version = mkversion ;
 
-    ushort	rsize () const { return sizeof (real) ; } ;
+    ushort	rsize () const { return r_is_f ? sizeof (float) : sizeof (double) ; } ;
     ushort	major () const { return (version >> 4) ; }
     ushort	minor () const { return (version >> 1) & 7 ; }
     bool	arith () const { return (version &  1) ; }
@@ -25,7 +25,7 @@ class Version					// Program version
 	stream << v.major() << "." << v.minor() << "." << 8 * v.rsize() ;
 	return stream ;
 	}
-    string print () const
+    string print() const
 	{
 	std::stringstream buf ;
 	buf << *this ;

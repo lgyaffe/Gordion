@@ -13,13 +13,12 @@ void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
     {
     auto&	coupling { Coupling::list[indx] } ;
     doub&	value    { coupling.value } ;
-    int  	stage    { coupling.stage } ; 
+    int		stage	 { coupling.stage } ;
     auto	prevprec { cout.precision(12) } ;
 
     if (!inc) gripe ("Must have non-zero coupling increment!") ;
     if ((v1 - v0)/inc < 0) inc *= -1 ;
     if (stage != global.stage) global.stageinit (stage) ;
-    if (!global.info().validvev) initialize () ;
 
     cout << std::scientific ;
     for (value = v0 ;;)
@@ -44,14 +43,13 @@ void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
     cout << std::setprecision (prevprec) << std::defaultfloat ;
     }
 
-void Numerics::do_minimize ()			// Do minimization
+void Numerics::do_minimize ()				// Do minimization
     {
     int  steps ;
     doub tol   (0) ;
     uint iters (0) ;
     uint total (0) ;
 
-    if (!global.info().validvev) initialize () ;
     ++stats.tries ;
     status.reset() ;
 
@@ -79,16 +77,15 @@ void Numerics::do_minimize ()			// Do minimization
 int Numerics::do_step (doub tol)		// Do geodesic integration step
     {
     if (global.interrupt) return 0 ;
-    if (!global.info().validvev) initialize () ;
 
     const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
     Ode		ode	{ do_dvev, err_norm, odetol, rk, maxode } ;
     doub	dnorm	{ eval_delta() } ;
-    long	n	{ global.nobs() } ;
+    numb	n	{ global.nobs() } ;
     doub	s (0) ;
     bool	ok ;
 
-    if (blab > 1) cout << "  |delta| = " << dnorm << ", " ;
+    if (blab > 1) cout << "  |delta| = " << dnorm << ", " << flush ;
     if (blab > 2) delta.raw_print ("\n   delta =") ;
 
     if (tol && dnorm <= tol) return 0 ;			// converged?
@@ -120,10 +117,10 @@ const Uvec& Numerics::eval_inuse (uint repnum, bool T_odd)
     int		end	{ T_odd ? ngen : neven } ;
     int		n(0) ;
 
-    inuse.set_size(end-beg) ;
+    inuse.set_size (end-beg) ;
     for (int i(beg) ; i < end ; ++i)
 	if (gens[i].active) inuse (n++) = i - beg ;
-    inuse.resize(n) ;
+    inuse.resize (n) ;
     return inuse ;
     }
 
@@ -168,7 +165,7 @@ const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
 	    }
 
     if (!global.info().validvev) initialize () ;
-    gradient.zeros(neven) ;
+    gradient.zeros (neven) ;
     for (int i(0) ; i < nterms ; ++i)
 	{
 	doub coeff { Hterms[i].coeff() } ;
@@ -212,7 +209,7 @@ const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curv
 	curv.entry().nrow != ngen) gripe ("Need to (re)build curvature!") ;
 
     if (!global.info().validvev) initialize () ;
-    curvature.zeros(neven, neven) ;
+    curvature.zeros (neven, neven) ;
     for (int i(0) ; i < nterms ; ++i)
 	{
 	doub coeff { Hterms[i].coeff() } ;
@@ -223,8 +220,8 @@ const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curv
 		if (j < neven && gens[j].active &&
 		    k < neven && gens[k].active)
 		    {
-		    const PolyElem*	ptr { &(*recptr) } ;
-		    const PolyElem*	end { ptr++->end() } ;
+		    const PolyElem* ptr { &(*recptr) } ;
+		    const PolyElem* end { ptr++->end() } ;
 		    doub	val ( 0.0 ) ;
 		    while (ptr < end) val += termvalue (ptr) ;
 		    curvature (j,k) += coeff * val ;
@@ -267,7 +264,7 @@ const Dmtx& Numerics::eval_metr (uint repnum, int print)	// Evaluate T-odd curva
 	curv.entry().nrow != ngen) gripe ("Need to (re)build curvature!") ;
 
     if (!global.info().validvev) initialize () ;
-    metric.zeros(nodd, nodd) ;
+    metric.zeros (nodd, nodd) ;
     for (int i(0) ; i < nterms ; ++i)
 	{
 	doub coeff { Hterms[i].coeff() } ;
@@ -320,7 +317,7 @@ const Dmtx& Numerics::eval_lagr (uint repnum, int print)	// Evaluate Lagrange br
 	lagr.entry().nrow != nodd) gripe ("Need to build Lagrange matrix!") ;
 
     if (!global.info().validvev) initialize () ;
-    lagrange.zeros(neven, nodd) ;
+    lagrange.zeros (neven, nodd) ;
     for (int i(0) ; i < neven ; ++i)
 	{
 	for (int j(neven) ; j < ngen ; ++j, ++recptr)
@@ -362,10 +359,10 @@ doub Numerics::eval_delta (bool print)			// Evaluate delta vector
     Dvec	del ;
 
     check_curv (curv) ;
-    if (svdcut)	del = -arma::pinv (curv,svdcut) * grad ;
-    else	del = -arma::solve (curv,grad,opts) ;
+    if (svdcut)	del = -arma::pinv  (curv, svdcut) * grad ;
+    else	del = -arma::solve (curv, grad, opts) ;
 
-    delta.zeros(ngens) ;
+    delta.zeros (ngens) ;
     delta(use) = del ;
     if (print)
 	{
@@ -407,7 +404,7 @@ const Cvec& Numerics::eval_spectra (uint repnum, bool print)	// Evaluate particl
 void Numerics::eval_geos (int printlim)			// Evaluate vev derivatives
     {
     eval_delta () ;
-    Numerics::do_dvev (0.0, vev, dvev) ;
+    do_dvev (0.0, vev, dvev) ;
 
     if (printlim > dvev.size() || !printlim)
 	printlim = dvev.size() ;
@@ -458,7 +455,7 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 	numb	maxdi (0) ;
 	auto	nvev { v.n_elem } ;
 
-	for (int indx(global.stage ? 0 : 1) ; indx < nvev ; ++indx)
+	for (numb indx(global.stage ? 0 : 1) ; indx < nvev ; ++indx)
 	    {
 	    if (std::abs(v[indx]) > maxv)
 		{
@@ -780,20 +777,19 @@ string Numerics::MMAform (doub x)			// Convert to MMA input form
     return s ;
     }
 
-void Numerics::initialize (int stage)			// Initialize expectation values
+void Numerics::initialize (uint stage)			// Initialize expectation values
     {
     const auto&	blab { Blab::level(Blab::NUMERICS) } ;
     auto	nvev { global.obs.nobsG + global.obs.nobsF } ;
 
     if (!nvev) gripe ("Build observables first!") ;
-
     if (stage == 0)				// gauge vev's
 	{
 	vev.zeros (nvev) ;
 	vev[0] = 1.0 ;
 	global.info(0).validvev = true ;
 	global.info(1).validvev = false ;
-	if (blab) cout << "(Re)initialized gauge vev's\n" ;
+	if (blab) cout << "(Re)initialized all vev's\n" ;
 	}
     else					// fermi vev's
 	{
@@ -816,3 +812,4 @@ void Numerics::initialize (int stage)			// Initialize expectation values
 	if (blab) cout << "(Re)initialized fermion vev's\n" ;
 	}
     }
+

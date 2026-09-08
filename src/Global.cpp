@@ -19,23 +19,23 @@ string Global::mk_filename (const string&& ext)	// Make data file names
     return filenam ;
     }
 
-string Global::addsubdir (string dir, int stag)	// Add save sub-directory
+string Global::addsubdir (string dir, uint stage) // Add save sub-directory
     {
-    dir.append (stag ? theory.name.data() : theory.parent().data() ) ;
+    dir.append (stage ? theory.name.data() : theory.parent().data() ) ;
     dir += '/' ;
     if (std::filesystem::create_directory (dir))
 	cout << "Created subdirectory " << dir << "\n" ;
     return dir ;
     }
 
-string Global::addsubdir (string dir)		// Reteurn save sub-directory
+string Global::addsubdir (string dir)		// Return save sub-directory
     {
     return addsubdir (dir, stage) ;
     }
 
-void Global::close_streams (int keep)		// Close output streams
+void Global::close_streams (uint keep)		// Close output streams
     {
-    for (int stage (keep & 1) ; stage < 2 - !theory.nf ; ++stage)
+    for (uint stage (keep & 1) ; stage < 2 - !theory.nf ; ++stage)
 	{
 	if (!(keep & 2))  { global.info(stage).sysfile.stream.close() ;
 			    global.info(stage).vevfile.stream.close() ; }
@@ -43,7 +43,7 @@ void Global::close_streams (int keep)		// Close output streams
 	}
     }
 
-string Global::stageabbrev (int stage, const string& ext)
+string Global::stageabbrev (uint stage, const string& ext)
     {
     int		obsord	{ info(stage).maxord } ;
     int		genord	{ info(stage).maxgen } ;
@@ -95,7 +95,7 @@ numb3 Global::bckt_pos (numb i)			// Return stage/bucket/indx
     else gripe (format ("Make stage {} observables first!", stage)) ;
     }
 
-void Global::clearpolys (int stage)		// Clear polynomial scripts
+void Global::clearpolys (uint stage)		// Clear polynomial scripts
     {
     data(stage).grad.clear() ;
     for (auto& rec : data(stage).geos) rec.clear() ;

@@ -1,7 +1,6 @@
 #include "Parse.h"
 #include "Build.h"
 #include "Commute.h"
-#include "Gordion.h"
 #include "Numerics.h"
 #include "Print.h"
 #include "Rep.h"
@@ -224,9 +223,9 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    global.approx = global.obs.approx = i ;
 	    }
-	else if (isword(word,"autoToddgens") && parse_args (line,flag))
+	else if (isword(word,"autoEgens") && parse_args (line,flag))
 	    {
-	    Gen::autoToddgens = flag ;
+	    Gen::autoEgens = flag ;
 	    }
 	else if (isword(word,"autosave") && parse_args (line,flag))
 	    {
@@ -320,6 +319,10 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    global.info(0).vevfile.append = flag ;
 	    global.info(1).vevfile.append = flag ;
+	    }
+	else if (isword(word,"xtraobs") && parse_args (line,flag))
+	    {
+	    global.xtraobs = flag ;
 	    }
 	else if (isword(word,"MMAappend") && parse_args (line,flag))
 	    {
@@ -877,12 +880,12 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    }
 	else if (isword(word,"do_inner") && parse_args (line,word))
 	    {
-	    Obs 	obs (word) ;
+	    Obs	obs (word) ;
 	    if (obs.is_Eloop())
 		{
-		ObsList	tmplist { "ParseTemp" } ;
-		PolyTerm	factor { PolyIndx(), 1 } ;
-		PolyMap	ans { tmplist } ;
+		ObsList	 tmplist { "ParseTemp" } ;
+		PolyTerm factor { PolyIndx(), 1 } ;
+		PolyMap	 ans { tmplist } ;
 
 		Commute::do_inner (obs, factor, tmplist, ans) ;
 		cout << "do_inner [" << obs << "] = \n\t" ;
@@ -894,14 +897,13 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    {
 	    try {
 		auto		indx	{ Symm::known(std::move(word)).item } ;
-		const auto&	s	{ Symm::list[indx] } ;
-		Obs		oa	{ word2 } ;
-		Obs		ob	{ oa } ;
-		bool		Cflip	{ ob.is_fermi() || ob.is_Loop() } ;
-		int		start	( Cflip && s.isCodd() ? ob.size() - 1 : 0 ) ;
-		int		sgn	{ ob.trans(s,start) } ;
+		const auto&	symm	{ Symm::list[indx] } ;
+		Obs		o	{ word2 } ;
+		bool		Cflip	{ o.is_fermi() || o.is_Loop() } ;
+		int		start	( Cflip && symm.isCodd() ? o.size() - 1 : 0 ) ;
+		int		sgn	{ o.trans(symm,start) } ;
 		char		c	{ sgn == 1 ? '+' : '-' } ;
-		cout << s.name << "(" << oa << ") = " << c << " " << ob << "\n" ;
+		cout << symm.name << "(" << word2 << ") = " << c << " " << o << "\n" ;
 		}
 	    catch (const exception& e)
 		{
@@ -1024,7 +1026,7 @@ save		sys		[<filename>]
 set		stage		gauge | fermi
 		approx		false | true
 		autosave	false | true |
-		autoToddgens	true | false
+		autoEgens	true | false
 		blab		<source_file> <value>
 		checkobs	false | true
 		dots		false | true
@@ -1043,6 +1045,7 @@ set		stage		gauge | fermi
 		svdcutoff	<value>
 		symcurv		true | false
 		timing		true | false
+		xtraobs		false | true
 		MMAappend	true | false
 		MMAdir		<directory>
 		MMAobs		<obs> [<obs> [...]]
@@ -1070,3 +1073,4 @@ a | b denotes alternatives a or b
 Semicolons may spearate multiple commands on a single input line.
 )" << "\n" ;
     }
+

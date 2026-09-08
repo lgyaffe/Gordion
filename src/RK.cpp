@@ -3,7 +3,7 @@
 namespace RK				// Runge-Kutta method definitions
     {
     using doub = double ;
-    using dvec = const double[] ;
+    using dvec = const doub[] ;
 
     doub constexpr do_sqrt (doub x, doub curr, doub prev)
 	{ return curr == prev ? curr : do_sqrt (x, 0.5L * (curr + x/curr), curr) ; }

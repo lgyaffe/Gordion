@@ -38,20 +38,20 @@ class Gen : public OpSum		// Coherence algebra generator
     bool isgauge()	const { return type == OpType::Loop ||
 				       type == OpType::Eloop ; }
 
-    static inline bool autoToddgens { true } ;	// Use commutator E-gens?
+    static inline bool autoEgens { true } ;	// Use commutator E-gens?
     static inline bool gennorm   { false } ;	// Normalize generators?
 
     static bool	isnew (int, const Gen&) ;	// Dependency test
     static int	project		(Op&) ;		// Project Op onto reps
     static int	project		(OpSum&&) ;	// Project Op sum
     static int	addgen		(OpSum&&) ;	// Add generator
+    static void	geninit		(uint) ;	// Initialization
     static void	suspend_group	(uint) ;	// Suspend gen group
     static void	activate_group	(uint) ;	// Activate gen group
     static void	suspend_gen	(uint) ;	// Suspend generator
     static void	activate_gen	(uint) ;	// Activate generator
     static void	activate_gen	() ;		// Activate generators
     static void	normalize	() ;		// Normalize all Gen's
-    static void	geninit		(int) ;		// Initialization
 
     friend ostream& operator<< (ostream&, const Gen&) ;
     } ;

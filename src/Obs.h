@@ -3,7 +3,6 @@
 #include "Assess.h"
 #include "Poly.h"
 #include "Str.h"
-#include <climits>
 #include <map>
 
 enum class ObsType : char			// Observable categories
@@ -104,19 +103,19 @@ class Obs : public Str				// Obs = Str + meta-info
 				|| is_Efermion()
 				|| is_ee(front())
 				|| front() == EntrF ; }
-    bool is_coord() const { return theory.euclid
-				    ? is_Loop() || is_Fermion() && !staggered()
-				    : is_Loop() || is_EEloop() ||
-				      is_Fermion()  && staggered() ^  oddlen() ||
-				      is_Efermion() && staggered() ^ !oddlen() ; }
+    bool is_coord() const { return theory.euclid ?
+				is_Loop() || is_Fermion() && !staggered() :
+				is_Loop() || is_EEloop() ||
+				is_Fermion()  && staggered() ^  oddlen() ||
+				is_Efermion() && staggered() ^ !oddlen() ; }
 
-    bool oddlen() const					// Odd length bilinear?
+    bool oddlen() const				// Odd length bilinear?
 	{
 	return (size() % 2) ^ (is_Efermion() && nostep((*this)[middleE()])) ;
 	}
 
-    static inline bool	check { false } ;		// Extra validity tests?
-    static ObsType	obstype (const string) ;	// Determine Obs type
+    static inline bool	check { false } ;	 // Extra validity tests?
+    static ObsType	obstype (const string) ; // Determine Obs type
 
     static constexpr const char* type_name[] = 		// ObsType names
 	    { "Loop", "Eloop", "Fermion", "EEloop", "Efermion", "Entropy" } ;
@@ -134,8 +133,8 @@ class Obs : public Str				// Obs = Str + meta-info
     friend ostream& operator<< (ostream&, const Obs&) ;
     } ;
 
-using Obsset = unordered_set<Obs,Strhash,Str_eq> ;
-using Obsmap = hash<Obs,numb,Strhash,Str_eq> ;
+using Obsset = unordered_set<Obs,strhash,str_eq> ;
+using Obsmap = hash<Obs,numb,strhash,str_eq> ;
 
 class ObsList: vector<const Obs*>
     {
@@ -181,7 +180,7 @@ class ObsList: vector<const Obs*>
     void	refreezeif (bool) const ;	// Reset freeze if master list
 
     int		do_fermiinit () ;		// Load Fermion -> Loop map
-    void	obsinit	(int) ;			// Load basic Obs
+    void	obsinit	(uint) ;		// Load basic Obs
     ostream&	print	(ostream&, numb) const ;// Print obs
     ostream&	print	(ostream&) const ;	// Print list
 
@@ -193,6 +192,7 @@ class ObsList: vector<const Obs*>
     void	hasher	 (ulong&,const Obs&) ;	// ObsList hasher
     PolyTerm	catalog  (Obs) ;		// Catalog Obs
     PolyTerm	catalog  (Obs, Obs) ;		// Catalog Obs
+    PolyTerm	is_known (Obs&)  const ;	// Find in list
     PolyTerm	is_known (Obs&&) const ;	// Find in list
     PolyTerm	is_known (Obs&&, Obs&&) const ;	// Find in list
     PolyTerm	assess   (Obs&) ;		// Store, approx or discard?
@@ -203,7 +203,7 @@ class ObsList: vector<const Obs*>
     static void	retain (const Obs&) ;		// Retain for later insertion
     } ;
 
-class ObsSubset : public std::map<numb,Obs>		// Obs subset
+class ObsSubset : public std::map<numb,Obs>	// Obs subset
     {
     public:
     friend ostream& operator<< (ostream& stream, const ObsSubset& s)
@@ -219,7 +219,7 @@ class ObsStats : public array<vector<vector<ulong>>,nobstype>	// Obs statistics
 
     ObsStats (const ObsList&) ;
 
-    ulong get(int t, int c, int x) const
+    numb get(int t, int c, int x) const
 	{
 	return (t < size()
 		&& c >= 0 && c < (*this)[t].size()

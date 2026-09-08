@@ -81,7 +81,7 @@ int main (int argc, char** argv)		// Main program
     for (int i (optind) ; i < argc ; i++)
 	{
 	try { Save::load_save (-1,argv[i]) ; }	// Load command line file
-	catch (const BadInput& e) { cout << e.what() << "\n" ; }
+	catch (const BadInput& e) { cout << e.what() << "\n" ; infile = "" ; }
 	}
     if (infile == "" && std::filesystem::exists (dotfile))
 	infile = dotfile ;

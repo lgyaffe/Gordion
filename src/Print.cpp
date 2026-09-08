@@ -347,7 +347,7 @@ void Print::print_grad ()			// Print gradient
 	const auto& term { global.info().Hterms[i].cpoly } ;
 	for (int j(0) ; j < neven ; ++j, ++recptr)
 	    {
-	    const PolyElem*	ptr { &(*recptr) } ;
+	    const PolyElem* ptr { &(*recptr) } ;
 	    if (ptr->len())
 		{
 		cout << "grad (" << i << "," << j << ") ="
@@ -573,8 +573,7 @@ void Print::print_geodesic ()			// Print all geodesic equations
 	}
     }
 
-
-void Print::print_spectrum ()
+void Print::print_spectrum ()			// Print spectrum eigenvalues
     {
     auto prevprec { cout.precision(12) } ;
     cout << Rep::list[numerics.lastrep].name ;
@@ -582,7 +581,7 @@ void Print::print_spectrum ()
     cout << std::setprecision (prevprec) ;
     }
 
-void Print::print_mode (uint i)
+void Print::print_mode (uint i)			// Print spectrum eigenvectors
     {
     const auto& repnam { Rep::list[numerics.lastrep].name } ;
     const auto& modes  { numerics.modes } ;
@@ -593,7 +592,7 @@ void Print::print_mode (uint i)
 	}
     }
 
-void Print::print_mode ()
+void Print::print_mode ()			// Print spectrum eigenvectors
     {
     for (int i(0) ; i < numerics.modes.n_cols ; ++i) print_mode (i) ;
     }
@@ -734,23 +733,24 @@ void Print::print_state ()			// Print global state variables
     cout << " Lattice size:       " << theory.box_size() << "\n" ;;
     cout << " Stage:              " << (stage ? "fermion" : "gauge") << "\n" ;
     cout << " Active rep:         " << Rep::list[global.repnum].name << "\n" ;
-    cout << " Max obs order:      " << global.maxord()   << "\n" ;
-    cout << " Max gen order:      " << global.maxgen()   << "\n" ;
-    cout << " Obs approx:         " << global.approx     << "\n" ;
+    cout << " Max obs order:      " << global.info().maxord << "\n" ;
+    cout << " Max gen order:      " << global.info().maxgen << "\n" ;
     cout << " Max threads:        " << global.maxthread  << "\n" ;
+    cout << " Obs approx:         " << global.approx     << "\n" ;
+    cout << " Add curvature obs:  " << global.xtraobs    << "\n" ;
+    cout << " Auto E-loop gens:   " << Gen::autoEgens    << "\n" ;
     cout << " Geo swap:           " << global.geoswap    << "\n" ;
     cout << " Obs swap:           " << global.obsswap    << "\n" ;
     cout << " Auto save:          " << global.autosave   << "\n" ;
-    cout << " Auto T-odd gens:    " << Gen::autoToddgens << "\n" ;
     cout << " Check obs:          " << Obs::check        << "\n" ;
     cout << " Dot obs:            " << Str::dots         << "\n" ;
     cout << " Normalize gens:     " << Gen::gennorm      << "\n" ;
     cout << " Max Newton iters:   " << numerics.maxnewt  << "\n" ;
     cout << " Max ODE steps:      " << numerics.maxode   << "\n" ;
+    cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
     cout << " Minimize tolerance: " << numerics.mintol   << "\n" ;
     cout << " Neg curvature ok:   " << numerics.oknegeig << "\n" ;
     cout << " Symmetrize curv:    " << numerics.symcurv  << "\n" ;
-    cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
     cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
     cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
     cout << " Save directory:     " << global.savedir    << "\n" ;
@@ -806,7 +806,7 @@ void Print::print_obsstats ()			// Print observable statistics
 	    cout << format("{:6d} {:6d} {:6d}", sc, c, x) ;
 	    for (auto t : types)
 		{
-		ulong count { obsstats.get((int) t,c,x) } ;
+		auto count { obsstats.get((int) t,c,x) } ;
 		if (count)	cout << format(" {:10d}", count) ;
 		else		cout << format(" {:>10s}", "-") ;
 		total[(int) t] += count ;

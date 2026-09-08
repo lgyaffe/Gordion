@@ -265,13 +265,18 @@ void ObsList::retain (const Obs& o)			// Retain for later insertion
     global.obs.inbox.insert (o) ;
     }
 
-PolyTerm ObsList::is_known (Obs&& a) const			// Find in ObsList
+PolyTerm ObsList::is_known (Obs& a) const			// Find in ObsList
     {
     int		sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
     numb	indx { find (a) } ;
 
     return (indx < MAXNUM-1) ? PolyTerm (PolyIndx(indx), sgn)
 			     : PolyTerm (PolyIndx(),     0.0) ;
+    }
+
+PolyTerm ObsList::is_known (Obs&& a) const			// Find in ObsList
+    {
+    return is_known (a) ;
     }
 
 PolyTerm ObsList::is_known (Obs&& a, Obs&& b) const		// Find in ObsList
@@ -288,7 +293,7 @@ PolyTerm ObsList::is_known (Obs&& a, Obs&& b) const		// Find in ObsList
 
 PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
     {							// N.B. pass by value
-    const auto& blab { Blab::level(Blab::OBS) } ;
+    const auto&	blab { Blab::level(Blab::OBS) } ;
     if (blab > 1) cout << "catalog " << name << ": " << a << "\n" ;
     if (Obs::check) a.validate() ;
 
@@ -385,7 +390,7 @@ numb ObsList::store (const Obs& o)			// Store Obs in ObsList
 	if (size() == MAXNUM-1)
 	    gripe ("Max # Obs exceeded: recompile without NUM32!") ;
 	push_back (&(iter->first)) ;
-	int stage { o.is_fermi() } ;
+	uint stage { o.is_fermi() } ;
 	hasher (hash(stage), o) ;
 	++nobs (stage) ;
 	}
@@ -395,10 +400,10 @@ numb ObsList::store (const Obs& o)			// Store Obs in ObsList
 void ObsList::clear ()					// Empty list
     {
     nobsF = nobsG = 0 ;
-    hashF = hashF = 0 ;
+    hashF = hashG = 0 ;
     Obsmap().swap (map) ;
     vector<const Obs*>().swap (*this) ;
-    store (Obs(Str(), ObsType::Loop, 0, 0)) ;
+    store (Obs(Str{}, ObsType::Loop, 0, 0)) ;
     }
 
 void ObsList::purge (numb limit)			// Purge entries
@@ -413,7 +418,7 @@ void ObsList::purge (numb limit)			// Purge entries
     rehash () ;
     }
 
-void ObsList::rehash ()			// Recalculate list hashes
+void ObsList::rehash ()				// Recalculate list hashes
     {
     hashF = hashG = 0 ;
     for (const auto& ptr : *this)
@@ -455,7 +460,7 @@ void ObsList::ondisk ()			// Leave global.obs on disk
     global.obs.swapped = true ;
     }
 
-void ObsList::obsinit (int stage)		// Load basic Obs
+void ObsList::obsinit (uint stage)		// Load basic Obs
     {
     bool iseuc	 { theory.euclid } ;
     char link[4] { 'x', 'y', 'z', 'w' } ;
@@ -576,7 +581,6 @@ ostream& ObsList::print (ostream& stream, numb indx) const	// Print indexed Obs
     {
     bool	addvev	 { !neq(global.obs) } ;
     auto	prevprec { stream.precision(12) } ;
-
     const Obs&	obs	 { *at(indx) } ;
     stream << name << " Obs #" << indx << ": " << std::setprecision(12) ;
     stream << obs ;

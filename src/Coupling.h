@@ -5,8 +5,8 @@
 class Coupling : public char8		// Adjustable coupling constant
     {
     public:
-    doub	 value = dfltval ;		 // Coupling value
-    int		 stage = -1 ;			 // Coupling stage
+    doub	value = dfltval ;		 // Coupling value
+    int		stage = -1 ;			 // Coupling stage
     const char8& name() const { return *this ; } // Coupling name
 
     static int indx (const string& s)		// Return coupling index
@@ -34,7 +34,7 @@ class Coupling : public char8		// Adjustable coupling constant
     static bool	  update (const vector<Coupling>&) ; // Update list values
     static string values () ;			// Printable values
     static uint	  ncoup  () ;			// # couplings for stage
-    static uint	  ncoup  (int) ;		// # couplings for stage
+    static uint	  ncoup  (uint) ;		// # couplings for stage
 
     friend ostream& operator<< (ostream& stream, const Coupling& coup)
 	{ return stream << coup.data() ; }
@@ -62,7 +62,9 @@ class Coeff : public vector<Factor>
 	}
     } ;
 
-class AdjTerm			// ObsPoly times adjustable coupling
+inline Couplings	Coupling::list ;		// Defined Coupling's
+
+class AdjTerm				// ObsPoly times adjustable coupling
     {
     public:
     Coeff	coeff ;			// Adjustable coefficient
@@ -75,7 +77,5 @@ class AdjTerm			// ObsPoly times adjustable coupling
 
     friend ostream& operator<< (ostream&, const vector<AdjTerm>&) ;
     } ;
-
-inline Couplings	Coupling::list ;		// Defined Coupling's
 
 #endif

@@ -26,15 +26,15 @@ struct SerialData				// Serialised stage data
     {
     SerialData (SysIndex&) ;		// Constructor
 
-    DataRec		op    ;		// Operators
-    DataRec		obs   ;		// Observables
-    DataRec		gen   ;		// Generators
-    PolyRec		ham   ;		// Hamiltonian
-    PolyRec		grad  ;		// Gradient
-    PolyArr<NREP>	curv  ;		// Curvature
-    PolyArr<NREP>	lagr  ;		// Lagrange bracket
-    DataRec		stat  ;		// Statistics counters
-    PolyArr<MAXBCKT>	geos  ;		// Geodesic equations
+    DataRec		op   ;		// Operators
+    DataRec		obs  ;		// Observables
+    DataRec		gen  ;		// Generators
+    PolyRec		ham  ;		// Hamiltonian
+    PolyRec		grad ;		// Gradient
+    PolyArr<NREP>	curv ;		// Curvature
+    PolyArr<NREP>	lagr ;		// Lagrange bracket
+    DataRec		stat ;		// Statistics counters
+    PolyArr<MAXBCKT>	geos ;		// Geodesic equations
     } ;
 
 static constexpr int NENTRY = 6 + 2 * NREP + MAXBCKT + 1 ;
@@ -93,12 +93,13 @@ class ObsInfo : public ObsList			// Canonical Obs info
     public:
     using ObsList::ObsList ;
 
-    static inline numb			nobsG ;		// shadows ObsList::nobsG
-    static inline numb			nobsF ;		// shadows ObsList::nobsF
-    static inline ulong			hashG ;		// shadows ObsList::hashG
-    static inline ulong			hashF ;		// shadows ObsList::hashF
-    static inline std::vector<numb2>	fermiinit ;	// Fermion -> Loop map
-    static inline bool			swapped {false};// Swapped to disk?
+    numb		nobsG ;			// shadows ObsList::nobsG
+    numb		nobsF ;			// shadows ObsList::nobsF
+    ulong		hashG ;			// shadows ObsList::hashG
+    ulong		hashF ;			// shadows ObsList::hashF
+    std::vector<numb2>	fermiinit ;		// Fermion -> Loop map
+    bool		swapped {false};	// Swapped to disk?
+
     static inline thread_local bool	freeze {true} ;	// Freeze master list?
     static inline thread_local Obsset	inbox ;		// Obs awaiting insertion
     } ;
@@ -107,8 +108,8 @@ class Global					// Global data
     {
     public:
     using atombool = std::atomic<bool> ;
-    using Stage = enum { Gauge = 0, Fermi = 1 } ;	
-    
+    using Stage = enum { Gauge = 0, Fermi = 1 } ;
+
     StageInfo	stageinfo [2] ;			// Stage-specific info
     SerialData	stagedata [2] { stageinfo[0].sysindex,
 				stageinfo[1].sysindex } ;
@@ -120,7 +121,8 @@ class Global					// Global data
     short	repnum     { 0 } ;		// Active irrep number
     short	approx     { 0 } ;		// Approximate Obs's?
     uint	maxthread  { 0 } ;		// Thread limit
-    bool	autosave   { false } ;		// Write savefile on bulid
+    bool	xtraobs	   { false } ;		// Add all curvature Obs?
+    bool	autosave   { false } ;		// Auto save on build/flow?
     bool	geoswap    { false } ;		// Swap geo bckts to disk
     bool	obsswap    { false } ;		// Swap obs list to disk
     atombool	interrupt  { false } ;		// Interrupt flag
@@ -130,24 +132,23 @@ class Global					// Global data
 
     auto&	info	(int i)	{ return stageinfo[i] ; }
     auto&	data	(int i)	{ return stagedata[i] ; }
-    auto&	info	 ()	{ return stageinfo[stage] ; }
-    auto&	data	 ()	{ return stagedata[stage] ; }
-    auto&	maxgen	 ()	{ return info().maxgen ; }
-    auto&	maxord	 ()	{ return info().maxord ; }
-    auto&	count	 ()	{ return info().count  ; }
-    numb	nobs	 ()	{ return stage ? obs.nobsF : obs.nobsG ; }
+    auto&	info	()	{ return stageinfo[stage] ; }
+    auto&	data	()	{ return stagedata[stage] ; }
+    auto&	count	()	{ return info().count ; }
+    numb	nobs	()	{ return stage ? obs.nobsF : obs.nobsG ; }
 
-    string	stageabbrev (int, const string&) ; // File name info
+    string	stageabbrev (uint, const string&) ; // File name info
     string	mk_filename (const string&&) ;	// Output file names
-    string	addsubdir     (string, int) ;	// Add theory subdir
     string	addsubdir     (string) ;	// Add theory subdir
     void	mk_bcktlist   ()    ;		// Make bucket list
-    void	close_streams (int) ;		// Close output streams
-    void	clearpolys    (int) ;		// Clear polys
+    void	close_streams (uint) ;		// Close output streams
+    void	clearpolys    (uint) ;		// Clear polys
     numb3	bckt_pos      (numb) ;		// Obs bucket position
     void	stageinit     (uint) ;		// Stage initialization
     char	fg (int stage)	const { return stage ? 'f' : 'g' ; }
     char	fg ()		const { return fg (this->stage) ; }
+
+    static string addsubdir (string, uint) ;	// Add theory subdir
     } ;
 
 inline Global global ;					// Global information
@@ -159,7 +160,7 @@ inline DataRec::DataRec (SysIndex& indx, RecordID id)	// DataRec constructor
 template <size_t N>					// PolyArr constructor
 template <size_t... Is> constexpr
 inline PolyArr<N>::PolyArr (std::index_sequence<Is...>, SysIndex& indx, RecordID id)
-    : array<PolyRec,N> { PolyRec ( (static_cast<void>(Is), indx), id )... } 
+    : array<PolyRec,N> { PolyRec ( (static_cast<void>(Is), indx), id )... }
     {}
 
 #endif

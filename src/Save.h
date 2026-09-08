@@ -16,7 +16,8 @@ namespace Save
     void reload_obs	() ;		// Reload Obs
     string addsubdir	(string,int) ;	// Add subdirectory
 
-    void write_header	(fstream&,uint=0,uint=0) ; // Write file header
+    void write_syshead	(fstream&) ; 	// Write sys file header
+    void write_vevhead	(fstream&) ;	// Write vev file header
     int  read_header	(fstream&,const string&) ; // Read file header
 
     void write_sysindex	() ;		// Save SysIndex
@@ -46,8 +47,8 @@ namespace Save
     void write_geos	() ;		// Save geodesics
     void read_geos	() ;		// Load geodesics
 
-    void write_geo_bckt	(int) ;		// Save geo bucket
-    void read_geo_bckt	(int,int) ;	// Load geo bucket
+    void write_geo_bckt	(uint) ;	// Save geo bucket
+    void read_geo_bckt	(uint,uint) ;	// Load geo bucket
 
     void write_coup	 () ;		// Save Couplings
     Couplings* read_coup (int,bool) ;	// Load Couplings
@@ -68,12 +69,16 @@ namespace Save
 	char8	name ;			// theory name
 	Version	version ;		// program version
 	ushort	ncoup ;			// # couplings
-	uint	nvev ;			// # vev's
+	union
+	    {
+	    ulong	nvev ;		// # vev's
+	    uint	maxord ;	// max Obs order
+	    } ;
 	ulong	hashG ;			// Gauge obs hash
 	ulong	hashF ;			// Fermion obs hash
 
-	bool is_sysfile() const { return !ncoup && !nvev ; }
-	bool is_vevfile() const { return  ncoup ||  nvev ; }
+	bool is_sysfile() const { return !ncoup ; }
+	bool is_vevfile() const { return  ncoup ; }
 	} filehdr ;
 
     inline static std::mutex	savemutex ;	// Sys info file mutex

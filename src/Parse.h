@@ -33,7 +33,6 @@ namespace Parse
 	{
 	return line.peek() == EOF ;
 	}
-
     inline bool isword (const string& w, const string& cmd, int min=1)
 	{					// Abbreviating comparison
 	return (w.size() >= min) && 0 == cmd.compare (0, w.size(), w) ;
@@ -63,8 +62,8 @@ namespace Parse
 	}
 
     inline static bool	  echo	   { false } ;		// Echo commands?
-    inline static bool	  timing   { true  } ;		// Report command times?
     inline static bool	  awaiting { false } ;		// Awaiting user input?
+    inline static bool	  timing   { true  } ;		// Report command times?
     inline static ostream myout	   { cout.rdbuf() } ;	// Initial output stream
     } ;
 

@@ -11,7 +11,7 @@ class ObsList ;
 class PolyElem ;
 class SysIndex ;
 
-class PolyIndx : public array<numb,PSIZ>		// Obs index tuples
+class PolyIndx : public array<numb,PSIZ>		// Index tuples
     {
     public:
     PolyIndx (numb i = 0)     : array<numb,PSIZ>{i} {}
@@ -73,7 +73,6 @@ class PolyMap : public hash<PolyIndx,real,Polyhash>	// Observable polynomial
 	if (!isnew) iter->second += d ;
 	}
     void add (const PolyTerm&& t) { add (t.item, t.coeff) ; }	// Add term
-
     bool add_gen (const Gen&) ;				// Add Gen to PolyMap
 
     PolyMap& negate ()					// Negate entries
@@ -110,7 +109,7 @@ class ObsPoly : public vector<PolyTerm>			// Polynomial of Obs
     friend ostream& operator<< (ostream&, const ObsPoly&) ;
     } ;
 
-class PolyElem : public Element				// Packed ObsPoly
+class PolyElem : public Element			// Packed ObsPoly element
     {
     public:
     const PolyElem* begin() const { return this + 1 ; }
@@ -140,9 +139,8 @@ class PolyRec : public DataRec				// Polynomial data record
 
     using DataRec::DataRec ;
 
-    void add (PolyMap&) ;				// Add PolyTerms
-    void add (const ObsPoly&) ;				// Add PolyTerms
-
+    void add (PolyMap&) ;				// Add terms
+    void add (const ObsPoly&) ;				// Add terms
     void clear () { DataRec::clear() ; offset.clear() ; }	// Clear data
 
     const PolyElem& operator() (numb k, numb j=0, numb i=0) const // Indexed Poly

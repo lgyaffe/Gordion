@@ -244,7 +244,7 @@ void Gen::normalize (int repnum)			// Normalize generator
 
     for (ushort i(0) ; i < Hterms.size() ; ++i)
 	{
-	const ObsPoly&	poly { Hterms[i].poly } ;
+	const ObsPoly&	poly { repnum ? Hterms[i].poly : Hterms[i].cpoly } ;
 	const ObsList&	list { poly.obslist() } ;
 
 	for (const auto& term : poly)
@@ -286,7 +286,7 @@ void Gen::normalize ()					// Generator normalization
     {
     for (int repnum(0) ; repnum < Rep::list.size() ; ++repnum)
 	{
-	for (int stage(0) ; stage < 2 - !theory.nf ; ++stage)
+	for (uint stage(0) ; stage < 2 - !theory.nf ; ++stage)
 	    {
 	    auto& gens { global.info(stage).gens[repnum] } ;
 
@@ -392,14 +392,17 @@ int Gen::addgen (OpSum&& s)			// Add new generator
     int		added (0) ;
     OpList&	list { s.oplist() } ;
     Op		op1  { list[s.front().item] } ;	// N.B. non-ref
+    bool	isF  { op1.is_Fermion() } ;
+
+    if (!global.info(isF).gens.size()) geninit (isF) ;
 
     switch (op1.type)
 	{
 	case OpType::Loop:
-	    if (autoToddgens)	added += project (s.loop_dt()) ;
+	    if (autoEgens)	added += project (s.loop_dt()) ;
 	    if (!theory.euclid)	added += project (std::move(s)) ; break ;
 	case OpType::Fermion:
-	    if (autoToddgens)	added += project (s.flipT()) ;
+	    if (!theory.euclid)	added += project (s.flipT()) ;
 				added += project (std::move(s)) ; break ;
 	case OpType::Eloop:
 				added += project (std::move(s)) ; break ;
@@ -408,13 +411,13 @@ int Gen::addgen (OpSum&& s)			// Add new generator
     if (added)
 	{
 	list.setprimary () ;
-	global.clearpolys (op1.is_Fermion()) ;
+	global.clearpolys (isF) ;
 	global.info().sysfile.stream.close() ;
 	}
     return added ;
     }
 
-void Gen::geninit (int stage)			// Generator initialization
+void Gen::geninit (uint stage)			// Generator initialization
     {
     bool isham { !theory.euclid } ;
     char l[4]  { 'x', 'y', 'z', 'w' } ;
@@ -432,7 +435,7 @@ void Gen::geninit (int stage)			// Generator initialization
 	    for (int j(i) ; ++j < theory.dim ;)
 		{
 		Op plaq { string {l[i],l[j],L[i],L[j]}, loop, 2 } ;
-		if (autoToddgens)	project (loop_dt (plaq, list)) ; 
+		if (autoEgens)	project (loop_dt (plaq, list)) ; 
 		if (isham)		project (plaq) ;
 		}
 	    }
@@ -446,8 +449,8 @@ void Gen::geninit (int stage)			// Generator initialization
 		    if (i == k || j == k) continue ;
 			{
 			Op rect { string {l[i],l[j],l[k],L[j],L[i],L[k]}, loop, 4 } ;
-			if (autoToddgens)	project (loop_dt (rect, list)) ; 
-			if (isham)		project (rect) ;
+			if (autoEgens)	project (loop_dt (rect, list)) ; 
+			if (isham)	project (rect) ;
 			}
 		    }
 		}
@@ -461,7 +464,7 @@ void Gen::geninit (int stage)			// Generator initialization
 		    {
 		    if (i == k || j == k) continue ;
 		    Op fig8 { string {l[i],l[k],l[j],L[k],L[j],l[k],L[i],L[k]}, loop, 4 } ;
-		    if (autoToddgens)	project (loop_dt (fig8, list)) ; 
+		    if (autoEgens)	project (loop_dt (fig8, list)) ; 
 		    if (isham)		project (fig8) ;
 		    }
 		}
@@ -473,8 +476,8 @@ void Gen::geninit (int stage)			// Generator initialization
 		{
 		if (i == j) continue ;
 		Op plaq2 { string {l[i],l[j],L[i],L[j],l[i],l[j],L[i],L[j]}, loop, 4 } ;
-		if (autoToddgens)	project (loop_dt (plaq2, list)) ; 
-		if (isham)		project (plaq2) ;
+		if (autoEgens)	project (loop_dt (plaq2, list)) ; 
+		if (isham)	project (plaq2) ;
 		}
 	    }
 
@@ -483,8 +486,8 @@ void Gen::geninit (int stage)			// Generator initialization
 	    if (theory.box.comp[i])
 		{
 		Op polyakov  { string (theory.box.comp[i],   l[i]), loop, 2 } ;
-		if (autoToddgens)	project (loop_dt (polyakov, list)) ; 
-		if (isham)		project (polyakov) ;
+		if (autoEgens)	project (loop_dt (polyakov, list)) ; 
+		if (isham)	project (polyakov) ;
 		}
 	    }
 
@@ -498,7 +501,7 @@ void Gen::geninit (int stage)			// Generator initialization
 		    string plaq {l[i],l[j],L[i],L[j]} ;
 		    string poly (theory.box.comp[i], l[i]) ;
 		    Op plaqpoly { plaq+poly, loop, 4 } ;
-		    if (autoToddgens)	project (loop_dt (plaqpoly, list)) ; 
+		    if (autoEgens)	project (loop_dt (plaqpoly, list)) ; 
 		    if (isham)		project (plaqpoly) ;
 		    }
 		}

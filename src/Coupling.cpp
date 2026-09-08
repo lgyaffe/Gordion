@@ -18,12 +18,12 @@ uint Coupling::ncoup ()				// # couplings for stage
     return ncoup (global.stage) ;
     }
 
-uint Coupling::ncoup (int stage)
+uint Coupling::ncoup (uint stage)		// # couplings for stage
     {
     return stage ? list.size() : ncoupG ;
     }
 
-string Coupling::values ()	// comma-separated coupling values
+string Coupling::values ()		// Comma-separated coupling values
     {
     std::stringstream buf ;
     string sep {""} ;

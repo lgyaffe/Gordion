@@ -4,12 +4,10 @@
 Str::Str (const string& s)		// Construct from printable string
     {
     auto it { std::find (symbname.begin(), symbname.end(), s) } ;
-
-
     if (it == symbname.end())
 	{
 	resize (s.size()) ;
-	auto	p { begin() } ;
+	auto p { begin() } ;
 	for (char c : s)
 	    {
 	    int x { char_to_symb(c) } ;
@@ -46,7 +44,7 @@ bool Str::isclosed(const_iterator beg, const_iterator end)	// Closed (sub)string
     return delta.isclosed (theory.box) ;
     }
 
-int Str::join(const_iterator beg, const_iterator end)		// Append symb range
+int Str::join(const_iterator beg, const_iterator end)	// Append symb range
     {
     int  k(0) ;
     symb y ;
@@ -60,7 +58,7 @@ int Str::join(const_iterator beg, const_iterator end)		// Append symb range
     return k + end - beg ;
     }
 
-int Str::join(symb x)						// Append single symb
+int Str::join(symb x)					// Append single symb
     {
     symb y ;
     if (size() && (y = ligature(back(), x)))
@@ -129,11 +127,9 @@ ostream& operator<< (ostream& stream, const Str& str)		// Print -> stream
     {
     if (str.size())
 	{
-	string delim { Str::dots ? "." : "" } ;
-	symb c	     { str.front() } ;
-	string d     { "" } ;
-
-	for (char c : str)
+	string	delim { Str::dots ? "." : "" } ;
+	string	d { "" } ;
+	for (symb c : str)
 	    {
 	    stream << d << symbname[c] ;
 	    d = delim ;

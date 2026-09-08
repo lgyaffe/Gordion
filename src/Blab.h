@@ -27,25 +27,25 @@ class Blab
     using Blabmap = std::map<string,BLAB> ;
     using Blabvec = array<uint,_BLABNUM_> ;
 
-    static void	setblab(string,uint) ;			// set level
-    static void	resetblab() ;				// reset levels
+    static void	setblab (string,uint) ;			// set level
+    static void	resetblab () ;				// reset levels
     static uint level (enum BLAB file)
 		    { return blablevel[file] ; }	// return level
 
     static inline Blabmap blabmap		// file name -> Blab enum
 	{
-	{"Assess",	BLAB::ASSESS},
-	{"Build",	BLAB::BUILD},
-	{"Canon",	BLAB::CANON},
-	{"Commute",	BLAB::COMMUTE},
-	{"Gen",		BLAB::GEN},
-	{"Numerics",	BLAB::NUMERICS},
-	{"Obs",		BLAB::OBS},
-	{"Ode",		BLAB::ODE},
-	{"Poly",	BLAB::POLY},
-	{"Save",	BLAB::SAVE},
-	{"Symb",	BLAB::SYMB},
-	{"Symm",	BLAB::SYMM}
+	{"Assess",	ASSESS},
+	{"Build",	BUILD},
+	{"Canon",	CANON},
+	{"Commute",	COMMUTE},
+	{"Gen",		GEN},
+	{"Numerics",	NUMERICS},
+	{"Obs",		OBS},
+	{"Ode",		ODE},
+	{"Poly",	POLY},
+	{"Save",	SAVE},
+	{"Symb",	SYMB},
+	{"Symm",	SYMM}
 	} ;
 
     private:

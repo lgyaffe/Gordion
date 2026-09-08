@@ -11,7 +11,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
     ++global.count().assessed ; ++depth ;
 
     const auto& blab { Blab::level(Blab::ASSESS) } ;
-    if (blab > 1) cout << "\nassess " << depth << ": " << name
+    if (blab) cout << "\nassess " << depth << ": " << name
 		   << " frozen " << frozen() << " approx " << approx
 		   << " classify " << classify << " " << a << "\n" << flush ;
 
@@ -28,8 +28,6 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	    const Obs& b { (*this)(indx) } ;
 	    if (classify && a.corder >= 0 && a.corder < b.corder) 
 		{
-		//fatal (format ("Bad corder in {}: indx {} {} cord {} -> {}",
-		//	name, indx, b.print(), b.corder, a.corder)) ;
 		cout << format ("Warning: Bad corder in {}:  indx {} {} cord {} -> {}\n",
 			name, indx, b.print(), b.corder, a.corder) ;
 		}
@@ -74,7 +72,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	}
     else if (classify)			// Obs generation phase, determine xorder
 	{
-	const auto& maxord { global.maxord() } ;
+	const auto& maxord { global.info().maxord } ;
 	if (a.classify (*this))
 	    {
 	    if (!maxord || a.order() == maxord)
@@ -106,11 +104,12 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	++global.count().discarded ;
 	return PolyTerm (PolyIndx(), 0) ;
 	}
-    else					// Temp list: just store
+    else					// Just store in list
 	{
+	if (a.xorder < 0) a.xorder = a.corder ;		// default xorder
 	a.shrink_to_fit() ;
 	numb indx { store(a) } ;
-	if (blab > 1)
+	if (blab)
 	    {
 	    cout << "assess " << depth << ":: " << a
 		 << " immediate store " << " -> "
@@ -133,7 +132,7 @@ bool Obs::classify (ObsList& list)	// Determine Obs expectation order
     if (blab > 1) cout << "classify " << depth << ": " << *this
 		       << " xmin " << xmin << "\n" << flush ;
 
-    if (corder < 0 || corder + xmin <= global.maxord())
+    if (corder < 0 || corder + xmin <= global.info().maxord)
 	//
 	// Allow corder < 0 to enable "call classify" to work
 	{

@@ -31,7 +31,7 @@ static_assert (ipow(specbase,specchunksize) < UINT_MAX, "specchunksize too big")
 
 using SymmSet = vector<uint> ;	 			// Trial symmetry subset
 
-class CanonCache : public hash<Str,int,Strhash,Str_eq>	// Short Obs cache
+class CanonCache : public hash<Str,int,strhash,str_eq>	// Short Obs cache
     {
     public:
     bool freeze { true } ;

@@ -63,7 +63,7 @@ int Obs::canon()				// Canonicalize observable
 		if (!Canon::cache.freeze && corder >= 0)
 		    {
 		    if (!known_xord()) factorize (0, global.obs) ;
-		    if (known_xord() && order() <= global.maxord())
+		    if (known_xord() && order() <= global.info().maxord)
 			{
 			shrink_to_fit() ;
 			if (blab) cout << "canon: storing " << *this << "\n" ;
@@ -258,7 +258,7 @@ int Obs::canon()				// Canonicalize observable
 			else		factorize (0, global.obs) ;
 			if (blab) cout << "canon:: classify done\n" ;
 			}
-		    if (known_xord() && order() <= global.maxord())
+		    if (known_xord() && order() <= global.info().maxord)
 			{
 			shrink_to_fit() ;
 			if (blab) cout << "canon: storing " << *this << "\n" ;

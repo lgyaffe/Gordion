@@ -50,7 +50,7 @@ namespace Print
     void print_geodesic (numb) ;
     void print_geodesic () ;
 
-    void print_lagrange (uint, uint) ;
+    void print_lagrange (uint,uint) ;
     void print_lagrange (uint) ;
     void print_lagrange () ;
 

@@ -82,8 +82,8 @@ class Theory					// Basic theory info
     constexpr bool isR3xS1() const { return dim == 4 && !box.comp[0] && !box.comp[1]
 						     && !box.comp[2] &&  box.comp[3] ; }
 
-    static void theoryinit() ;
-    static void theorydefn(int) ;
+    static void theoryinit () ;
+    static void theorydefn (uint) ;
     } ;
 
 #if   defined (YM1h)

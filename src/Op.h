@@ -80,7 +80,7 @@ class OpList : public Index<Op>
     numb store (const Op& op)			// Store Op in list
 	{
 	auto	len  ( size() ) ;
-	uint	indx { Index::store (op,op) } ;
+	numb	indx { Index::store (op,op) } ;
 	if (indx >= size()) fatal ("OpList::store: bad store! ") ;
 	return indx ;
 	}
@@ -89,6 +89,7 @@ class OpList : public Index<Op>
 	std::erase_if (map, [&](const auto& p) { return p.second >= limit ; }) ;
 	resize (limit) ;
 	}
+    static void opinit (uint) ;			// List initialization
 
     ostream& print (ostream&, numb) const ;	// Print indexed Op
     ostream& print (ostream&) const ;		// Print Op list

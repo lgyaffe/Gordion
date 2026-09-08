@@ -52,15 +52,15 @@ using int2   = pair<int,int> ;		// Canonicalization trys
 using sv     = string_view ;		// Constexpr strings
 
 #ifdef NUM32
-using real   = float ;			// Poly coeffs & vev's
 using numb   = int ;			// ObsList index
+using real   = float ;			// Poly coeffs & vev's
 using usmall = ushort ;			// Half size integer
 constexpr int  MAXORD  = 63 ;		// Max Op/Obs order
 constexpr long MAXNUM  = INT_MAX ;	// Max Obs index
 constexpr doub DFLTTOL = 1.e-6 ;	// Default ODE tolerance
 #else
-using real   = doub ;			// Poly coeffs & vev's
 using numb   = long ;			// ObsList index
+using real   = doub ;			// Poly coeffs & vev's
 using usmall = uint ;			// Half size integer
 constexpr int  MAXORD  = 1023 ;		// Max Op/Obs order
 constexpr long MAXNUM  = LONG_MAX ;	// Max Obs index

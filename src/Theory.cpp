@@ -6,19 +6,19 @@
 #define MASSSCALE 0
 #endif
 
-void Theory::theoryinit()			// Report theory & version
+void Theory::theoryinit()			// Report theory and version
     {
     Print::print_theory() ;
     Print::print_version() ;
     }
 
-void Theory::theorydefn (int stage)		// Define hamiltonian or action
+void Theory::theorydefn (uint stage)		// Define hamiltonian or action
     {
     Coeff	unitcoeff {} ;
     char8	lambda	  {"lambda"} ;
     int		lamindx   ( Coupling::indx (lambda) ) ;
-    PolyMap	map	  { global.base } ;
     ObsList&	baslist   { global.base } ;
+    PolyMap	map	  { global.base } ;
     symb	link[4]   { 'x', 'y', 'z', 'w' } ;
     symb	Link[4]   { 'X', 'Y', 'Z', 'W' } ;
     symb	ferm[4]   { 'f', 'g', 'h', 'i' } ;
@@ -83,10 +83,10 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 		{
 		for (int j(i) ; ++j < theory.dim ;)
 		    {
-		    Str		xyXY   { string{link[i],link[j],Link[i],Link[j]} } ;
-		    Str		xYXy   { string{link[i],Link[j],Link[i],link[j]} } ;
-		    numb	indx  { baslist.find (xyXY) } ;
-		    numb	Indx  { baslist.find (xYXy) } ;
+		    Str		xyXY { string {link[i],link[j],Link[i],Link[j]} } ;
+		    Str		xYXy { string {link[i],Link[j],Link[i],link[j]} } ;
+		    numb	indx { baslist.find (xyXY) } ;
+		    numb	Indx { baslist.find (xYXy) } ;
 		    if (indx == MAXNUM) fatal ("Baselist missing plaq") ;
 		    if (Indx == MAXNUM) fatal ("Baselist missing Plaq") ;
 		    plaquette.push_back (PolyTerm (indx, -1.0)) ;
@@ -97,19 +97,19 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	if (plaquette.size())
 	    global.info(0).Hterms.emplace_back (laminvcoeff, plaquette) ;
 	}
-    else if (theory.nf)
+    else if (theory.nf)		// N.B.: fermion couplings must follow gauge couplings
 	{
 	char8	mass	 {"mass"} ;
 	int	massindx { Coupling::indx (mass) } ;
 	if (massindx < 0)
-	    {						// N.B.: fermion 
-	    Coupling::list.emplace_back (mass, 1) ;	// coupling must follow
-	    massindx = Coupling::indx (mass) ;		// all gauge couplings
+	    {
+	    Coupling::list.emplace_back (mass, 1) ;
+	    massindx = Coupling::indx (mass) ;
 	    }
 	Coeff masscoeff {{massindx,1},{lamindx,MASSSCALE}} ;
 	global.info(1).Hterms.clear() ;
 	
-	if (isham)
+	if (isham)				// Fermion electric energy
 	    {
 	    ObsPoly kinetic_F  (baslist) ;
 	    for (int i(0) ; i < theory.dim ; ++i)
@@ -122,12 +122,12 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	    }
 
 	ObsPoly hop_term   (baslist) ;
-	for (int i(0) ; i < theory.nf ; i+=2)
+	for (int i(0) ; i < theory.nf ; i+=2)	// Fermion hopping
 	    {
 	    for (int j(0) ; j < theory.dim ; ++j)
 		{
-		Str 	Fxf	{ string{Ferm[i],link[j],ferm[i]} } ;
-		Str 	FXf	{ string{Ferm[i],Link[j],ferm[i]} } ;
+		Str	Fxf	{ string {Ferm[i],link[j],ferm[i]} } ;
+		Str	FXf	{ string {Ferm[i],Link[j],ferm[i]} } ;
 		numb	indx	{ baslist.find (Fxf) } ;
 		numb	Indx	{ baslist.find (FXf) } ;
 		if (indx == MAXNUM) fatal ("Baselist missing Fxf") ;
@@ -139,7 +139,7 @@ void Theory::theorydefn (int stage)		// Define hamiltonian or action
 	global.info(1).Hterms.emplace_back (unitcoeff, hop_term) ;
 
 	ObsPoly mass_term  (baslist) ;
-	for (int i(0) ; i < theory.nf ; i+=2)
+	for (int i(0) ; i < theory.nf ; i+=2)	// Fermion mass
 	    {
 	    numb indx { baslist.find (string {Ferm[i+isham],ferm[i]}) } ;
 	    if (indx == MAXNUM) fatal ("Baselist missing Ff/Gf") ;

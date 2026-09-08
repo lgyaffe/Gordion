@@ -60,11 +60,12 @@ class Symm						// Symmetry transformation
 
     static constexpr int	Cbit = Nsymb ;		// conjugating symm bit number
     static Index<Symm>		list ;			// Lattice (x C) symmetry transforms
-    inline static Symmmap	trans2indx ;		// transform to index map
+    static Symmmap		trans2indx ;		// transform to index map
     static SymmTerm		known (const string&&); // Return named Symm
     static void			symminit () ;		// Initialize symmetries
     } ;
 
+inline Symmmap		Symm::trans2indx ;		// transform to index map
 inline Index<Symm>	Symm::list ;			// Defined Symm's
 
 #endif

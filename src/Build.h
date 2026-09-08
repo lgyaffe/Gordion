@@ -11,19 +11,19 @@ namespace Build
     void mk_ham		() ;
     void mk_grad	() ;
     void mk_geos	() ;
-    void mk_loops	() ;
-    void mk_Eloops	() ;
-    void mk_EEloops	() ;
-    void mk_fermions	() ;
-    void mk_Efermions	() ;
-
-    void mk_obs		(uint) ;
     void mk_eqns	(uint) ;
     void mk_curv	(uint) ;
     void mk_lagr	(uint) ;
     void mk_eqns	(string) ;
     void mk_curv	(string) ;
     void mk_lagr	(string) ;
+
+    void mk_obs		(uint) ;
+    void mk_loops	() ;
+    void mk_Eloops	() ;
+    void mk_EEloops	() ;
+    void mk_fermions	() ;
+    void mk_Efermions	() ;
 
     void do_geostats	  () ;
     void do_geo_bckt	  (const numb3&) ;
@@ -33,8 +33,10 @@ namespace Build
     void do_Fermion_bckt  (const numb3&) ;
     void do_Efermion_bckt (const numb3&) ;
     void do_geostat_bckt  (const numb3&) ;
-    void check_xorder	  (numb, const Gen&, const PolyMap&) ;
-    void clear_obs	  (int) ;
+
+    void check_xorder	(numb, const Gen&, const PolyMap&) ;
+    void clear_obs	(uint) ;
+    void added_obs	() ;
 
     inline static int		cord ;			// Current creation order
     inline static Obsset	newobs ;		// Newly generated Obs

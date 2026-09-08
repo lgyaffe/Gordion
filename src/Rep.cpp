@@ -187,14 +187,14 @@ uint2 Proj::indices () const				// Return projector indices
     return uint2 (i,j) ;
     }
 
-sv Proj::rowname () const			// Rep row name
+sv Proj::rowname () const				// Rep row name
     {
     static string suffix { "abcdxyzw" } ;
     if (suffix.find (name.back()) == suffix.npos) return name ;
     else return sv (name.begin(), name.end()-1) ;
     }
 
-sv Proj::repname () const			// Rep name
+sv Proj::repname () const				// Rep name
     {
     static string suffix { "abcdxyzw" } ;
     if (suffix.find (name.back()) == suffix.npos) return name ;

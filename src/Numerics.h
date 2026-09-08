@@ -11,7 +11,7 @@ class Status
     array<doub,3>	negeig ;	// Negative curvature eigs
     array<cmplx,3>	cmplxeig ;	// Complex curvature eigs
     doub		maxloopv ;	// Max loop expectation
-    uint		maxloopi ;	// Max loop index
+    numb		maxloopi ;	// Max loop index
 
     void reset () { warn = false ; negeig.fill(0) ; cmplxeig.fill(0) ; }
     } ;
@@ -66,7 +66,7 @@ class Numerics
     const Uvec&	eval_inuse	(uint,bool=false) ;	// Active generator list
     const Cvec&	eval_spectra	(uint,bool=false) ;	// Evaluate spectrum
     const Cvec&	eval_spectra	(string,bool=false) ;	// Evaluate spectrum
-    void	initialize	(int = global.stage) ;	// Initialize & reset
+    void	initialize	(uint=global.stage) ;	// Initialize & reset
     void	status_rpt	(uint,uint) ;		// Report status
     bool	check_loops	() ;			// Loop vevs < 1?
     bool	open_MMA	() ;			// Open MMA output file

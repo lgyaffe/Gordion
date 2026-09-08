@@ -62,8 +62,8 @@ SymmSum SymmSum::operator*(SymmTerm b)				// Multiply sum by term
 
 int Symm::operator() (const Symm& a) const noexcept		// Compose Symm's
     {
-    Symm c(a) ;
-    for (symb x(0) ; x < Nsymb ; ++x)
+    Symm c ;
+    for (symb x : Symb::symblist)
 	{
 	c.map[x] = map[a.map[x]] ;
 	c.sgn[x] = sgn[a.map[x]] ^ a.sgn[x] ;
@@ -102,7 +102,7 @@ pair<int,Op> Symm::operator()(const Op& a) const		// Transform Op
 
 bool Symm::operator==(const Symm&s) const noexcept		// Compare transformation
     {
-    return sgn == s.sgn && std::equal(begin(map), std::end(map), std::begin(s.map)) ;
+    return sgn == s.sgn && map == s.map ;
     }
 
 SymmTerm Symm::known (const string&& name)			// Return named symmetry
@@ -114,7 +114,7 @@ ostream& operator<< (ostream& stream, const Symm& a)		// Print transformation
     {
     int j(0) ;
     stream << a.name << (a.isCodd() ? ":\tC" : ":") ;
-    for (symb c(0) ; c < Nsymb ; ++c)
+    for (symb c : Symb::symblist)
 	{
 	if (in_thy(c) && (a.map[c] != c || a.sgn[c]))
 	    {
@@ -165,8 +165,9 @@ void Symm::symminit()				// Initialize symmetry group data
 		Symm	trans ;
 		string	CRname ;
 
-		for (symb c(0) ; c < YMend ; ++c)	// Construct symbol mapping
+		for (symb c : Symb::symblist)		// Construct symbol mapping
 		    {
+		    if (isferm(c)) continue ;
 		    int a {axis(c)} ;
 		    trans.map[c] = (c & TandR) | link[perm[a]] ;
 		    if (R & (0x1 << perm[a]))
@@ -183,8 +184,9 @@ void Symm::symminit()				// Initialize symmetry group data
 
 		if (C)					// Add conjuation of fermions
 		    {
-		    for (symb c(YMend) ; c < Nsymb ; ++c)
+		    for (symb c : Symb::symblist)
 			{
+			if (!isferm(c)) continue ;
 			if (!theory.euclid)
 			    {
 			    if (isstag(c) ^ isconj(c)) trans.sgn.flip(c) ;
@@ -219,3 +221,4 @@ void Symm::symminit()				// Initialize symmetry group data
 	    } while (next_permutation (perm.begin(), perm.begin() + dim) ) ;
 	}
     }
+

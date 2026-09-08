@@ -49,7 +49,7 @@ void Save::save_sys ()					// Save sys info
 	{
 	cout << "Writing sys-info file " << path << "\n" ;
 	syspath = std::move (path) ;
-	write_header (sysstream) ;
+	write_syshead (sysstream) ;
 	}
     else gripe ("Cannot write sys-info file " + path) ;
 
@@ -106,7 +106,7 @@ void Save::save_vev ()					// Save vev data
 	    else
 		{
 		cout << "Writing vev data to " << path << "\n" ;
-		write_header (stream, ncoup, nvev) ;
+		write_vevhead (stream) ;
 		}
 	    vevpath	= std::move (path) ;
 	    vevstream	= std::move (stream) ;
@@ -118,19 +118,31 @@ void Save::save_vev ()					// Save vev data
     write_vev  () ;
     }
 
-void Save::write_header (fstream& stream, uint ncoup, uint nvev) // Write file header
+void Save::write_syshead (fstream& stream)	// Write sys file header
     {
     filehdr.version	= global.version ;
     filehdr.name	= global.stage ? theory.name : theory.parent() ;
     filehdr.hashF	= global.stage ? global.obs.hashF : 0 ;
     filehdr.hashG	= global.obs.hashG ;
-    filehdr.ncoup	= ncoup ;
-    filehdr.nvev	= nvev ;
+    filehdr.maxord	= global.info().maxord ;
+    filehdr.ncoup	= 0 ;
     stream.write (cast_to<char*>(&filehdr), sizeof filehdr) ;
     if (stream.fail()) ioerror ("write_header: I/O error!") ;
     }
 
-void Save::write_op ()						// Write Op record
+void Save::write_vevhead (fstream& stream)	// Write vev file header
+    {
+    filehdr.version	= global.version ;
+    filehdr.name	= global.stage ? theory.name : theory.parent() ;
+    filehdr.hashF	= global.stage ? global.obs.hashF : 0 ;
+    filehdr.hashG	= global.obs.hashG ;
+    filehdr.nvev	= global.nobs() ;
+    filehdr.ncoup	= Coupling::ncoup() ;
+    stream.write (cast_to<char*>(&filehdr), sizeof filehdr) ;
+    if (stream.fail()) ioerror ("write_header: I/O error!") ;
+    }
+
+void Save::write_op ()					// Write Op record
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	record	{ global.data().op  } ;
@@ -167,7 +179,7 @@ void Save::write_op ()						// Write Op record
     if (blab > 1) cout << "Saved Op\n" << flush ;
     }
 
-void Save::write_obs ()					// Write Obs record
+void Save::write_obs ()				// Write Obs record
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     const auto&	nobs	{ global.nobs() } ;
@@ -343,7 +355,7 @@ void Save::write_geos ()				// Write Geo records
 	}
     }
 
-void Save::write_geo_bckt (int bcktnum)			// Write single Geo bucket
+void Save::write_geo_bckt (uint bcktnum)		// Write single Geo bucket
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	stream	{ global.info().sysfile.stream } ;
@@ -451,7 +463,7 @@ void Save::write_vev ()					// Write Vev's
 void Save::load_save (int set, string file)		// Load save file
     {
     string	path	{ file } ;
-    const auto& savedir { global.savedir } ;
+    const auto&	savedir	{ global.savedir } ;
 
     if (!std::filesystem::exists (path))
 	path = global.addsubdir (savedir) + file ;
@@ -512,12 +524,12 @@ void Save::load_vev (int set)			// Load vev data set
 
 int Save::read_header (fstream& stream, const string& path) // Read save file header
     {
-    const auto& ncoupG	{ Coupling::ncoup(0) } ;
-    const auto& ncoupF	{ Coupling::ncoup(1) } ;
     const auto& nvevG	{ global.obs.nobsG } ;
     const auto& nvevF	{ global.obs.nobsF } ;
     const auto& hashG	{ global.obs.hashG } ;
     const auto& hashF	{ global.obs.hashF } ;
+    const auto& ncoupG	{ Coupling::ncoup(0) } ;
+    const auto& ncoupF	{ Coupling::ncoup(1) } ;
     auto&	hdr	{ filehdr } ;
 
     stream.read (cast_to<char*>(&hdr), sizeof hdr) ;
@@ -536,35 +548,46 @@ int Save::read_header (fstream& stream, const string& path) // Read save file he
     static constexpr sv	badpar { "File {} theory {} != {} or {}" } ;
     static constexpr sv	badthy { "File {} theory {} != {}" } ;
 
-    if (hdr.version.incompat()) gripe (format (badnum, path)) ;
-    if (hdr.version.newer())	cout << format(newer, path, hdr.version.print()) ;
-
     if (theory.parent() == hdr.name)				// YM save file
 	{
+	if (hdr.version.incompat())
+	    gripe (format (badnum, path)) ;
 	if (hdr.hashF)
 	    gripe (format (corrpt, path)) ;
-	if (hdr.ncoup == 0 && hdr.nvev == 0)
+	if (hdr.ncoup == 0)
+	    {
+	    global.info().maxord = hdr.maxord ;
 	    return 0 ;						// YM sys file
+	    }
 	if (hdr.ncoup != ncoupG)
 	    gripe (format (numcup, path, hdr.ncoup, ncoupG)) ;
 	if (hdr.nvev  != nvevG)
 	    gripe (format (numobs, path, hdr.nvev,  nvevG))  ;
 	if (hdr.hashG != hashG)
 	    gripe (format (badset, path, hdr.hashG, hashG)) ;
+	if (hdr.version.newer())
+	    cout << format(newer,  path, hdr.version.print()) ;
 	return 0 ;						// YM vev file
 	}
     else if (theory.name == hdr.name && theory.nf)		// QCD save file
 	{
+	if (hdr.version.incompat())
+	    gripe (format (badnum, path)) ;
 	if (hdr.hashG != hashG)
 	    gripe (format (badset, path, hdr.hashG, hashG));
-	if (hdr.ncoup == 0 && hdr.nvev == 0)
+	if (hdr.ncoup == 0)
+	    {
+	    global.info().maxord = hdr.maxord ;
 	    return 1 ;						// QCD sys file
+	    }
 	if (hdr.ncoup != ncoupF)
 	    gripe (format (numcup, path, hdr.ncoup, ncoupF));
 	if (hdr.nvev  != nvevF)
 	    gripe (format (numobs, path, hdr.nvev,  nvevF)) ;
 	if (hdr.hashF != hashF)
 	    gripe (format (badset, path, hdr.hashF, hashF));
+	if (hdr.version.newer())
+	    cout << format(newer,  path, hdr.version.print()) ;
 	return 1 ;						// QCD vev file
 	}
     else if (theory.name != theory.parent())
@@ -573,7 +596,7 @@ int Save::read_header (fstream& stream, const string& path) // Read save file he
 	gripe (format(badthy, path, hdrthy, mythy)) ;
     }
 
-void Save::read_sysindex ()					// Load SysIndex
+void Save::read_sysindex ()			// Load SysIndex
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	stream	{ global.info().sysfile.stream } ;
@@ -586,7 +609,7 @@ void Save::read_sysindex ()					// Load SysIndex
     if (blab > 1) cout << "Read Index\n" ;
     }
 
-void Save::read_op ()						// Read Op record
+void Save::read_op ()				// Read Op record
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	stream	{ global.info().sysfile.stream } ;
@@ -610,7 +633,7 @@ void Save::read_op ()						// Read Op record
 	auto	len	{ elemptr->len() } ;
 	OpHdr	hdr	{ elemptr++->hdr.op } ;
 	symb*	ptr	{ cast_to<symb*> (elemptr) } ;
-	symb*	end	{ ptr + len * elemsiz  } ; while (*--end == X) ;
+	symb*	end	{ ptr + len * elemsiz } ; while (*--end == X) ;
 	Str	s	{ ptr, end + 1 } ;
 	Op	o	{ s, hdr } ;
 
@@ -626,7 +649,7 @@ void Save::read_op ()						// Read Op record
     if (blab > 1) cout << "Loaded Op\n" << flush ;
     }
 
-void Save::read_obs ()					// Read Obs record
+void Save::read_obs ()				// Read Obs record
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	stream	{ global.info().sysfile.stream } ;
@@ -661,9 +684,6 @@ void Save::read_obs ()					// Read Obs record
 	if (obslist.store (o) != indx++)
 	    abort ("read_obs: Inconsistent global.obs") ;
 
-	if (global.info().maxord < o.order() && o.corder == o.xorder)
-	    global.info().maxord = o.order() ;
-
 	elemptr += len ;
 	}
     global.obs.nobsG = obslist.nobsG ;
@@ -693,7 +713,7 @@ void Save::reload_obs ()			// Reload Obs record
     {
     auto& obslist { global.obs } ;
     obslist.clear () ;
-    for (int stage(0) ; stage < 2 - !theory.nf ; ++stage)
+    for (uint stage(0) ; stage < 2 - !theory.nf ; ++stage)
 	{
 	auto&	stream	{ global.info(stage).sysfile.stream } ;
 	auto&	record	{ global.data(stage).obs } ;
@@ -851,7 +871,7 @@ void Save::read_curv ()				// Read Curv records
 	}
     }
 
-void Save::read_lagr ()					// Read Lagr records
+void Save::read_lagr ()				// Read Lagr records
     {
     if (theory.euclid) return ;
 
@@ -873,7 +893,7 @@ void Save::read_lagr ()					// Read Lagr records
 	}
     }
 
-void Save::read_geos ()					// Read Geo records
+void Save::read_geos ()				// Read Geo records
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	stream	{ global.info().sysfile.stream } ;
@@ -894,7 +914,7 @@ void Save::read_geos ()					// Read Geo records
 	}
     }
 
-void Save::read_geo_bckt (int stage, int bcktnum)	// Read Geo bucket
+void Save::read_geo_bckt (uint stage, uint bcktnum)	// Read Geo bucket
     {
     const auto&			blab	 { Blab::level(Blab::SAVE) } ;
     const auto&			syspath  { global.info(stage).sysfile.path } ;
@@ -948,7 +968,7 @@ void Save::read_geo_bckt (int stage, int bcktnum)	// Read Geo bucket
     else abort (format("read_geo_bckt [{}]: bad check in!",bcktnum)) ;
     }
 
-void Save::read_stat ()					// Read Stat record
+void Save::read_stat ()				// Read Stat record
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	stream	{ global.info().sysfile.stream } ;
@@ -964,14 +984,14 @@ void Save::read_stat ()					// Read Stat record
     if (blab > 1) cout << "Loaded Stat\n" << flush ;
     }
 
-long Save::vevsize ()				// Vev record bytes
-    {
-    return global.nobs() * sizeof (real) ;
-    }
-
 long Save::coupsize ()				// Coupling record bytes
     {
     return Coupling::ncoup() * sizeof (Coupling) ;
+    }
+
+long Save::vevsize ()				// Vev record bytes
+    {
+    return global.nobs() * sizeof (real) ;
     }
 
 long Save::datasetsize ()			// coup + vev record size
@@ -1026,5 +1046,7 @@ void Save::read_vev (int set)				// Read Vev data
 
     stream.read (cast_to<char*>(ptr), filehdr.nvev * sizeof (real)) ;
     if (stream.fail()) ioerror ("read_vev: I/O error!") ;
+    global.info().validvev = true ;
+    if (!global.stage) global.info(1).validvev = false ;
     if (blab > 1) cout << "Loaded Vev\n" << flush ;
     }

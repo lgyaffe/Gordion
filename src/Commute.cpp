@@ -116,15 +116,15 @@ void Commute::do_commute (const Op& a, const Obs& b, PolyTerm factor, ObsList& l
     {
     if (b.is_Entropy()) return ;
 
-    if (a.is_Eloop())				// a's Eloop differentiates
+    if (a.is_Eloop())				// a's E differentiates
 	{
 	do_commuteA (a, b, factor, list, ans) ;
 	}
-    if (b.is_Eloop())				// b's Eloop differentiates
+    if (b.is_Eloop())				// b's E differentiates
 	{
 	do_commuteB (a, b, factor, list, ans) ;
 	}
-    else if (b.is_EEloop())			// b's front E(s) differentiate
+    else if (b.is_EEloop())			// b's front E's differentiate
 	{
 	do_commuteC (a, b, factor, list, ans) ;
 	}
@@ -161,8 +161,8 @@ void Commute::do_commuteA (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 	symb y { b[i] } ;
 	if (dir != axis(y) || isferm(y)) continue ;
 
-	int 		tnRb = tnR(y) ;
-	const Splice	*sp = splicetbl[tnRa][tnRb] ;
+	int 		tnRb { tnR(y) } ;
+	const Splice	*sp { splicetbl[tnRa][tnRb] } ;
 
 	for (int k(0) ; k < 2 ; ++k)
 	    {
@@ -723,8 +723,8 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 	    symb y { b[i] } ;
 	    if (dir != axis(y) || isferm(y)) continue ;
 
-	    int 		tnRb = tnR(y) ;
-	    const Splice	*sp = splicetbl[tnRa][tnRb] ;
+	    int 		tnRb { tnR(y) } ;
+	    const Splice	*sp { splicetbl[tnRa][tnRb] } ;
 
 	    for (int k(0) ; k < 2 ; ++k)
 		{
