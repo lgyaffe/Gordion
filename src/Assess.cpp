@@ -106,7 +106,8 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	}
     else					// Just store in list
 	{
-	if (global.xtraobs && a.xorder < 0) a.xorder = a.corder ;
+	if (global.xtraobs && !neq(global.obs) && a.xorder < 0)
+	    a.xorder = a.corder ;
 	a.shrink_to_fit() ;
 	numb indx { store(a) } ;
 	if (blab)
