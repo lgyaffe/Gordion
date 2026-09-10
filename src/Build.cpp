@@ -36,7 +36,6 @@ void Build::added_obs ()
 	global.obs.nobsF = obslist.nobsF ;
 	global.obs.hashG = obslist.hashG ;
 	global.obs.hashF = obslist.hashF ;
-	global.clearpolys    (0) ;
 	global.close_streams (0) ;
 	global.mk_bcktlist   ()  ;
 	}
@@ -45,7 +44,6 @@ void Build::added_obs ()
 	global.info(1).validvev = false ;
 	global.obs.nobsF = obslist.nobsF ;
 	global.obs.hashF = obslist.hashF ;
-	global.clearpolys    (1) ;
 	global.close_streams (1) ;
 	global.mk_bcktlist   ()  ;
 	}
@@ -57,17 +55,19 @@ void Build::mk_obs (uint target)		// Build observables
 
     const auto&	blab	{ Blab::level(Blab::BUILD) } ;
     const auto&	info	{ global.stageinfo } ;
+    const auto&	gens	{ global.info().gens.front() } ;
     auto&	maxord  { global.info().maxord } ;
     ObsList&	obslist { global.obs } ;
 
+    obslist.classify	= true ;
     obslist.approx	= false ;
     global.obs.freeze	= false ;
-    global.obs.classify = true ;
     Canon::cache.freeze = false ;
     if (global.stage == Global::Gauge)
 	{
 	clear_obs (1) ;
 	if (target < maxord) clear_obs (0) ;
+	if (!gens.size()) Gen::geninit (0) ;
 	if (obslist.nobsG <= 1) obslist.obsinit (0) ;
 	auto numobs { obslist.size() } ;
 	while (maxord < target)
@@ -79,7 +79,11 @@ void Build::mk_obs (uint target)		// Build observables
 	    mk_Eloops() ;
 	    mk_EEloops() ;
 	    }
-	if (obslist.size() != numobs) added_obs () ;
+	if (obslist.size() != numobs)
+	    {
+	    added_obs () ;
+	    global.clearpolys (0) ;
+	    }
 	}
     else if (theory.nf) // stage == Global::Fermi
 	{
@@ -111,18 +115,22 @@ void Build::mk_obs (uint target)		// Build observables
 	    if (initfail) cout << " + " << initfail << " missing loop partners" ;
 	    cout << "\n" ;
 	    }
-	if (obslist.size() != numobs) added_obs () ;
+	if (obslist.size() != numobs)
+	    {
+	    added_obs () ;
+	    global.clearpolys (1) ;
+	    }
 	}
     Obsset().swap (newobs) ;
     Obsset().swap (global.obs.inbox) ;
     Canon::cache.freeze	= true ;
     global.obs.freeze	= true ;
-    global.obs.classify = false ;
+    obslist.classify	= false ;
     obslist.approx	= global.approx ;
     obslist.shrink() ;
 
     if (blab) cout << "Total # Obs:\t" << global.obs.size() << "\n" << flush ;
-    if (global.info().Hterms[0].cpoly.empty()) mk_ham () ;
+    //if (global.info().Hterms[0].cpoly.empty()) mk_ham () ;
     }
 
 void Build::mk_loops ()				// Build Loop's
@@ -436,6 +444,7 @@ void Build::mk_grad()				// Build gradient
     grad.entry().ncol   = nterms ;
     grad.entry().nrow   = neven ;
     grad.entry().reclen = grad.size() ;
+    global.obs.freeze	= true ;
     if (blab) cout << "\t\tdone\n" << flush ;
     }
 
@@ -498,10 +507,11 @@ void Build::mk_curv (uint repnum)			// Build curvature
 	}
     if (obslist.size() != numobs) added_obs () ;
     curv.shrink_to_fit() ;
-    curv.entry().nslice  = nterms ;
-    curv.entry().ncol    = ngens ;
-    curv.entry().nrow    = ngens ;
-    curv.entry().reclen  = curv.size() ;
+    curv.entry().nslice = nterms ;
+    curv.entry().ncol   = ngens ;
+    curv.entry().nrow   = ngens ;
+    curv.entry().reclen = curv.size() ;
+    global.obs.freeze	= true ;
     if (blab && ngens && nterms) cout << "\tdone\n" << flush ;
     }
 
@@ -555,6 +565,7 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     lagr.entry().ncol   = neven ;
     lagr.entry().nrow   = ngens - neven ;
     lagr.entry().reclen = lagr.size();
+    global.obs.freeze	= true ;
     if (blab && ngens)
 	{
 	if (trunc == SHRT_MAX) cout << "\tdone\n" ;
@@ -583,7 +594,6 @@ void Build::mk_geos()				// Build geodesic equations
     TASK_ARENA (global.maxthread, bckt,
 	FOR_EACH (bckt.begin(), bckt.end(), do_geo_bckt)) ;
 
-    global.obs.freeze = !global.xtraobs ;
     if (blab) cout << "\tdone\n" << flush ;
     }
 

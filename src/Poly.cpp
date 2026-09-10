@@ -95,7 +95,7 @@ bool PolyMap::add_gen (const Gen& gen)			// Add Gen to PolyMap
 	if (tmp.coeff)	add (tmp * t.coeff * gen.coeff) ;
 	else if (addok)
 	    {
-	    obs.xorder = obs.corder ;
+	    if (obs.xorder < 0) obs.xorder = obs.corder ;
 	    obs.shrink_to_fit() ;
 	    numb indx { obslist().store (std::move(obs)) } ;
 	    add (PolyTerm (indx) * t.coeff * gen.coeff) ;

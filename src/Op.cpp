@@ -216,13 +216,15 @@ void OpList::opinit (uint stage)		// Operator initialization
 
 	for (int i(0) ; i < theory.dim ; ++i)		// 1x1 plaq
 	    {
-	    for (int j(i) ; ++j < theory.dim ;)
+	    for (int j(0) ; j < theory.dim ; ++j)
 		{
+		if (i == j) continue ;
 		Op plaq { string {l[i],l[j],L[i],L[j]}, loop, 2 } ;
-		Op Plaq { string {l[i],L[j],L[i],l[j]}, loop, 2 } ;
 		if (isham) list.store (plaq) ;
-		if (isham) list.store (Plaq) ;
 		OpSum::loop_dt (plaq, list) ;
+
+		Op Plaq { string {l[i],L[j],L[i],l[j]}, loop, 2 } ;
+		if (isham) list.store (Plaq) ;
 		OpSum::loop_dt (Plaq, list) ;
 		}
 	    }
@@ -233,25 +235,37 @@ void OpList::opinit (uint stage)		// Operator initialization
 		for (int k(0) ;  k < theory.dim ; ++k)
 		    {
 		    if (i == k || j == k) continue ;
-		    Op fig8 { string {l[i],l[k],l[j],L[k],L[j],l[k],L[i],L[k]}, loop, 4 } ;
-		    Op Fig8 { string {l[i],L[k],l[j],l[k],L[j],L[k],L[i],l[k]}, loop, 4 } ;
-		    if (isham) list.store (fig8) ;
-		    if (isham) list.store (Fig8) ;
-		    OpSum::loop_dt (fig8, list) ; 
-		    OpSum::loop_dt (Fig8, list) ; 
+		    Op figa { string {l[i],l[k],l[j],L[k],L[j],l[k],L[i],L[k]}, loop, 4 } ;
+		    if (isham) list.store (figa) ;
+		    OpSum::loop_dt (figa, list) ; 
+		    Op figb { string {l[i],L[k],l[j],l[k],L[j],L[k],L[i],l[k]}, loop, 4 } ;
+		    if (isham) list.store (figb) ;
+		    OpSum::loop_dt (figb, list) ; 
+		    Op figc { string {l[i],l[k],L[j],L[k],l[j],l[k],L[i],L[k]}, loop, 4 } ;
+		    if (isham) list.store (figc) ;
+		    OpSum::loop_dt (figc, list) ; 
+		    Op figd { string {l[i],L[k],L[j],l[k],l[j],L[k],L[i],l[k]}, loop, 4 } ;
+		    if (isham) list.store (figd) ;
+		    OpSum::loop_dt (figd, list) ; 
 		    }
-		}
-	    for (int j(0) ;  j < theory.dim ; ++j)
-		{
 		for (int k(0) ;  k < theory.dim ; ++k)
 		    {
 		    if (i == k || j == k) continue ;
-		    Op fig8 { string {l[i],l[k],L[j],L[k],l[j],l[k],L[i],L[k]}, loop, 4 } ;
-		    Op Fig8 { string {l[i],L[k],L[j],l[k],l[j],L[k],L[i],l[k]}, loop, 4 } ;
-		    if (isham) list.store (fig8) ;
-		    if (isham) list.store (Fig8) ;
-		    OpSum::loop_dt (fig8, list) ; 
-		    OpSum::loop_dt (Fig8, list) ; 
+		    Op figa { string {L[i],l[k],l[j],L[k],L[j],l[k],l[i],L[k]}, loop, 4 } ;
+		    if (isham) list.store (figa) ;
+		    OpSum::loop_dt (figa, list) ; 
+
+		    Op figb { string {L[i],L[k],l[j],l[k],L[j],L[k],l[i],l[k]}, loop, 4 } ;
+		    if (isham) list.store (figb) ;
+		    OpSum::loop_dt (figb, list) ; 
+
+		    Op figc { string {L[i],l[k],L[j],L[k],l[j],l[k],l[i],L[k]}, loop, 4 } ;
+		    if (isham) list.store (figc) ;
+		    OpSum::loop_dt (figc, list) ; 
+
+		    Op figd { string {L[i],L[k],L[j],l[k],l[j],L[k],l[i],l[k]}, loop, 4 } ;
+		    if (isham) list.store (figd) ;
+		    OpSum::loop_dt (figd, list) ; 
 		    }
 		}
 	    }
@@ -260,10 +274,11 @@ void OpList::opinit (uint stage)		// Operator initialization
 	    if (theory.box.comp[i])
 		{
 		Op polyakov  { string (theory.box.comp[i], l[i]), loop, 2 } ;
-		Op Polyakov  { string (theory.box.comp[i], L[i]), loop, 2 } ;
 		if (isham) list.store (polyakov) ;
-		if (isham) list.store (Polyakov) ;
 		OpSum::loop_dt (polyakov, list) ; 
+
+		Op Polyakov  { string (theory.box.comp[i], L[i]), loop, 2 } ;
+		if (isham) list.store (Polyakov) ;
 		OpSum::loop_dt (Polyakov, list) ; 
 		}
 	    }
@@ -274,28 +289,27 @@ void OpList::opinit (uint stage)		// Operator initialization
 		for (int j(0) ; j < theory.dim ; ++j)
 		    {
 		    if (i == j) continue ;
-		    string plaq {l[i],l[j],L[i],L[j]} ;
-		    string Plaq {l[i],L[j],L[i],l[j]} ;
 		    string poly (theory.box.comp[i], l[i]) ;
-		    Op plaqpoly { plaq+poly, loop, 4 } ;
-		    Op Plaqpoly { Plaq+poly, loop, 4 } ;
-		    if (isham) list.store (plaqpoly) ;
-		    if (isham) list.store (Plaqpoly) ;
-		    OpSum::loop_dt (plaqpoly, list) ; 
-		    OpSum::loop_dt (Plaqpoly, list) ; 
-		    }
-		for (int j(0) ; j < theory.dim ; ++j)
-		    {
-		    if (i == j) continue ;
-		    string plaq {L[i],l[j],l[i],L[j]} ;
-		    string Plaq {L[i],L[j],l[i],l[j]} ;
+		    string plaqa {l[i],l[j],L[i],L[j]} ;
+		    Op plaqpolya { plaqa+poly, loop, 4 } ;
+		    if (isham) list.store (plaqpolya) ;
+		    OpSum::loop_dt (plaqpolya, list) ; 
+
+		    string plaqb {l[i],L[j],L[i],l[j]} ;
+		    Op plaqpolyb { plaqb+poly, loop, 4 } ;
+		    if (isham) list.store (plaqpolyb) ;
+		    OpSum::loop_dt (plaqpolyb, list) ; 
+
 		    string Poly (theory.box.comp[i], L[i]) ;
-		    Op plaqPoly { plaq+Poly, loop, 4 } ;
-		    Op PlaqPoly { Plaq+Poly, loop, 4 } ;
-		    if (isham) list.store (plaqPoly) ;
-		    if (isham) list.store (PlaqPoly) ;
-		    OpSum::loop_dt (plaqPoly, list) ; 
-		    OpSum::loop_dt (PlaqPoly, list) ; 
+		    string plaqc {L[i],l[j],l[i],L[j]} ;
+		    Op plaqPolyc { plaqc+Poly, loop, 4 } ;
+		    if (isham) list.store (plaqPolyc) ;
+		    OpSum::loop_dt (plaqPolyc, list) ; 
+
+		    string plaqd {L[i],L[j],l[i],l[j]} ;
+		    Op plaqPolyd { plaqd+Poly, loop, 4 } ;
+		    if (isham) list.store (plaqPolyd) ;
+		    OpSum::loop_dt (plaqPolyd, list) ; 
 		    }
 		}
 	    }
@@ -311,13 +325,13 @@ void OpList::opinit (uint stage)		// Operator initialization
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
 		Op Gxf { string {F[k+1],l[i],f[k]}, ferm, 1 } ;
-		Op GXf { string {F[k+1],L[i],f[k]}, ferm, 1 } ;
 		list.store (Gxf) ;
+		Op GXf { string {F[k+1],L[i],f[k]}, ferm, 1 } ;
 		list.store (GXf) ;
 		if (!isham) continue ;
 		Op Fxf { string {F[k],l[i],f[k]}, ferm, 1 } ;
-		Op FXf { string {F[k],L[i],f[k]}, ferm, 1 } ;
 		list.store (Fxf) ;
+		Op FXf { string {F[k],L[i],f[k]}, ferm, 1 } ;
 		list.store (FXf) ;
 		}
 	    }
