@@ -914,7 +914,7 @@ void Save::read_geos ()				// Read Geo records
 	}
     }
 
-void Save::read_geo_bckt (uint stage, uint bcktnum)	// Read Geo bucket
+void Save::read_geo_bckt (uint stage, int bcktnum)	// Read Geo bucket
     {
     const auto&			blab	 { Blab::level(Blab::SAVE) } ;
     const auto&			syspath  { global.info(stage).sysfile.path } ;

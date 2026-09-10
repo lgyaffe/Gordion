@@ -410,23 +410,23 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
 	else if (isword(word,"lagrange")   && eos(line) && isH)	Build::mk_lagr (rep) ;
 	else if (isword(word,"all")	   && parse_args (line,i))
 	    {
-								Build::mk_obs  (i) ;
-	    for (int j(0) ; j < nrep ; ++j)			Build::mk_eqns (j) ;
+	    Build::mk_obs  (i) ;
+	    Build::mk_eqns (-1) ;
 	    }
 	else if (isword(word,"equations")  && parse_args(line,word))
 	    {
-	    if (!isword(word,"all"))				Build::mk_eqns (word) ;
-	    else for (int j(0) ; j < nrep ; ++j)		Build::mk_eqns (j) ;
+	    if (!isword(word,"all"))		 Build::mk_eqns (word) ;
+	    else 				 Build::mk_eqns (-1) ;
 	    }
 	else if (isword(word,"curvature")  && parse_args(line,word))
 	    {
-	    if (!isword(word,"all"))				Build::mk_curv (word) ;
-	    else for (int j(0) ; j < nrep ; ++j)		Build::mk_curv (j) ;
+	    if (!isword(word,"all"))		 Build::mk_curv (word) ;
+	    else for (int j(0) ; j < nrep ; ++j) Build::mk_curv (j) ;
 	    }
 	else if (isword(word,"lagrange")   && parse_args(line,word) && isH)
 	    {
-	    if (!isword(word,"all"))				Build::mk_lagr (word) ;
-	    else for (int j(0) ; j < nrep ; ++j)		Build::mk_lagr (j) ;
+	    if (!isword(word,"all"))		 Build::mk_lagr (word) ;
+	    else for (int j(0) ; j < nrep ; ++j) Build::mk_lagr (j) ;
 	    }
 	else valid = false ;
 	}

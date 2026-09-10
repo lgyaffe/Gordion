@@ -48,7 +48,7 @@ namespace Save
     void read_geos	() ;		// Load geodesics
 
     void write_geo_bckt	(uint) ;	// Save geo bucket
-    void read_geo_bckt	(uint,uint) ;	// Load geo bucket
+    void read_geo_bckt	(uint,int) ;	// Load geo bucket
 
     void write_coup	 () ;		// Save Couplings
     Couplings* read_coup (int,bool) ;	// Load Couplings

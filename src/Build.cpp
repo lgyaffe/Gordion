@@ -365,14 +365,22 @@ void Build::mk_eqns (string word)		// Build polynomial scripts
     catch (const exception& e) { gripe ("Unknown representation " + word) ; }
     }
 
-void Build::mk_eqns (uint rep)			// Build polynomial scripts
+void Build::mk_eqns (int rep)			// Build polynomial scripts
     {
-    bool	isH  { !theory.euclid } ;
-    if (!rep) { mk_ham  () ;
-		mk_grad () ; }
-		mk_curv (rep) ;
-    if (isH)	mk_lagr (rep) ;
-    if (!rep)	mk_geos () ;
+    int	beg { rep >= 0 ? rep : 0 } ;
+    int	end ( rep >= 0 ? rep+1 : Rep::list.size() ) ;
+
+    if (rep <= 0)
+	{
+	mk_ham  () ;
+	mk_grad () ;
+	}
+    for (int i(beg) ; i < end ; ++i)
+	{
+	mk_curv (i) ;
+	if (!theory.euclid) mk_lagr (i) ;
+	}
+    if (rep <= 0) mk_geos () ;
     }
 
 void Build::mk_ham()				// Build canonical H

@@ -11,7 +11,7 @@ namespace Build
     void mk_ham		() ;
     void mk_grad	() ;
     void mk_geos	() ;
-    void mk_eqns	(uint) ;
+    void mk_eqns	(int) ;
     void mk_curv	(uint) ;
     void mk_lagr	(uint) ;
     void mk_eqns	(string) ;
