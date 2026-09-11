@@ -19,6 +19,7 @@ void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
     if (!inc) gripe ("Must have non-zero coupling increment!") ;
     if ((v1 - v0)/inc < 0) inc *= -1 ;
     if (stage != global.stage) global.stageinit (stage) ;
+    if (!global.info().validvev) initialize () ;
 
     cout << std::scientific ;
     for (value = v0 ;;)
