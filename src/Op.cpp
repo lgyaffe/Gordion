@@ -110,10 +110,9 @@ void Op::findstart()				// Rotate to preferred start
     if (a) rotate (begin(), begin() + a, end()) ;
     }
 
-OpSum& OpSum::flipT () const			// Flip bilinear staggering
+OpSum OpSum::flipT () const			// Flip bilinear staggering
     {
-    static OpSum ans { oplist() } ;
-    ans.clear() ;
+    OpSum ans { oplist() } ;
     for (auto& t : *this)
 	{
 	Op op { oplist()[t.item] } ;
@@ -124,19 +123,16 @@ OpSum& OpSum::flipT () const			// Flip bilinear staggering
     return ans ;
     }
 
-OpSum& OpSum::loop_dt ()			// Loop OpSum -> Eloop OpSum
+OpSum OpSum::loop_dt () const			// Loop OpSum -> Eloop OpSum
     {
-    static OpSum ans { oplist() } ;
-    ans.clear() ;
+    OpSum ans { oplist() } ;
     for (auto& t : *this) loop_dt (t, ans) ;
     return ans ;
     }
 
-OpSum& OpSum::loop_dt (Op op, OpList& list)	// Loop Op -> Eloop OpSum
+OpSum OpSum::loop_dt (Op op, OpList& list)	// Loop Op -> Eloop OpSum
     {
-    if (op.type != OpType::Loop) fatal ("Bad call to loop_dt") ;
-    static OpSum ans { list } ;
-    ans.clear() ;
+    OpSum ans { list } ;
     return loop_dt (OpTerm (list.store(op)), ans) ;
     }
 

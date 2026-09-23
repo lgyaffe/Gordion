@@ -123,75 +123,61 @@ void Gen::settype (Op& op)			// Set & check Gen type
 	}
     }
 
-int Gen::project (Op& op)			// Project onto all reps
+int Gen::project (const Op& op)			// Project onto all reps
     {
     int added(0) ;
     for (int repnum(0) ; repnum < Rep::list.size() ; ++repnum)
 	{
 	for (const Proj& proj : Rep::list[repnum])
 	    {
-	    Gen  tmp { op, proj } ;
-
-	    if (tmp.valid() && isnew (repnum, tmp))
-		{
-		auto& info  { global.info(tmp.is_Fermion()) } ;
-		auto& gens  { info.gens[repnum] } ;
-		auto& neven { info.neven[repnum] } ;
-		int   indx  ( tmp.T_odd ? gens.size() : neven ) ;
-
-		if (Gen::gennorm) tmp.normalize (repnum) ;
-		if (tmp.T_odd) gens.push_back (tmp) ;
-		else gens.insert (gens.begin() + neven++, tmp) ;
-
-		++newgens[repnum] ;
-		++added ;
-		if (tmp.order > info.maxgen) info.maxgen = tmp.order ;
-
-		if (Blab::level(Blab::GEN))
-		    {
-		    cout << proj.name << " gen " << global.fg()
-			 << indx << (tmp.T_odd ? "*" : "")
-			 << " (" << tmp.order << ") " << tmp
-			 << "\n\treduction: " << tmp.reduction << "\n";
-		    }
-		}
+	    added += store (Gen {op, proj}, repnum) ;
 	    }
 	}
     return added ;
     }
 
-int Gen::project (OpSum& s)			// Project onto all reps
+int Gen::project (const OpSum& s)		// Project onto all reps
     {
     int added(0) ;
     for (int repnum(0) ; repnum < Rep::list.size() ; ++repnum)
 	{
 	for (const auto& proj : Rep::list[repnum])
 	    {
-	    Gen	tmp { s, proj } ;
+	    added += store (Gen {s, proj}, repnum) ;
+	    }
+	}
+    return added ;
+    }
 
-	    if (tmp.size() && tmp.valid() && isnew (repnum,tmp))
-		{
-		auto& info  { global.info(tmp.is_Fermion()) } ;
-		auto& gens  { info.gens[repnum] } ;
-		auto& neven { info.neven[repnum] } ;
-		int   indx  ( tmp.T_odd ? gens.size() : neven ) ;
+int Gen::project (const OpSum&& s)		// Project onto all reps
+    {
+    return project (s) ;
+    }
 
-		if (Gen::gennorm) tmp.normalize (repnum) ;
-		if (tmp.T_odd) gens.push_back (tmp) ;
-		else gens.insert (gens.begin() + neven++, tmp) ;
+int Gen::store (Gen&& gen, int repnum)		// Valodate & store Gen
+    {
+    int added(0) ;
+    if (gen.size() && gen.valid() && isnew (repnum,gen))
+	{
+	auto& info  { global.info(gen.is_Fermion()) } ;
+	auto& gens  { info.gens[repnum] } ;
+	auto& neven { info.neven[repnum] } ;
+	int   indx  ( gen.T_odd ? gens.size() : neven ) ;
 
-		++newgens[repnum] ;
-		++added ;
-		if (tmp.order > info.maxgen) info.maxgen = tmp.order ;
+	if (Gen::gennorm) gen.normalize (repnum) ;
+	if (gen.T_odd) gens.push_back (gen) ;
+	else gens.insert (gens.begin() + neven++, gen) ;
 
-		if (Blab::level(Blab::GEN) > 1)
-		    {
-		    cout << proj.name << " gen #" << global.fg()
-			 << indx << (tmp.T_odd ? "*" : "")
-			 << " (" << tmp.order << ") " << tmp
-			 << "\n\treduction: " << tmp.reduction << "\n";
-		    }
-		}
+	++newgens[repnum] ;
+	++added ;
+	if (gen.order > info.maxgen) info.maxgen = gen.order ;
+
+	if (Blab::level(Blab::GEN) > 1)
+	    {
+	    cout << "repnum " << repnum << " gen " << global.fg()
+		 << indx << (gen.T_odd ? "*" : "")
+		 << " (" << gen.order << ") " << gen
+		 << "\n\treduction: " << gen.reduction << "\n";
 	    }
 	}
     return added ;
@@ -384,7 +370,7 @@ void Gen::inner_commute ()			 	// Generator reduction
     else if (blab > 1)	cout << "inner_commute: returning \n" ;
     }
 
-int Gen::addgen (OpSum& s)			// Add new generator
+int Gen::addgen (const OpSum& s)		// Add new generator
     {
     int		added(0) ;
     OpList&	list { s.oplist() } ;

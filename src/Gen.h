@@ -41,10 +41,12 @@ class Gen : public OpSum		// Coherence algebra generator
     static inline bool	gennorm   { false } ;	// Normalize generators?
     static inline array<int,NREP> newgens ;	// # newly added gens
 
-    static bool	isnew (int, const Gen&) ;	// Dependency test
-    static int	project		(Op&) ;		// Project Op onto reps
-    static int	project		(OpSum&) ;	// Project Op sum
-    static int	addgen		(OpSum&) ;	// Add generator
+    static bool	isnew	(int, const Gen&) ;	// Dependency test
+    static int	project	(const Op&) ;		// Project Op onto reps
+    static int	project	(const OpSum&) ;	// Project Op sum
+    static int	project	(const OpSum&&) ;	// Project Op sum
+    static int	addgen	(const OpSum&) ;	// Add generator
+    static int	store	(Gen&&, int) ;		// Store generator
     static void	geninit		(uint) ;	// Initialization
     static void	suspend_group	(uint) ;	// Suspend gen group
     static void	activate_group	(uint) ;	// Activate gen group
