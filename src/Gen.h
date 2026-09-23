@@ -24,7 +24,6 @@ class Gen : public OpSum		// Coherence algebra generator
     Gen (const OpSum&, const Proj&) ;		// Constructor
     Gen (const OpSum&, Element&, real) ;	// Constructor
 
-    Gen&	collect		() ;		// Collect terms
     void 	inner_commute	() ;		// Evaluate reduction
     void 	settype		(Op&) ;		// Set type, order
     void	normalize	(int) ;		// Normalize generator
@@ -38,13 +37,14 @@ class Gen : public OpSum		// Coherence algebra generator
     bool isgauge()	const { return type == OpType::Loop ||
 				       type == OpType::Eloop ; }
 
-    static inline bool autoEgens { true } ;	// Use commutator E-gens?
-    static inline bool gennorm   { false } ;	// Normalize generators?
+    static inline bool	autoEgens { true } ;	// Use commutator E-gens?
+    static inline bool	gennorm   { false } ;	// Normalize generators?
+    static inline array<int,NREP> newgens ;	// # newly added gens
 
     static bool	isnew (int, const Gen&) ;	// Dependency test
     static int	project		(Op&) ;		// Project Op onto reps
-    static int	project		(OpSum&&) ;	// Project Op sum
-    static int	addgen		(OpSum&&) ;	// Add generator
+    static int	project		(OpSum&) ;	// Project Op sum
+    static int	addgen		(OpSum&) ;	// Add generator
     static void	geninit		(uint) ;	// Initialization
     static void	suspend_group	(uint) ;	// Suspend gen group
     static void	activate_group	(uint) ;	// Activate gen group

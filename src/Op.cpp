@@ -10,7 +10,7 @@ OpSum::OpSum (OpList& oplist)			// Constructor
     vector<OpTerm>::vector(), list (oplist)
     {}
 
-OpSum::OpSum (OpTerm* beg, OpTerm* end, OpList& oplist)
+OpSum::OpSum (OpTerm* beg, OpTerm* end, OpList& oplist) // Constructor
     :
     vector<OpTerm>::vector(beg, end), list (oplist)
     {}
@@ -110,9 +110,10 @@ void Op::findstart()				// Rotate to preferred start
     if (a) rotate (begin(), begin() + a, end()) ;
     }
 
-OpSum OpSum::flipT () const		// Flip bilinear staggering
+OpSum& OpSum::flipT () const			// Flip bilinear staggering
     {
-    OpSum ans { oplist() } ;
+    static OpSum ans { oplist() } ;
+    ans.clear() ;
     for (auto& t : *this)
 	{
 	Op op { oplist()[t.item] } ;
@@ -123,21 +124,23 @@ OpSum OpSum::flipT () const		// Flip bilinear staggering
     return ans ;
     }
 
-OpSum OpSum::loop_dt ()				// Loop OpSum -> Eloop OpSum
+OpSum& OpSum::loop_dt ()			// Loop OpSum -> Eloop OpSum
     {
-    OpSum ans { oplist() } ;
+    static OpSum ans { oplist() } ;
+    ans.clear() ;
     for (auto& t : *this) loop_dt (t, ans) ;
     return ans ;
     }
 
-OpSum OpSum::loop_dt (Op op, OpList& list)	// Loop Op -> Eloop OpSum
+OpSum& OpSum::loop_dt (Op op, OpList& list)	// Loop Op -> Eloop OpSum
     {
     if (op.type != OpType::Loop) fatal ("Bad call to loop_dt") ;
-    OpSum ans { list } ;
+    static OpSum ans { list } ;
+    ans.clear() ;
     return loop_dt (OpTerm (list.store(op)), ans) ;
     }
 
-OpSum OpSum::loop_dt (OpTerm t, OpSum& ans)	// Loop OpTerm -> Eloop OpSum
+OpSum& OpSum::loop_dt (OpTerm t, OpSum& ans)	// Loop OpTerm -> Eloop OpSum
     {
     Op op { ans.oplist()[t.item] } ;
     if (op.type != OpType::Loop) fatal ("Bad call to loop_dt") ;

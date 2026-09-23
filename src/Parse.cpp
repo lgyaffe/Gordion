@@ -551,6 +551,7 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
     doub	coef   (0) ;
     OpSum	sum[2] { global.info(0).ops, global.info(1).ops } ;
     string	word ;
+    int		sgn ;
     int		i ;
     if (line >> word)
 	{
@@ -577,11 +578,13 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 		case 1:				// Add generator
 		    if (global.obs.swapped) Save::reload_obs() ;
 		    do  {
+			sgn = issign(line) < 0 ? -1 : 1 ;
 			if (!(line >> coef))
 			    {
 			    line.clear() ;
 			    coef = 1.0 ;
 			    }
+			coef *= sgn ;
 			if (line >> word)
 			    {
 			    try {
@@ -607,10 +610,20 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 
 		    if (type >= 0 && sum[type].size())
 			{
-			int n { Gen::addgen (std::move(sum[type])) } ;
-			if (n)	cout << "  " << n ;
-			else	cout << "  No" ;
-			cout << " generators added\n" ;
+			int n { Gen::addgen (sum[type]) } ;
+			if (n)
+			    {
+			    cout << "  Added generators:" ;
+			    for (int repnum(0) ; repnum < NREP ; ++repnum)
+				{
+				const auto& name { Rep::list[repnum].name } ;
+				int k { Gen::newgens[repnum] } ;
+				if (k)		cout << " " << name ;
+				if (k > 1)	cout << "(" << k << ")" ;
+				}
+			    cout << "\n" ;
+			    }
+			else cout << "  No generators added\n" ;
 			}
 		    else valid = false ;
 		    break ;
@@ -671,8 +684,8 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    }
 	else if (isword(word,"symmetry"))
 	    {
-	    if (eos(line)) gripe ("Print which symmetries?") ;
-	    else if (isstar (line))		print_symm () ;
+	    if (eos(line))			print_symm (false) ;
+	    else if (isstar (line))		print_symm (true) ;
 	    else if (parse_args (line,word))	print_symm (word) ;
 	    else valid = false ;
 	    }

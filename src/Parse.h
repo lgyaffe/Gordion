@@ -61,6 +61,15 @@ namespace Parse
 	return false ;
 	}
 
+    inline int issign (istringstream& line)	// Next non-white + or -?
+	{
+	line >> std::ws ;
+	int c { line.peek() } ;
+	if (c == '-')		return -1 ;
+	else if (c == '+')	return +1 ;
+	else			return  0 ;
+	}
+
     inline static bool	  echo	   { false } ;		// Echo commands?
     inline static bool	  awaiting { false } ;		// Awaiting user input?
     inline static bool	  timing   { true  } ;		// Report command times?

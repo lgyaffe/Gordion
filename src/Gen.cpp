@@ -142,8 +142,9 @@ int Gen::project (Op& op)			// Project onto all reps
 		if (Gen::gennorm) tmp.normalize (repnum) ;
 		if (tmp.T_odd) gens.push_back (tmp) ;
 		else gens.insert (gens.begin() + neven++, tmp) ;
-		++added ;
 
+		++newgens[repnum] ;
+		++added ;
 		if (tmp.order > info.maxgen) info.maxgen = tmp.order ;
 
 		if (Blab::level(Blab::GEN))
@@ -159,7 +160,7 @@ int Gen::project (Op& op)			// Project onto all reps
     return added ;
     }
 
-int Gen::project (OpSum&& s)			// Project onto all reps
+int Gen::project (OpSum& s)			// Project onto all reps
     {
     int added(0) ;
     for (int repnum(0) ; repnum < Rep::list.size() ; ++repnum)
@@ -168,7 +169,7 @@ int Gen::project (OpSum&& s)			// Project onto all reps
 	    {
 	    Gen	tmp { s, proj } ;
 
-	    if (tmp.valid() && isnew (repnum,tmp))
+	    if (tmp.size() && tmp.valid() && isnew (repnum,tmp))
 		{
 		auto& info  { global.info(tmp.is_Fermion()) } ;
 		auto& gens  { info.gens[repnum] } ;
@@ -178,8 +179,9 @@ int Gen::project (OpSum&& s)			// Project onto all reps
 		if (Gen::gennorm) tmp.normalize (repnum) ;
 		if (tmp.T_odd) gens.push_back (tmp) ;
 		else gens.insert (gens.begin() + neven++, tmp) ;
-		++added ;
 
+		++newgens[repnum] ;
+		++added ;
 		if (tmp.order > info.maxgen) info.maxgen = tmp.order ;
 
 		if (Blab::level(Blab::GEN) > 1)
@@ -204,7 +206,9 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
 
     for (const auto& a : gens)
 	{
-	for (const auto& s : a) if (maxop < 0 || s.item > maxop) maxop = s.item ;
+	for (const auto& s : a)
+	    if (maxop < 0 || s.item > maxop)
+		maxop = s.item ;
 	}
     for (const auto& s : b)
 	{
@@ -226,13 +230,6 @@ bool Gen::allzero () const				// Vanishing Gen?
     {
     for (const auto t : *this) if (t.coeff) return false ;
     return true ;
-    }
-
-Gen& Gen::collect ()					// Collect terms
-    {
-    if (int k = OpSum::collect()) coeff *= k ;
-    if (allzero()) resize (0) ;
-    return *this ;
     }
 
 void Gen::normalize (int repnum)			// Normalize generator
@@ -387,25 +384,26 @@ void Gen::inner_commute ()			 	// Generator reduction
     else if (blab > 1)	cout << "inner_commute: returning \n" ;
     }
 
-int Gen::addgen (OpSum&& s)			// Add new generator
+int Gen::addgen (OpSum& s)			// Add new generator
     {
-    int		added (0) ;
+    int		added(0) ;
     OpList&	list { s.oplist() } ;
     Op		op1  { list[s.front().item] } ;	// N.B. non-ref
     bool	isF  { op1.is_Fermion() } ;
 
     if (!global.info(isF).gens.size()) geninit (isF) ;
+    std::fill (newgens.begin(), newgens.end(), 0) ;
 
     switch (op1.type)
 	{
 	case OpType::Loop:
 	    if (autoEgens)	added += project (s.loop_dt()) ;
-	    if (!theory.euclid)	added += project (std::move(s)) ; break ;
+	    if (!theory.euclid)	added += project (s) ; break ;
 	case OpType::Fermion:
 	    if (!theory.euclid)	added += project (s.flipT()) ;
-				added += project (std::move(s)) ; break ;
+				added += project (s) ; break ;
 	case OpType::Eloop:
-				added += project (std::move(s)) ; break ;
+				added += project (s) ; break ;
 	default:		break ;
 	}
     if (added)
@@ -436,7 +434,7 @@ void Gen::geninit (uint stage)			// Generator initialization
 		{
 		Op plaq { string {l[i],l[j],L[i],L[j]}, loop, 2 } ;
 		if (autoEgens)	project (loop_dt (plaq, list)) ; 
-		if (isham)		project (plaq) ;
+		if (isham)	project (plaq) ;
 		}
 	    }
 

@@ -251,10 +251,14 @@ void Print::print_rep ()			// Report active Rep
     cout << "\nActive rep: " << Rep::list[global.repnum].name << "\n" ;
     }
 
-void Print::print_symm ()			// Print Symm::list
+void Print::print_symm (bool detail)		// Print Symm::list
     {
     cout << "Symmetries:" ;
-    for (const auto& symm : Symm::list) { cout << "\n  " << symm ; }
+    for (const auto& symm : Symm::list)
+	{
+	if (detail)	cout << "\n  " << symm ;
+	else		cout << " " << symm.name ;
+	}
     cout << "\n" ;
     }
 

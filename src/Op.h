@@ -105,10 +105,10 @@ class OpSum : public vector<OpTerm>			// Op linear combination
 
     OpList&		oplist() const { return list ;} // Underlying OpList
     int			collect (bool = false) ;	// Collect terms
-    OpSum 		flipT   () const ;		// Flip fermion staggering
-    OpSum 		loop_dt () ;			// Return [EE,loops]/2
-    static OpSum 	loop_dt (Op, OpList&) ;		// Return [EE,loops]/2
-    static OpSum 	loop_dt (OpTerm, OpSum&) ;	// Return [EE,loops]/2
+    OpSum& 		flipT   () const ;		// Flip fermion staggering
+    OpSum& 		loop_dt () ;			// Return [EE,loops]/2
+    static OpSum& 	loop_dt (Op, OpList&) ;		// Return [EE,loops]/2
+    static OpSum& 	loop_dt (OpTerm, OpSum&) ;	// Return [EE,loops]/2
 
     friend ostream& operator<< (ostream&, const OpSum&) ;
     } ;

@@ -29,7 +29,7 @@ namespace Print
     void print_rep () ;
 
     void print_symm (const string&) ;
-    void print_symm () ;
+    void print_symm (bool) ;
 
     void print_grad (uint,uint) ;
     void print_grad (uint) ;
