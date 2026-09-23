@@ -224,3 +224,7 @@ September 8, 2026:
     Save.{h,cpp}: Changed FileHdr to make nvev ulong.  BREAKS OLD SYS FILES.
 	Added maxobs to FileHdr, removed inferring maxobs in read_obs.
 
+September 23, 2026:
+    Gen.[h,cpp]: Added static newgens array to report reps of new generators.
+    Parse.cpp: Fixed gen add code to handle pure signs as coefficients.
+	Added reporting of reps of newly added generators.
