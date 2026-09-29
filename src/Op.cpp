@@ -156,8 +156,10 @@ OpSum& OpSum::loop_dt (OpTerm t, OpSum& ans)	// Loop OpTerm -> Eloop OpSum
 
 int OpSum::collect (bool divgcd)		// Collect terms, optionally
     {						// divide by & return gcd
+    const auto& l { oplist() } ;
     std::sort(begin(), end(),
-	[](const OpTerm& a, const OpTerm& b) { return a.item < b.item ; });
+	[&l](const OpTerm& a, const OpTerm& b)
+	    { return l[a.item] < l[b.item] ; });
 
     auto a = begin() ;
     for (auto b = begin() ; b < end() ; ++a)

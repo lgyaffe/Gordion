@@ -64,9 +64,10 @@ namespace Parse
     inline int issign (istringstream& line)	// Next non-white + or -?
 	{
 	line >> std::ws ;
-	int c { line.peek() } ;
-	if (c == '-')		return -1 ;
-	else if (c == '+')	return +1 ;
+	int  c { line.peek() } ;
+	char x ;
+	if      (c == '-')	{ line >> x ; return -1 ; }
+	else if (c == '+')	{ line >> x ; return +1 ; }
 	else			return  0 ;
 	}
 

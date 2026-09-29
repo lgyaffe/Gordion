@@ -103,10 +103,10 @@ class OpSum : public vector<OpTerm>			// Op linear combination
     OpSum (OpList&) ;					// Constructor
     OpSum (OpTerm*, OpTerm*, OpList&) ;			// Constructor
 
-    OpList&		oplist() const { return list ;} // Underlying OpList
-    OpSum 		flipT   () const ;		// Flip staggering
-    OpSum 		loop_dt () const ;		// Return [EE,loops]/2
-    int			collect (bool = false) ;	// Collect terms
+    OpList&	oplist	() const { return list ;}	// Underlying OpList
+    OpSum 	flipT   () const ;			// Flip staggering
+    OpSum 	loop_dt () const ;			// Return [EE,loops]/2
+    int		collect (bool = false) ;		// Collect terms
 
     static OpSum 	loop_dt (Op, OpList&) ;		// Return [EE,loops]/2
     static OpSum& 	loop_dt (OpTerm, OpSum&) ;	// Return [EE,loops]/2

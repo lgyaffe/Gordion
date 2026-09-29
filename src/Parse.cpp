@@ -610,6 +610,7 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 
 		    if (type >= 0 && sum[type].size())
 			{
+			//cout << "addgen: " << sum[type] << "\n" ;
 			int n { Gen::addgen (sum[type]) } ;
 			if (n)
 			    {
