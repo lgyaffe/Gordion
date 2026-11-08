@@ -71,7 +71,7 @@ namespace Save
 	{
 	char8	name ;			// theory name
 	Version	version ;		// program version
-	ushort		ncoup ;		// # couplings
+	ushort	ncoup ;			// # couplings
 	union
 	    {
 	    ulong	nvev ;		// # vev's

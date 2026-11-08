@@ -1,6 +1,6 @@
 #ifndef PARSE_H
 #define PARSE_H
-#include "Main.h"
+#include "Types.h"
 #include <sstream>
 
 namespace Parse

@@ -16,11 +16,11 @@ inline size_t memused()
     getrusage (RUSAGE_SELF, &usage) ;
     return usage.ru_maxrss ;
     }
-inline double cputime()
+inline double cpumsec()
     {
     struct rusage usage ;
     getrusage (RUSAGE_SELF, &usage) ;
-    return usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.e-6 ;
+    return usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.e-3 ;
     }
 
 #elif defined (__linux__)
@@ -39,11 +39,11 @@ inline size_t memused()
     getrusage (RUSAGE_SELF, &usage) ;
     return usage.ru_maxrss * 1024 ;
     }
-inline double cputime()
+inline double cpumsec()
     {
     struct rusage usage ;
     getrusage (RUSAGE_SELF, &usage) ;
-    return usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.e-6 ;
+    return usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.e-3 ;
     }
 
 #elif defined(_WIN32) || defined(_WIN64)
@@ -62,7 +62,7 @@ inline size_t memused()
     GetProcessMemoryInfo (GetCurrentProcess(), &pmc, sizeof(pmc)) ;
     return pmc.PeakWorkingSetSize ;
     }
-inline double cputime()
+inline double cpumsec()
     {
     HANDLE	hproc { GetCurrentProcess() } ;
     FILETIME	creat, exit, kernel, user ;
@@ -70,7 +70,7 @@ inline double cputime()
     ULONGLONG uli ;
     uli.LowPart  = user.dwLowDateTime  ;
     uli.HighPart = user.dwHighDateTime ;
-    return static_cast<double>(uli) * 1.e-7 ;
+    return static_cast<double>(uli) * 1.e-4 ;
     }
 #endif
 

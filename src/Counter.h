@@ -35,7 +35,7 @@ class PolyStats : public CountArr		// Polynomial statistics
 	for (int i(0) ; i < size() ; ++i) (*this)[i] = v[i] ;
 	return *this ;
 	}
-    PolyStats& operator+=(const CountArr& v)
+    PolyStats& operator+=(const array<ulong,PSIZ+3>& v)
 	{
 	for (int i(0) ; i < size() ; ++i) (*this)[i] += v[i] ;
 	return *this ;
@@ -48,6 +48,7 @@ class PolyStats : public CountArr		// Polynomial statistics
 
     void add (const PolyRec& p)
 	{
+	array<ulong,PSIZ+3> count {} ;
 	auto	recptr	{ p.begin() } ;
 	auto	items	{ p.entry().items() } ;
 	for (int i(0) ; i < items ; ++i, ++recptr)
@@ -58,16 +59,18 @@ class PolyStats : public CountArr		// Polynomial statistics
 	    while (ptr < end)
 		{
 		PolyTerm t { PolyElem::nextterm (ptr) } ;
-		++(*this)[t.order()] ;
-		++terms() ;
+		++count[t.order()] ;
+		++count[PSIZ+1] ;
 		}
 	    }
-	eqns() += items ;
+	count[PSIZ+2] += items ;
+	*this += count ;
 	}
 
 #ifdef DELPHI
     void add (const GeoRec& p)
 	{
+	array<ulong,PSIZ+3> count {} ;
 	auto	recptr	{ p.begin() } ;
 	auto	items	{ p.entry().items() } ;
 	for (int i(0) ; i < items ; ++i, ++recptr)
@@ -79,11 +82,12 @@ class PolyStats : public CountArr		// Polynomial statistics
 	    while (ptr < end)
 		{
 		const auto& t { *ptr++ } ;
-		++(*this)[t.order()] ;
-		++terms() ;
+		++count[t.order()] ;
+		++count[PSIZ+1] ;
 		}
 	    }
-	eqns() += items ;
+	count[PSIZ+2] += items ;
+	*this += count ;
 	}
 #endif
 
