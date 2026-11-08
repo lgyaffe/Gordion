@@ -1,7 +1,7 @@
 #ifndef SPLICE_H
 #define SPLICE_H
 
-static constexpr char Y { -1 } ;
+inline constexpr char Y { -1 } ;
 
 struct Splice					// Commute splice info
     {
@@ -10,7 +10,7 @@ struct Splice					// Commute splice info
     signed char	suffix = Y ;
     } ;
 
-static const Splice splicetbl[10][10][2]	// Commute splice table
+inline const Splice splicetbl[10][10][2]	// Commute splice table
     //
     // 	Same tnR codes as in Symb::ligtable:
     //		0 = link,	1 = Link

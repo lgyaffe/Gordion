@@ -1,13 +1,10 @@
 #ifndef OP_H
 #define OP_H
-#include "Index.h"
+#include "Data.h"
 #include "Obs.h"
+#include "Term.h"
 
-using OpTerm = Term<real,numb> ;			// Term with list index
-class OpList ;
-class Obs ;
-
-enum class OpType : char				// Operator types
+enum class OpType : char			// Operator types
     {
     Loop,
     Eloop,
@@ -15,25 +12,25 @@ enum class OpType : char				// Operator types
     Invalid
     } ;
 
-class Op : public Str					// Op = generator term
+class Op : public Str				// Op = generator term
     {
     public:
     OpType	type { OpType::Invalid } ;	// Operator type
     bool	primary { false } ;		// Primary Op?
     short	order   { -1 } ;		// Grading order
 
-    Op () {}						// Default constructor
-    explicit Op (const string&, short) ;		// Constructor
-    explicit Op (const string&, OpType, short) ;	// Constructor
+    Op () {}					// Default constructor
+    explicit Op (const string&, short = -1) ;	// Constructor
+    explicit Op (const string&, OpType, short);	// Constructor
 
-    Op (const Str& s, const OpHdr& hdr)			// Constructor
+    Op (const Str& s, const OpHdr& hdr)		// Constructor
 	:
 	Str	(s),
 	type	((OpType) hdr.type),
 	order	(hdr.order)
 	{ if (check) validate() ; }
 
-    Op (const Str& s, OpType t, short o)		// Constructor
+    Op (const Str& s, OpType t, short o)	// Constructor
 	:
 	Str	(s),
 	type	(t),
@@ -41,7 +38,7 @@ class Op : public Str					// Op = generator term
 	{ if (type == OpType::Loop) findstart() ;
 	  if (check) validate() ; }
 
-    Op (const Obs& a) 					// Convert Obs -> Op
+    Op (const Obs& a) 				// Convert Obs -> Op
 	:
 	Str	(a),
 	order	(a.corder),
@@ -71,29 +68,8 @@ class Op : public Str					// Op = generator term
     void		validate() ;
     } ;
 
-class OpList : public Index<Op>
-    {
-    public:
-    numb	store () ;			// Store Op in list
-    void	setprimary () ;			// Identify primary Op's
-
-    numb store (const Op& op)			// Store Op in list
-	{
-	auto	len  ( size() ) ;
-	numb	indx { Index::store (op,op) } ;
-	if (indx >= size()) fatal ("OpList::store: bad store! ") ;
-	return indx ;
-	}
-    void purge (numb limit)			// Purge entries
-	{
-	std::erase_if (map, [&](const auto& p) { return p.second >= limit ; }) ;
-	resize (limit) ;
-	}
-    static void opinit (uint) ;			// List initialization
-
-    ostream& print (ostream&, numb) const ;	// Print indexed Op
-    ostream& print (ostream&) const ;		// Print Op list
-    } ;
+using OpTerm = Term<real,numb> ;			// Term with list index
+class OpList ;
 
 class OpSum : public vector<OpTerm>			// Op linear combination
     {

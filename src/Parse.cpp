@@ -11,6 +11,8 @@
 #include <fstream>
 #include <regex>
 
+static bool echo { false } ;				// Echo commands?
+
 void Parse::read_input (istream& in, bool prompt)	// Read input
     {
     string buf ;
@@ -98,15 +100,19 @@ void Parse::parse_cmd (const string& buf)		// Parse command
 
 bool Parse::parse_read (istringstream& line)		// Parse "read" command
     {
-    string word ;
-    if (parse_args (line,word))
+    string file ;
+    if (parse_args (line,file))
 	{
-	if (ifstream input {word})
+	string path { Save::find_file (global.inputdir, file) } ;
+	if (!path.empty())
 	    {
-	    read_input (std::move(input), false) ;
-	    return true ;
+	    if (ifstream input {path})
+		{
+		read_input (std::move(input), false) ;
+		return true ;
+		}
 	    }
-	else gripe ("Cannot read input from file " + word) ;
+	gripe ("Cannot read input from file " + file) ;
 	}
     return false ;
     }
@@ -229,7 +235,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    }
 	else if (isword(word,"autosave") && parse_args (line,flag))
 	    {
-	    global.autosave = flag ;
+	    Save::autosave = flag ;
 	    }
 	else if (isword(word,"blab") && parse_args (line,word,i))
 	    {
@@ -247,6 +253,11 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    echo = flag ;
 	    }
+	else if (isword(word,"inputdir") && parse_args (line,word))
+	    {
+	    if (word.back() != '/') word += '/' ;
+	    global.inputdir = word ;
+	    }
 	else if (isword(word,"gennorm") && parse_args (line,flag))
 	    {
 	    if (flag != Gen::gennorm)
@@ -258,7 +269,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	else if (isword(word,"geoswap") && parse_args (line,flag))
 	    {
 	    global.geoswap = flag ;
-	    if (global.geoswap) global.autosave = true ;
+	    if (global.geoswap) Save::autosave = true ;
 	    }
 	else if (isword(word,"maxnewt") && parse_args (line,i))
 	    {
@@ -342,12 +353,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 		Obs	o	{ word } ;
 		int	sgn	{ o.canon() } ;
 		int	stage	{ o.is_fermi() } ;
-		numb	indx	{ global.obs.find (o) } ;
-		if (indx < MAXNUM)
-		    {
-		    global.info(stage).MMAfile.obs.emplace (indx,o) ;
-		    }
-		else gripe ("Unknown Obs " + word) ;
+		global.info(stage).MMAfile.obs.emplace (o,-1) ;
 		}
 	    while (line >> word) ;
 	    }
@@ -378,8 +384,8 @@ bool Parse::parse_reset (istringstream& line)		// Parse "reset" commands
 	else if (isword(word,"maxthread"))	global.maxthread = 0 ;
 	else if (isword(word,"stage"))		global.stageinit (0) ;
 	else if (isword(word,"MMAobs"))		global.info().MMAfile.obs.clear() ;
-	else if (isword(word,"blab"))		Blab::resetblab () ;
-	else if (isword(word,"numerics"))	numerics.initialize () ;
+	else if (isword(word,"blab"))		Blab::resetblab() ;
+	else if (isword(word,"numerics"))	numerics.initialize() ;
 	else if (isword(word,"mintol"))		numerics.mintol = numerics.dflttol ;
 	else if (isword(word,"odetol"))		numerics.odetol = numerics.dflttol ;
 	else if (isword(word,"svdcutoff"))	numerics.svdcut = 0 ;
@@ -410,23 +416,23 @@ bool Parse::parse_build (istringstream& line)		// Parse "build" commands
 	else if (isword(word,"lagrange")   && eos(line) && isH)	Build::mk_lagr (rep) ;
 	else if (isword(word,"all")	   && parse_args (line,i))
 	    {
-	    Build::mk_obs  (i) ;
-	    Build::mk_eqns (-1) ;
+								Build::mk_obs  (i) ;
+	    for (int k(0) ; k < nrep ; ++k)			Build::mk_eqns (k) ;
 	    }
 	else if (isword(word,"equations")  && parse_args(line,word))
 	    {
-	    if (!isword(word,"all"))		 Build::mk_eqns (word) ;
-	    else 				 Build::mk_eqns (-1) ;
+	    if (!isword(word,"all"))				Build::mk_eqns (word) ;
+	    else for (int k(0) ; k < nrep ; ++k)		Build::mk_eqns (k) ;
 	    }
 	else if (isword(word,"curvature")  && parse_args(line,word))
 	    {
-	    if (!isword(word,"all"))		 Build::mk_curv (word) ;
-	    else for (int j(0) ; j < nrep ; ++j) Build::mk_curv (j) ;
+	    if (!isword(word,"all"))				Build::mk_curv (word) ;
+	    else for (int k(0) ; k < nrep ; ++k)		Build::mk_curv (k) ;
 	    }
 	else if (isword(word,"lagrange")   && parse_args(line,word) && isH)
 	    {
-	    if (!isword(word,"all"))		 Build::mk_lagr (word) ;
-	    else for (int j(0) ; j < nrep ; ++j) Build::mk_lagr (j) ;
+	    if (!isword(word,"all"))				Build::mk_lagr (word) ;
+	    else for (int k(0) ; k < nrep ; ++k)		Build::mk_lagr (k) ;
 	    }
 	else valid = false ;
 	}
@@ -463,7 +469,7 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
 		else if (isstar (line))	numerics.eval_curv (rep, 2) ;
 		else valid = false ;
 		}
-	    else if (isword(word,"metric"))
+	    else if (isword(word,"metric")	&& isH)
 		{
 		if (eos(line))		numerics.eval_metr (rep, 1) ;
 		else if (isstar (line))	numerics.eval_metr (rep, 2) ;
@@ -498,7 +504,7 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
 	    else if (isword(word,"geostats") && eos(line))
 		{
 		Build::do_geostats() ;
-		Print::print_geostats() ;
+		Print::print_polystats() ;
 		}
 	    else valid = false ;
 	    }
@@ -596,8 +602,8 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 			    catch (const BadInput&) {}
 			    if (order >= 0)
 				{
-				Op    op   { word, order } ;
-				bool  isF  { op.is_Fermion() } ;
+				Op   op  { word, order } ;
+				bool isF { op.is_Fermion() } ;
 				if (type < 0) type = isF ;
 				else if (type != isF)
 				    gripe ("Can't mix gauge and fermi Op's") ;
@@ -610,7 +616,6 @@ bool Parse::parse_gen (istringstream& line)		// Parse "generator" command
 
 		    if (type >= 0 && sum[type].size())
 			{
-			//cout << "addgen: " << sum[type] << "\n" ;
 			int n { Gen::addgen (sum[type]) } ;
 			if (n)
 			    {
@@ -663,112 +668,124 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
     string	word ;
     if (line >> word)
 	{
-	if  (isword(word,"observables"))
+	if      (isword(word,"baseobs")     && eos(line))	print_base      () ;
+	else if (isword(word,"blablevels")  && eos(line))	print_blab      () ;
+	else if (isword(word,"bucketlist")  && eos(line))	print_bcktlist  () ;
+	else if (isword(word,"canon")       && eos(line))	print_canon     () ;
+	else if (isword(word,"couplings")   && eos(line))	print_couplings () ;
+	else if (isword(word,"curvature"))
 	    {
-	    if (eos(line)) gripe ("Print which observables?") ;
-	    else if (isstar (line))		print_obs () ;
-	    else if (parse_args (line,i))	print_obs (i) ;
-	    else if (parse_args (line,i,j))	print_obs (i,j) ;
-	    else for (valid = false ; line >> word ; valid = true)
-		{
-		if (word[0] == '(')		print_obs_select (word) ;
-		else				print_obs (word) ;
-		}
-	    }
-	else if (isword(word,"operator"))
-	    {
-	    if (eos(line)) gripe ("Print which operators?") ;
-	    else if (isstar (line))		print_op () ;
-	    else if (parse_args (line,i))	print_op (i) ;
-	    else if (parse_args (line,i,j))	print_op (i,j) ;
+	    if (eos(line)) gripe ("Print which curvature elements?") ;
+	    else if (isstar (line))				print_curv () ;
+	    else if (parse_args (line,i))			print_curv (i) ;
+	    else if (parse_args (line,i,j))			print_curv (i,j) ;
+	    else if (parse_args (line,i,j,k))			print_curv (i,j,k) ;
 	    else valid = false ;
 	    }
-	else if (isword(word,"symmetry"))
+	else if (isword(word,"fermiinit")   && eos(line))	print_fermiinit () ;
+	else if (isword(word,"freeenergy")  && !isH)
 	    {
-	    if (eos(line))			print_symm (false) ;
-	    else if (isstar (line))		print_symm (true) ;
-	    else if (parse_args (line,word))	print_symm (word) ;
-	    else valid = false ;
-	    }
-	else if (isword(word,"representation"))
-	    {
-	    if (eos(line))			print_rep () ;
-	    else if (parse_args (line,word))	print_rep (word) ;
+	    if (eos(line))					print_ham_or_free () ;
+	    else if (isstar (line))				print_ham_or_free (-1) ;
+	    else if (parse_args (line,i))			print_ham_or_free (i) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"generator"))
 	    {
-	    if (eos(line))			print_gen (false) ;
-	    else if (isstar (line))		print_gen (true) ;
-	    else if (parse_args (line,i))	print_gen (i,true) ;
-	    else valid = false ;
-	    }
-	else if (isword(word,"gradient"))
-	    {
-	    if (eos(line))  gripe ("Print which gradient elements?") ;
-	    else if (isstar (line))		print_grad () ;
-	    else if (parse_args (line,i))	print_grad (i) ;
-	    else if (parse_args (line,i,j))	print_grad (i,j) ;
-	    else valid = false ;
-	    }
-	else if (isword(word,"curvature"))
-	    {
-	    if (eos(line)) gripe ("Print which curvature elements?") ;
-	    else if (isstar (line))		print_curv () ;
-	    else if (parse_args (line,i))	print_curv (i) ;
-	    else if (parse_args (line,i,j))	print_curv (i,j) ;
-	    else if (parse_args (line,i,j,k))	print_curv (i,j,k) ;
+	    if (eos(line))					print_gen (false) ;
+	    else if (isstar (line))				print_gen (true) ;
+	    else if (parse_args (line,i))			print_gen (i,true) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"geodesics"))
 	    {
 	    if (eos(line)) gripe ("Print which geodesic elements?") ;
-	    else if (isstar (line))		print_geodesic () ;
-	    else if (parse_args (line,i))	print_geodesic (i) ;
-	    else if (parse_args (line,i,j))	print_geodesic (i,j) ;
+	    else if (isstar (line))				print_geodesic () ;
+	    else if (parse_args (line,i))			print_geodesic (i) ;
+	    else if (parse_args (line,i,j))			print_geodesic (i,j) ;
+	    else valid = false ;
+	    }
+	else if (isword(word,"polystats")    && eos(line))	print_polystats () ;
+	else if (isword(word,"gradient"))
+	    {
+	    if (eos(line))  gripe ("Print which gradient elements?") ;
+	    else if (isstar (line))				print_grad () ;
+	    else if (parse_args (line,i))			print_grad (i) ;
+	    else if (parse_args (line,i,j))			print_grad (i,j) ;
+	    else valid = false ;
+	    }
+	else if (isword(word,"hamiltonian") && isH)
+	    {
+	    if (eos(line))					print_ham_or_free () ;
+	    else if (isstar (line))				print_ham_or_free (-1) ;
+	    else if (parse_args (line,i))			print_ham_or_free (i) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"lagrange") && isH)
 	    {
 	    if (eos(line)) gripe ("Print which lagrange elements?") ;
-	    else if (isstar (line))		print_lagrange () ;
-	    else if (parse_args (line,i))	print_lagrange (i) ;
-	    else if (parse_args (line,i,j))	print_lagrange (i,j) ;
+	    else if (isstar (line))				print_lagrange () ;
+	    else if (parse_args (line,i))			print_lagrange (i) ;
+	    else if (parse_args (line,i,j))			print_lagrange (i,j) ;
 	    else valid = false ;
 	    }
 	else if (isword(word,"mode") && isH)
 	    {
 	    if (eos(line))  gripe ("Print which eigenmodes?") ;
-	    else if (isstar (line))		 print_mode () ;
-	    else if (parse_args (line,i))	 print_mode (i) ;
+	    else if (isstar (line))		 		print_mode () ;
+	    else if (parse_args (line,i))	 		print_mode (i) ;
 	    else valid = false ;
 	    }
-	else if (isword(word,"freeenergy")  && eos(line) && !isH) print_ham_or_free () ;
-	else if (isword(word,"hamiltonian") && eos(line) &&  isH) print_ham_or_free () ;
-	else if (isword(word,"spectrum")    && eos(line) &&  isH) print_spectrum    () ;
-	else if (isword(word,"baseobs")     && eos(line))	print_base      () ;
-	else if (isword(word,"blablevels")  && eos(line))	print_blab      () ;
-	else if (isword(word,"bucketlist")  && eos(line))	print_bcktlist  () ;
-	else if (isword(word,"cache")       && eos(line))	print_cache     () ;
-	else if (isword(word,"couplings")   && eos(line))	print_couplings () ;
-	else if (isword(word,"fermiinit")   && eos(line))	print_fermiinit () ;
-	else if (isword(word,"geostats")    && eos(line))	print_geostats  () ;
-	else if (isword(word,"obsstats")    && eos(line))	print_obsstats  () ;
-	else if (isword(word,"primary")     && eos(line))	print_primary   () ;
-	else if (isword(word,"rkmethods")   && eos(line))	print_rkmethods () ;
-	else if (isword(word,"stage")       && eos(line))	print_stage     () ;
-	else if (isword(word,"state")       && eos(line))	print_state     () ;
-	else if (isword(word,"stats")       && eos(line))	print_stats     () ;
-	else if (isword(word,"symmsets")    && eos(line))	print_symmsets  () ;
-	else if (isword(word,"sysindex")    && eos(line))	print_sysindex  () ;
-	else if (isword(word,"vevindex")    && eos(line))	print_vevindex  () ;
+	else if (isword(word,"primary")     && eos(line))	print_primary () ;
+	else if (isword(word,"observables"))
+	    {
+	    if (eos(line)) gripe ("Print which observables?") ;
+	    else if (isstar (line))				print_obs () ;
+	    else if (parse_args (line,i))			print_obs (i) ;
+	    else if (parse_args (line,i,j))			print_obs (i,j) ;
+	    else for (valid = false ; line >> word ; valid = true)
+		{
+		if (word[0] == '(')				print_obs_select (word) ;
+		else						print_obs (word) ;
+		}
+	    }
+	else if (isword(word,"obsstats")    && eos(line))	print_obsstats () ;
+	else if (isword(word,"operator"))
+	    {
+	    if (eos(line)) gripe ("Print which operators?") ;
+	    else if (isstar (line))				print_op () ;
+	    else if (parse_args (line,i))			print_op (i) ;
+	    else if (parse_args (line,i,j))			print_op (i,j) ;
+	    else valid = false ;
+	    }
+	else if (isword(word,"representation"))
+	    {
+	    if (eos(line))					print_rep () ;
+	    else if (parse_args (line,word))			print_rep (word) ;
+	    else valid = false ;
+	    }
+	else if (isword(word,"rkmethods")   && eos(line))	 print_rkmethods () ;
+	else if (isword(word,"spectrum")    && eos(line) && isH) print_spectrum  () ;
+	else if (isword(word,"stage")       && eos(line))	 print_stage     () ;
+	else if (isword(word,"state")       && eos(line))	 print_state     () ;
+	else if (isword(word,"stats")       && eos(line))	 print_stats     () ;
+	else if (isword(word,"symmetry"))
+	    {
+	    if (eos(line))					print_symm (false) ;
+	    else if (isstar (line))				print_symm (true) ;
+	    else if (parse_args (line,word))			print_symm (word) ;
+	    else valid = false ;
+	    }
+	else if (isword(word,"symmsets")    && eos(line))	print_symmsets () ;
+	else if (isword(word,"sysindex")    && eos(line))	print_sysindex () ;
+	else if (isword(word,"vevindex")    && eos(line))	print_vevindex () ;
 	else valid = false ;
 	}
     else valid = false ;
     return valid ;
     }
 
-bool Parse::parse_purge (istringstream& line)		// Parse "swap" commands
+bool Parse::parse_purge (istringstream& line)		// Parse "purge" command
     {
     string	word ;
     bool	valid { true } ;
@@ -852,8 +869,8 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 
 	    if (i < ngens && j < nobs)
 		{
-		const Obs&	obs	{ global.obs(j) } ;
-		ObsPoly		poly	{ j, global.obs } ;
+		const Obs&	obs	{ global.obs (j) } ;
+		ObsPoly		poly	{ global.obs, j } ;
 		ObsList		tmplist	{ "ParseTemp" } ;
 		PolyMap		ans	{ tmplist } ;
 
@@ -865,8 +882,8 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    }
 	else if (isword(word,"commute") && parse_args (line,word,word2))
 	    {
-	    Op  	op	{ word, -1 } ;
-	    Obs 	obs	{ word2 } ;
+	    Op		op	{ word, -1 } ;
+	    Obs		obs	{ word2 } ;
 	    PolyTerm	factor	{ PolyIndx(), 1 } ;
 	    ObsList	tmplist	{ "ParseTemp" } ;
 	    PolyMap	ans	{ tmplist } ;
@@ -879,8 +896,8 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	else if (isword(word,"compose") && parse_args (line,word2,word))
 	    {
 	    try {
-		auto		indx1	{ Symm::known(std::move(word)).item } ;
-		auto		indx2	{ Symm::known(std::move(word2)).item } ;
+		auto		indx1	{ Symm::knownindx(std::move(word))  } ;
+		auto		indx2	{ Symm::knownindx(std::move(word2)) } ;
 		const auto&	symm1	{ Symm::list[indx1] } ;
 		const auto&	symm2	{ Symm::list[indx2] } ;
 		auto		indx3	{ symm2 (symm1) } ;
@@ -889,7 +906,7 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 		}
 	    catch (const exception& e)
 		{
-		gripe ("Unknown symmetry " + word2 + " or " + word) ;
+		gripe ("Unknown symmetry: " + word2 + " or " + word) ;
 		}
 	    }
 	else if (isword(word,"do_inner") && parse_args (line,word))
@@ -898,8 +915,8 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	    if (obs.is_Eloop())
 		{
 		ObsList	 tmplist { "ParseTemp" } ;
-		PolyTerm factor { PolyIndx(), 1 } ;
 		PolyMap	 ans { tmplist } ;
+		PolyTerm factor {} ;
 
 		Commute::do_inner (obs, factor, tmplist, ans) ;
 		cout << "do_inner [" << obs << "] = \n\t" ;
@@ -910,7 +927,7 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 	else if (isword(word,"transform") && parse_args (line,word,word2))
 	    {
 	    try {
-		auto		indx	{ Symm::known(std::move(word)).item } ;
+		auto		indx	{ Symm::knownindx(std::move(word)) } ;
 		const auto&	symm	{ Symm::list[indx] } ;
 		Obs		o	{ word2 } ;
 		bool		Cflip	{ o.is_fermi() || o.is_Loop() } ;
@@ -943,7 +960,7 @@ bool Parse::parse_call (istringstream& line)		// Parse "call" commands
 
 void Parse::parse_help ()					// Print command help
     {
-    cout << "Usage: " << program << cmdargs << "\n" ;
+    cout << "Usage: " << cmdname << cmdargs << "\n" ;
     cout << R"(Commands:
 build		all		<maxorder>
 		observables	<maxorder>
@@ -972,9 +989,9 @@ evaluate	hamiltonian (+)
 		freeenergy (++)
 		gradient
 		curvature	[*]
-		metric		[*]
-		delta
+		metric (+)	[*]
 		lagrange (+)
+		delta
 		spectrum (+)	[all | <repname>]
 		geodesics	* | <print_limit>
 		geostats
@@ -993,14 +1010,13 @@ load		<sys_infofile>
 print		baseobs
 		blablevels
 		bucketlist
-		cache
+		canon
 		couplings
 		curvature	* | <term_#> [<gen_#> [<gen_#>]]
 		fermiinit
 		freeenergy (++)
 		generator	[* | <gen_#>]
 		geodesics	* | <obs_#> [<gen_#>]
-		geostats
 		gradient	* | <term_#> [<gen_#>]
 		hamiltonian (+)
 		lagrange (+)	* | <gen_#> [<gen_#>]
@@ -1009,6 +1025,7 @@ print		baseobs
 		observable	* | <obs_#> [<obs_#>] | <obs> ...
 		obsstats
 		operator	* | <op_#>  [<op_#>]
+		polystats
 		primary
 		representation  [* | <repname>]
 		rkmethods
@@ -1047,6 +1064,7 @@ set		stage		gauge | fermi
 		echo		false | true
 		gennorm		false | true
 		geoswap		false | true
+		inputdir	<directory>
 		oknegeig	false | true
 		maxnewt		<integer>
 		maxode		<integer>
@@ -1065,7 +1083,7 @@ set		stage		gauge | fermi
 		MMAobs		<obs> [<obs> [...]]
 		<coupling>	<value>
 
-test	 	irreps
+test		irreps
 		jacobi
 		jacobi		<obs_#>
 		jacobi		<op1> <op2> <obs_#>

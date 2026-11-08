@@ -1,14 +1,13 @@
 #ifndef GEN_H
 #define GEN_H
-#include "Obs.h"
+#include "List.h"
 #include "Op.h"
+#include "Poly.h"
 
 class Proj ;
 
 class Gen : public OpSum		// Coherence algebra generator
     {
-    static inline ObsList redu { "Reduction" }; // Reduction Obs
-
     public:
     short	order { -1 } ;			// Generator order
     OpType	type { OpType::Invalid } ;	// Generator type
@@ -25,10 +24,10 @@ class Gen : public OpSum		// Coherence algebra generator
     Gen (const OpSum&, Element&, real) ;	// Constructor
 
     void 	inner_commute	() ;		// Evaluate reduction
-    void 	settype		(Op&) ;		// Set type, order
+    void 	settype		(Op&) ;		// Set type
     void	normalize	(int) ;		// Normalize generator
     bool	allzero		() const ;	// Vanishing Gen?
-    ostream&	print (ostream&) const ;	// Short print form
+    ostream&	print   (ostream&) const ;	// Short print form
 
     bool valid()	const { return type != OpType::Invalid ; }
     bool is_Loop()	const { return type == OpType::Loop ; }
@@ -40,13 +39,14 @@ class Gen : public OpSum		// Coherence algebra generator
     static inline bool	autoEgens { true } ;	// Use commutator E-gens?
     static inline bool	gennorm   { false } ;	// Normalize generators?
     static inline array<int,NREP> newgens ;	// # newly added gens
+    static inline ObsList redu { "Reduction" }; // Reduction Obs
 
     static bool	isnew	(int, const Gen&) ;	// Dependency test
     static int	project	(const Op&) ;		// Project Op onto reps
     static int	project	(const OpSum&) ;	// Project Op sum
     static int	project	(const OpSum&&) ;	// Project Op sum
     static int	addgen	(const OpSum&) ;	// Add generator
-    static int	store	(Gen&&, int) ;		// Store generator
+    static int	store	(Gen&&,   int) ;	// Store generator
     static void	geninit		(uint) ;	// Initialization
     static void	suspend_group	(uint) ;	// Suspend gen group
     static void	activate_group	(uint) ;	// Activate gen group

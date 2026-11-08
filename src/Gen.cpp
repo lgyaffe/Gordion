@@ -170,7 +170,8 @@ int Gen::store (Gen&& gen, int repnum)		// Valodate & store Gen
 
 	++newgens[repnum] ;
 	++added ;
-	if (gen.order > info.maxgen) info.maxgen = gen.order ;
+	if (info.maxgen < gen.order)
+	    info.maxgen = gen.order ;
 
 	if (Blab::level(Blab::GEN) > 1)
 	    {
@@ -220,14 +221,14 @@ bool Gen::allzero () const				// Vanishing Gen?
 
 void Gen::normalize (int repnum)			// Normalize generator
     {
-    bool		isF	{ is_Fermion() } ;
-    const auto&		Hterms	{ global.info(isF).Hterms } ;
-    ObsList		tmplist	{ "GenNorm" } ;
-    doub		normsq	(0) ;
+    bool	isF	{ is_Fermion() } ;
+    const auto&	Hterms	{ global.info(isF).Hterms } ;
+    ObsList	tmplist	{ "GenNorm" } ;
+    doub	normsq	(0) ;
 
     for (ushort i(0) ; i < Hterms.size() ; ++i)
 	{
-	const ObsPoly&	poly { repnum ? Hterms[i].poly : Hterms[i].cpoly } ;
+	const ObsPoly&	poly { Hterms[i].poly } ;
 	const ObsList&	list { poly.obslist() } ;
 
 	for (const auto& term : poly)
@@ -292,7 +293,7 @@ void Gen::suspend_group (uint ord)			// Suspend generator group
 		}
 	    }
 	}
-    if (!found) gripe (format("Invalid generator order {}",ord)) ;
+    if (!found) gripe (format("Invalid generator order {}", ord)) ;
     }
 
 void Gen::activate_group (uint ord)			// Activate generator group
@@ -309,7 +310,7 @@ void Gen::activate_group (uint ord)			// Activate generator group
 		}
 	    }
 	}
-    if (!found) gripe (format("Invalid generator order {}",ord)) ;
+    if (!found) gripe (format("Invalid generator order {}", ord)) ;
     }
 
 void Gen::suspend_gen (uint i)				// Suspend generator
@@ -372,7 +373,7 @@ void Gen::inner_commute ()			 	// Generator reduction
 
 int Gen::addgen (const OpSum& s)		// Add new generator
     {
-    int		added(0) ;
+    int		added (0) ;
     OpList&	list { s.oplist() } ;
     Op		op1  { list[s.front().item] } ;	// N.B. non-ref
     bool	isF  { op1.is_Fermion() } ;

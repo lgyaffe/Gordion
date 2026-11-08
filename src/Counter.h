@@ -1,9 +1,13 @@
 #ifndef COUNTER_H
 #define COUNTER_H
-#include "Theory.h"
+#include "Types.h"
+#include "Poly.h"
 #include <atomic>
+#ifdef DELPHI
+#include "Geo.h"
+#endif
 
-static constexpr int cachelinelen = 128 ;	// Cache line size
+inline constexpr int cachelinelen = 128 ;	// Cache line size
 
 class alignas (cachelinelen) Counter		// Cache line aligned counter
     {
@@ -21,55 +25,109 @@ class alignas (cachelinelen) Counter		// Cache line aligned counter
 	{ return stream << c.x ; }
     } ;
 
-template <size_t N>
-class CountArr : public array<Counter,N>	// Array of Counter's
+using CountArr = array<Counter,PSIZ+3> ;	// Array of Counter's
+
+class PolyStats : public CountArr		// Polynomial statistics
     {
     public:
-    CountArr& operator=(ulong v)
+    PolyStats& operator=(const array<ulong,PSIZ+3>& v)
 	{
-	for (int i(0) ; i < N ; ++i) (*this)[i] = v ;
+	for (int i(0) ; i < size() ; ++i) (*this)[i] = v[i] ;
 	return *this ;
 	}
-    CountArr& operator=(array<ulong,N> v)
+    PolyStats& operator+=(const CountArr& v)
 	{
-	for (int i(0) ; i < N ; ++i) (*this)[i] = v[i] ;
+	for (int i(0) ; i < size() ; ++i) (*this)[i] += v[i] ;
 	return *this ;
 	}
-    CountArr& operator+=(array<ulong,N> v)
+    void	clear() { std::fill (begin(), end(), 0) ; }
+    Counter&	terms() { return (*this)[PSIZ+1] ; }
+    Counter&	eqns()  { return (*this)[PSIZ+2] ; }
+    ulong	terms() const { return (*this)[PSIZ+1] ; }
+    ulong	eqns()  const { return (*this)[PSIZ+2] ; }
+
+    void add (const PolyRec& p)
 	{
-	for (int i(0) ; i < N ; ++i) (*this)[i] += v[i] ;
-	return *this ;
+	auto	recptr	{ p.begin() } ;
+	auto	items	{ p.entry().items() } ;
+	for (int i(0) ; i < items ; ++i, ++recptr)
+	    {
+	    const PolyElem*	ptr { &(*recptr) } ;
+	    const PolyElem*	end { ptr++->end() } ;
+	    doub		val (0.0) ;
+	    while (ptr < end)
+		{
+		PolyTerm t { PolyElem::nextterm (ptr) } ;
+		++(*this)[t.order()] ;
+		++terms() ;
+		}
+	    }
+	eqns() += items ;
+	}
+
+#ifdef DELPHI
+    void add (const GeoRec& p)
+	{
+	auto	recptr	{ p.begin() } ;
+	auto	items	{ p.entry().items() } ;
+	for (int i(0) ; i < items ; ++i, ++recptr)
+	    {
+	    const GeoElem*	pptr { &(*recptr) } ;
+	    const GeoTerm*	ptr { pptr->begin() } ;
+	    const GeoTerm*	end { pptr->end() } ;
+	    doub		val (0.0) ;
+	    while (ptr < end)
+		{
+		const auto& t { *ptr++ } ;
+		++(*this)[t.order()] ;
+		++terms() ;
+		}
+	    }
+	eqns() += items ;
+	}
+#endif
+
+    friend ostream& operator<< (ostream& stream, const PolyStats& s)
+	{
+	stream << std::setw(8) << s.eqns() << std::setw(10) << s.terms() ;
+	for (int i(0) ; i <= PSIZ ; ++i) stream << std::setw(10) << s[i] ;
+	return stream << "\n" ;
 	}
     } ;
 
 struct Counters					// Thread-safe counters
     {
-    Counter		canons ;	// # Obs canonicalizations
-    Counter		cachehits ;	// # Canon::cache hits
-    Counter		cachemiss ;	// # Canon::cache misses
-    Counter		symmtrans ;	// # Symmetry transforms
-    Counter		commutes ;	// # Commutations
-    Counter		assessed ;	// # Obs assessed
-    Counter		found ;		// # Obs already known
-    Counter		bounded ;	// # Obs xorder bounded
-    Counter		discarded ;	// # Obs discarded
-    Counter		classified ;	// # Obs classified
-    Counter		factored ;	// # Obs factorized
-    Counter		reduced ;	// # Obs E/F-reduced
-    Counter		stored ;	// # Obs stored
-    Counter		approxed ;	// # Obs approximated
-    Counter		noapprox ;	// # Obs cannot approximate
-    Counter		nointersect ;	// # Obs w/o self-intersection
-    Counter		ngeos ;		// # geodesic equations
-    Counter		geoterms ;	// # geodesic equation terms
-    CountArr<PSIZ+1>	geotermord ;	// # monomial terms by order
-
-    void cleargeostats ()		// Clear geodesics counters
-	{
-	ngeos = 0 ;
-	geoterms = 0 ;
-	geotermord = 0 ;
-	}
+    Counter	canons ;	// # Obs canonicalizations
+    Counter	symmtrans ;	// # Symmetry transforms
+    Counter	commutes ;	// # Commutations
+    Counter	stored ;	// # Obs stored
+#ifdef DELPHI
+    Counter	obs_hit ;	// # Canon::obscache hits
+    Counter	obs_miss ;	// # Canon::obscache misses
+    Counter	str_hit ;	// # Canon::strcache hits
+    Counter	str_miss ;	// # Canon::strcache misses
+    Counter	traces ;	// # matrix traces
+    Counter	products ;	// # matrix products
+    Counter	transforms ;	// # matrix transforms
+    Counter	cached ;	// # matrices cached
+#else
+    Counter	cachehits ;	// # Canon::cache hits
+    Counter	cachemiss ;	// # Canon::cache misses
+    Counter	assessed ;	// # Obs assessed
+    Counter	found ;		// # Obs already known
+    Counter	bounded ;	// # Obs xorder bounded
+    Counter	discarded ;	// # Obs discarded
+    Counter	classified ;	// # Obs classified
+    Counter	factored ;	// # Obs factorized
+    Counter	reduced ;	// # Obs E/F-reduced
+    Counter	approxed ;	// # Obs approximated
+    Counter	noapprox ;	// # Obs cannot approximate
+    Counter	nointersect ;	// # Obs w/o self-intersection
+#endif
+    PolyStats	gradstats ;	// # gradient stats
+    PolyStats	curvstats ;	// # curvature stats
+    PolyStats	lagrstats ;	// # Lagrange brkt stats
+    PolyStats	geostats  ;	// # geodesic eqn stats
     } ;
 
 #endif

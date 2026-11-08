@@ -128,7 +128,7 @@ void Commute::do_commute (const Op& a, const Obs& b, PolyTerm factor, ObsList& l
 	{
 	do_commuteC (a, b, factor, list, ans) ;
 	}
-    if (b.is_EEloop() || b.is_Efermion())	// b's midE differentiates
+    if (b.is_EEloop() || b.is_efermion())	// b's midE differentiates
 	{
 	do_commuteD (a, b, factor, list, ans) ;
 	}
@@ -147,7 +147,7 @@ void Commute::do_commuteA (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     const auto&	blab	{ Blab::level(Blab::COMMUTE) } ;
     symb	x	{ a.front() } ;
     int		dir	{ axis(x) } ;
-    int		tnRa	{ tnR(x) } ;
+    int		groupa	{ group(x) } ;
     int		bsize	( b.size() ) ;
     short	corder	{ cordsum (a,b) } ;
 
@@ -161,8 +161,8 @@ void Commute::do_commuteA (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 	symb y { b[i] } ;
 	if (dir != axis(y) || isferm(y)) continue ;
 
-	int 		tnRb { tnR(y) } ;
-	const Splice	*sp { splicetbl[tnRa][tnRb] } ;
+	int 		groupb { group(y) } ;
+	const Splice	*sp { splicetbl[groupa][groupb] } ;
 
 	for (int k(0) ; k < 2 ; ++k)
 	    {
@@ -209,7 +209,7 @@ void Commute::do_commuteB (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     const auto&	blab	{ Blab::level(Blab::COMMUTE) } ;
     symb	x	{ b.front() } ;
     int		dir	{ axis(x) } ;
-    int		tnRb	{ tnR(x) } ;
+    int		groupb	{ group(x) } ;
     int		asize	( a.size() ) ;
     short	corder	{ cordsum (a,b) } ;
 
@@ -223,8 +223,8 @@ void Commute::do_commuteB (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 	symb y { a[i] } ;
 	if (dir != axis(y) || isferm(y)) continue ;
 
-	int 		tnRa = tnR(y) ;
-	const Splice	*sp = splicetbl[tnRb][tnRa] ;
+	int 		groupa { group(y) } ;
+	const Splice	*sp { splicetbl[groupb][groupa] } ;
 
 	for (int k(0) ; k < 2 ; ++k)
 	    {
@@ -271,7 +271,7 @@ void Commute::do_commuteC (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     const auto&	blab	{ Blab::level(Blab::COMMUTE) } ;
     symb	x	{ b.front() } ;
     int		dir	{ axis(x) } ;
-    int		tnRb	{ tnR(x) } ;
+    int		groupb	{ group(x) } ;
     short	midE	{ b.middleE() } ;
     int		asize	( a.size() ) ;
     int		bsize	( b.size() ) ;
@@ -287,8 +287,8 @@ void Commute::do_commuteC (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 	symb y { a[i] } ;
 	if (isferm(y) || dir != axis(y)) continue ;
 
-	int 		tnRa = tnR(y) ;
-	const Splice	*sp = splicetbl[tnRb][tnRa] ;
+	int 		groupa { group(y) } ;
+	const Splice	*sp { splicetbl[groupb][groupa] } ;
 
 	for (int k(0) ; k < 2 ; ++k)
 	    {
@@ -351,7 +351,7 @@ void Commute::do_commuteC (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 
 void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& list, PolyMap& ans)
     //
-    // Evaluate -[EEloop/Efermion Obs b, Op a] * PolyTerm factor --- b[midE] differentiates
+    // Evaluate -[EEloop/efermion Obs b, Op a] * PolyTerm factor --- b[midE] differentiates
     //
     {
     short midE { b.middleE() } ;
@@ -361,7 +361,7 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
     short	corder	{ cordsum (a,b) } ;
     symb	x	{ b[midE] } ;
     int		dir	{ axis(x) } ;
-    int		tnRb	{ tnR(x)  } ;
+    int		groupb	{ group(x)  } ;
     int		asize	( a.size() ) ;
     int		bsize	( b.size() ) ;
     Str		buf ;
@@ -374,8 +374,8 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 	symb y = a[i] ;
 	if (isferm(y) || dir != axis(y)) continue ;
 
-	int 		tnRa = tnR(y) ;
-	const Splice	*sp = splicetbl[tnRb][tnRa] ;
+	int 		groupa { group(y) } ;
+	const Splice	*sp { splicetbl[groupb][groupa] } ;
 
 	for (int k(0) ; k < 2 ; ++k)
 	    {
@@ -408,7 +408,7 @@ void Commute::do_commuteD (const Op& a, const Obs& b, PolyTerm factor, ObsList& 
 		if (blab > 1) cout << "commute D: -[" << b << ", " << a << "] i "
 				   << i << ": " << coef << " " << buf << "\n" ;
 
-		if (b.is_Efermion() && a.is_Fermion())
+		if (b.is_efermion() && a.is_Fermion())
 		    {
 		    bool  astag	( isstag (a.front()) ^ isstag (a.back()) ) ;
 		    bool  bstag	( isstag (b.front()) ^ isstag (b.back()) ) ;
@@ -600,7 +600,7 @@ void Commute::do_inner (const Obs& a, const PolyTerm factor, ObsList& list, Poly
     int		dir1  { axis(x) } ;
     bool	skip  { false } ;
 
-    switch (tnR(x))
+    switch (group(x))
 	{
 	case 2: ++p1 ; break ;						// E
 	case 3: *p1-=0x0c ; buf.push_back (x-0x08) ; skip=true ; break ;// LEl
@@ -714,17 +714,17 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 
     if (a.is_Eloop())
 	{
-	symb	x { a.front() } ;
-	int	dir { axis(x) } ;
-	int	tnRa { tnR(x) } ;
+	symb	x	{ a.front() } ;
+	int	dir	{ axis(x) } ;
+	int	groupa	{ group(x) } ;
 	
 	for (int i(0) ; i < b.size() ; ++i)	// walk around Op b, a[0] differentiates
 	    {
 	    symb y { b[i] } ;
 	    if (dir != axis(y) || isferm(y)) continue ;
 
-	    int 		tnRb { tnR(y) } ;
-	    const Splice	*sp { splicetbl[tnRa][tnRb] } ;
+	    int 		groupb { group(y) } ;
+	    const Splice	*sp { splicetbl[groupa][groupb] } ;
 
 	    for (int k(0) ; k < 2 ; ++k)
 		{
@@ -765,15 +765,15 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 	{
 	symb	x	{ b.front() } ;
 	int	dir	{ axis(x) } ;
-	int	tnRb	{ tnR(x) } ;
+	int	groupb	{ group(x) } ;
 	
 	for (int i(0) ; i < a.size() ; ++i)	// walk around Op a, b[0] differentiates
 	    {
 	    symb y { a[i] } ;
 	    if (dir != axis(y) || isferm(y)) continue ;
 
-	    int 		tnRa = tnR(y) ;
-	    const Splice	*sp = splicetbl[tnRb][tnRa] ;
+	    int 		groupa { group(y) } ;
+	    const Splice	*sp { splicetbl[groupb][groupa] } ;
 
 	    for (int k(0) ; k < 2 ; ++k)
 		{
@@ -861,3 +861,4 @@ void Commute::op_commute (doub coeff, const Op a, const Op b, Gen& ans)
 	}
     if (blab > 2) cout << "op_commute[Op,Op] returning " << ans << "\n" ;
     }
+

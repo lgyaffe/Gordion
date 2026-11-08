@@ -1,25 +1,26 @@
 #ifndef CANON_H
 #define CANON_H
-#include "Index.h"
-#include "Obs.h"
+#include "List.h"
 
-static constexpr int loopchunksize = theory.dim == 4 ? 6 :	// Loop chuck size
+class Obs ;
+
+inline constexpr int loopchunksize = theory.dim == 4 ? 6 :	// Loop chuck size
 				     theory.dim == 3 ? 7 : 9 ;
 
-static constexpr int specchunksize = !theory.euclid		// Spec chunk size
+inline constexpr int specchunksize = !theory.euclid		// Spec chunk size
 				   ? theory.dim == 2 ? 5 : 4
 				   : theory.dim == 4 ? 6 :
 				     theory.dim == 3 ? 7 : 8 ;
 
-static constexpr int loopbase = 8 ;				// Loop score base
-static constexpr int specbase = theory.euclid ? 8 : 64 ;	// Spec score base
+inline constexpr int loopbase = 8 ;				// Loop score base
+inline constexpr int specbase = theory.euclid ? 8 : 64 ;	// Spec score base
 
-static constexpr ulong looptblsize (int len = loopchunksize)	// Loop table size
+inline constexpr ulong looptblsize (int len = loopchunksize)	// Loop table size
     {
     return ipow(2 * theory.dim, len) ;
     }
 
-static constexpr ulong spectblsize (int len = specchunksize)	// Special table size
+inline constexpr ulong spectblsize (int len = specchunksize)	// Special table size
     {
     return theory.euclid ?
 	   2 * ipow (2 * theory.dim, len) * !!theory.nf :
@@ -31,7 +32,7 @@ static_assert (ipow(specbase,specchunksize) < UINT_MAX, "specchunksize too big")
 
 using SymmSet = vector<uint> ;	 			// Trial symmetry subset
 
-class CanonCache : public hash<Str,int,strhash,str_eq>	// Short Obs cache
+class CanonCache : public hash<Str,int,Strhash,Str_eq>	// Short Obs cache
     {
     public:
     bool freeze { true } ;
@@ -40,20 +41,18 @@ class CanonCache : public hash<Str,int,strhash,str_eq>	// Short Obs cache
 	    { std::erase_if (*this, [indx](const auto& p)
 		{ return abs(p.second) >= indx ; }) ; }
 
-    void load (const Obsset&) ;		// load short inbox Obs into cache
+    void load (const ObsSet&) ;		// load short inbox Obs into cache
     void reload () ;			// reload cache
-
-    friend ostream& operator<< (ostream&, const CanonCache&) ;
     } ;
 
-class Node						// Canonicalization chunk data
+class Node					// Canonicalization chunk data
     {
     public:
     uint	score = UINT_MAX ;	// chunk score
     int		indx = -1 ;		// indx of symmetry subset to try
     } ;
 
-class Canon						// Canonicalization tables
+class Canon					// Canonicalization tables
     {
     friend Obs ;
 

@@ -1,15 +1,22 @@
 #ifndef POLY_H
 #define POLY_H
 #include "Data.h"
+#include "Hash.h"
 #include "Term.h"
 #include "Theory.h"
 #include <functional>
 #include <utility>
 
 class Gen ;
-class ObsList ;
+class ObsList  ;
 class PolyElem ;
 class SysIndex ;
+
+#ifdef DELPHI
+inline constexpr int PSIZ = theory.euclid ? 2 : 3 ;	// Polyterm order
+#else
+inline constexpr int PSIZ = theory.euclid ? 2 : 4 ;	// Polyterm order
+#endif
 
 class PolyIndx : public array<numb,PSIZ>		// Index tuples
     {
@@ -53,12 +60,7 @@ class PolyTerm : public Term<real,PolyIndx>		// Polynomial term
     void	print (ostream&, const ObsList&) const ;	// Print
     } ;
 
-struct Polyhash						// PolyIndx hash function
-    {
-    std::size_t operator() (const PolyIndx&) const noexcept ;
-    } ;
-
-class PolyMap : public hash<PolyIndx,real,Polyhash>	// Observable polynomial
+class PolyMap : public hash<PolyIndx,real,Indxhash<PSIZ>> // Observable polynomial
     {
     std::reference_wrapper<ObsList> list ;		// Observable list
 
@@ -95,15 +97,14 @@ class ObsPoly : public vector<PolyTerm>			// Polynomial of Obs
     std::reference_wrapper<ObsList> list ;		// Observable list
 
     public:
-    void	push_map (PolyMap&) ;			// PolyMap -> ObsPoly
-    void	add (const PolyElem&) ;			// Add term
     void	sort() ;				// Sort terms
-    bool	allzero() const ;			// Vanishnig poly?
+    void	push_map (PolyMap&) ;			// PolyMap -> ObsPoly
     ObsPoly&	negate() ; 				// Negate poly
     ObsList&	obslist() const { return list ; }	// Underlying ObsList
 
+    ObsPoly (ObsList&, const PolyElem&) ;		// Constructor
     ObsPoly (ObsList& l) : list(l) {}			// Constructor
-    ObsPoly (numb indx, ObsList& l)			// Constructor
+    ObsPoly (ObsList& l, numb indx)			// Constructor
 	    : list(l), vector<PolyTerm>(1, PolyTerm(indx)) {}
 
     friend ostream& operator<< (ostream&, const ObsPoly&) ;
@@ -137,11 +138,15 @@ class PolyRec : public DataRec				// Polynomial data record
     public:
     mutable vector<ulong> offset ;			// Item offests
 
+#ifdef DELPHI
+    IndxSet		  indices ;			// Included indices
+    void mk_indexlist () ;				// Build index ranges
+#endif
     using DataRec::DataRec ;
 
     void add (PolyMap&) ;				// Add terms
     void add (const ObsPoly&) ;				// Add terms
-    void clear () { DataRec::clear() ; offset.clear() ; }	// Clear data
+    void clear () { DataRec::clear(); offset.clear(); }	// Clear data
 
     const PolyElem& operator() (numb k, numb j=0, numb i=0) const // Indexed Poly
 	{						// N.B. slice/col major!
@@ -178,7 +183,6 @@ class PolyRec : public DataRec				// Polynomial data record
 
     const PolyIter end()   const
 	{ return PolyIter (static_cast<const PolyElem*>(data()) + size()) ; }
-
     } ;
 
 template <size_t N>

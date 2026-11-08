@@ -1,6 +1,6 @@
 #ifndef SYMM_H
 #define SYMM_H
-#include "Op.h"
+#include "List.h"
 #include <bitset>
 
 class Symm ;
@@ -17,6 +17,7 @@ class SymmTerm : public Term<doub,uint>			// Symmetry index with coeff
     } ;
 
 using SymmVec = vector<SymmTerm> ;
+using Symmmap = hash<Symm,uint,Symmhash,Symm_eq> ;
 
 class SymmSum : public SymmVec				// Sum of SymmTerm's
     {
@@ -28,18 +29,6 @@ class SymmSum : public SymmVec				// Sum of SymmTerm's
     SymmSum	operator*(SymmTerm) ;			// Multiply by SymmTerm
     } ;
 
-struct Symmhash						// Symm hash function 
-    {
-    std::size_t operator()(const Symm&) const noexcept ;
-    } ;
-
-struct Symm_eq						// Symm equality test
-    {
-    bool operator()(const Symm&, const Symm&) const ;
-    } ;
-
-using Symmmap = hash<Symm,uint,Symmhash,Symm_eq> ;
-
 class Symm						// Symmetry transformation
     {
     public:
@@ -50,19 +39,24 @@ class Symm						// Symmetry transformation
 
     Symm() : map (Symb::symblist) {}			// default constructor
 
-    pair<int,Op>	operator()(const Op&) const ;		// Transform Op
-    int			operator()(const Symm&) const noexcept ;// Compose tranformations
-    bool		operator==(const Symm&) const noexcept ;// Compare transformations
-    bool		isCodd() const { return sgn[Cbit] ; }	// conjugating symmetry?
-    bool		is_id()  const { return &(*this) == &Symm::list[0] ; }
+    pair<int,Op> operator()(const Op&) const ;		  // Transform Op
+    int		 operator()(const Symm&) const noexcept ; // Compose tranformations
+    bool	 operator==(const Symm&) const noexcept ; // Compare transformations
+    bool	 isCodd() const { return sgn[Cbit] ; }	  // conjugating symmetry?
+    bool	 is_id()  const { return &(*this) == &Symm::list[0] ; }
+
+    static constexpr int Cbit { Nsymb } ;	// conjugating symm bit number
+    static Index<Symm>	 list ;			// Lattice (x C) symmetry transforms
+    static Symmmap	 trans2indx ;		// transform to index map
+#ifdef DELPHI
+    static inline vector<uint> inverse ;	// indices of inverse symmetries
+#endif
+
+    static void		 symminit  () ;			// Initialize symmetries
+    static SymmTerm	 known	  (const string&&) ;	// Return named Symm
+    static uint		 knownindx (const string&&) ;	// Return named Symm index
 
     friend ostream& operator<< (ostream&, const Symm&) ;
-
-    static constexpr int	Cbit = Nsymb ;		// conjugating symm bit number
-    static Index<Symm>		list ;			// Lattice (x C) symmetry transforms
-    static Symmmap		trans2indx ;		// transform to index map
-    static SymmTerm		known (const string&&); // Return named Symm
-    static void			symminit () ;		// Initialize symmetries
     } ;
 
 inline Symmmap		Symm::trans2indx ;		// transform to index map

@@ -2,13 +2,12 @@
 #include "Global.h"
 #include "Numerics.h"
 #include "Op.h"
-#include "Save.h"
 #include "Symm.h"
 #include "Gripe.h"
 #include "Blab.h"
 #include <regex>
 
-Obs::Obs(const Op& a)						// Convert Op -> Obs
+Obs::Obs(const Op& a)					// Convert Op -> Obs
     :
     Str(a), corder(a.order), xorder(-1)
     {
@@ -16,7 +15,7 @@ Obs::Obs(const Op& a)						// Convert Op -> Obs
 	   a.is_Eloop()   ? ObsType::Eloop : ObsType::Loop ;
     }
 
-Obs::Obs(const string& s)					// Construct Obs
+Obs::Obs(const string& s)				// Construct Obs
     :
     Str(s), type(obstype(s)), corder(-1), xorder(-1)
     {
@@ -34,19 +33,17 @@ Obs::Obs(const string& s, ObsType t, short cord, short xord)	// Construct Obs
     {
     if (Blab::level(Blab::OBS) > 3)
 	{
-	cout << "Obs(string&,short,short) " << s << "\n" << flush ;
+	cout << "Obs(string&,ObsType,short,short) " << s << "\n" << flush ;
 	}
     joinends() ;
     validate() ;
     }
 
-void Obs::validate () const					// Test if valid Obs
+void Obs::validate () const				// Test if valid Obs
     {
-    if (Blab::level(Blab::OBS) > 1)
-	{
-	cout << "Obs::validate " << *this << "\n" << flush ;
-	}
     if (size() == 0 && is_Loop()) return ;
+    if (Blab::level(Blab::OBS) > 1)
+	cout << "Obs::validate " << *this << "\n" << flush ;
 
     int	S	(0) ;
     int	fs	(0) ;
@@ -80,7 +77,7 @@ void Obs::validate () const					// Test if valid Obs
     else if (fs && !is_f(back()))	err = "is malformed fermion bilinear" ;
     else if (Es && islink(front()))	err = "is mis-rotated" ;
     else if (iseuc && derivs)		err = "has Grassmann derivative" ;
-    else if (fs &&  Es  && type != ObsType::Efermion) err = "has wrong type" ;
+    else if (fs &&  Es  && type != ObsType::efermion) err = "has wrong type" ;
     else if (fs && !Es  && type != ObsType::Fermion)  err = "has wrong type" ;
     else if (!fs && !Es && type != ObsType::Loop)     err = "has wrong type" ;
     else if (!fs && Es==1 && type != ObsType::Eloop)  err = "has wrong type" ;
@@ -107,7 +104,7 @@ short Obs::middleE() const				// Set & return midE location
 		{
 		if (singleE (*ptr)) return midE = ptr - cbegin() ;
 		}
-	    fatal (format ("Missing midE in obs {}, type {}", print(), (int)type)) ;
+	    fatal (format("Missing midE in obs {}, type {}", print(), (int)type)) ;
 	    }
 	else midE = 0 ;
 	}
@@ -118,7 +115,7 @@ bool Obs::Esublat() const				// E sublattice ?
     {
     short midE { middleE() } ;
     symb  c { (*this)[midE] } ;
-    return is_Efermion() ? !(midE % 2) ^ (is_LE(c) || is_LEl(c)) : false ;
+    return is_efermion() ? !(midE % 2) ^ (is_LE(c) || is_LEl(c)) : false ;
     }
 
 ObsType Obs::obstype (const string s)			// Determine Obs type
@@ -135,8 +132,8 @@ ObsType Obs::obstype (const string s)			// Determine Obs type
     else if (nE == 1 && nF == 0) return ObsType::Eloop ;
     else if (nE == 2 && nF == 0) return ObsType::EEloop ;
     else if (nE == 0 && nF == 1) return ObsType::Fermion ;
-    else if (nE == 1 && nF == 1) return ObsType::Efermion ;
-    else gripe (format ("Obs {} is invalid type", s)) ;
+    else if (nE == 1 && nF == 1) return ObsType::efermion ;
+    else gripe (format("Obs {} is invalid type", s)) ;
     }
 
 int Obs::findstart() noexcept				// Rotate to preferred start
@@ -217,380 +214,7 @@ int Obs::trans (const Symm& symm, int start) noexcept	// Symmetry transform Obs
     return neg ? -1 : 1 ;
     }
 
-ObsList::ObsList (const string s, bool can, bool clsfy)		// Construct ObsList
-    : name(s), canonicalize(can), classify (clsfy)
-    {
-    store (Obs(Str(), ObsType::Loop, 0, 0)) ;
-    }
-
-numb ObsList::find (const Str& s) const			// Find Obs, return index
-    {
-    auto	p1	{ map.find(s) } ;
-    auto&	inbox	{ global.obs.inbox } ;
-    if (p1 != map.end()) return p1->second ;
-    if (this == &global.obs && inbox.size())
-	{
-	auto p2 { inbox.find(s) } ;
-	if (p2 != inbox.end()) return MAXNUM-1 ;
-	}
-    return MAXNUM ;
-    }
-
-bool ObsList::frozen () const				// Frozen master list?
-    {
-    return this == &global.obs && global.obs.freeze ;
-    }
-
-bool ObsList::freezeif () const				// Freeze if master list
-    {
-    if (this == &global.obs)
-	{
-	bool prev { global.obs.freeze } ;
-	global.obs.freeze = true ;
-	return prev ;
-	}
-    return false ;
-    }
-
-void ObsList::refreezeif (bool prev) const		// Reset freeze if master list
-    {
-    if (this == &global.obs)
-	{
-	global.obs.freeze = prev ;
-	}
-    }
-
-void ObsList::retain (const Obs& o)			// Retain for later insertion
-    {
-    global.obs.inbox.insert (o) ;
-    }
-
-PolyTerm ObsList::is_known (Obs& a) const			// Find in ObsList
-    {
-    int		sgn  ( canonicalize ? a.canon() : a.findstart() ) ;
-    numb	indx { find (a) } ;
-
-    return (indx < MAXNUM-1) ? PolyTerm (PolyIndx(indx), sgn)
-			     : PolyTerm (PolyIndx(),     0.0) ;
-    }
-
-PolyTerm ObsList::is_known (Obs&& a) const			// Find in ObsList
-    {
-    return is_known (a) ;
-    }
-
-PolyTerm ObsList::is_known (Obs&& a, Obs&& b) const		// Find in ObsList
-    {
-    int		sgna  ( canonicalize ? a.canon() : a.findstart() ) ;
-    int		sgnb  ( canonicalize ? b.canon() : b.findstart() ) ;
-    numb	indxa { find (a) } ;
-    numb	indxb { find (b) } ;
-
-    return (indxa < MAXNUM-1 && indxb < MAXNUM-1) ?
-	PolyTerm (PolyIndx(indxa, indxb), sgna * sgnb) :
-	PolyTerm (PolyIndx(), 0.0) ;
-    }
-
-PolyTerm ObsList::catalog (Obs a)			// Catalog Obs in list
-    {							// N.B. pass by value
-    const auto&	blab { Blab::level(Blab::OBS) } ;
-    if (blab > 1) cout << "catalog " << name << ": " << a << "\n" ;
-    if (Obs::check) a.validate() ;
-
-    int  sgn  { canonicalize ? a.canon() : a.findstart() } ;
-    numb indx { find(a) } ;
-    if (indx < MAXNUM-1)
-	{
-	if (blab > 1) cout << "catalog " << name << ": found "
-			   << a << " at " << indx << "\n" ;
-	return PolyTerm (indx, sgn) ;
-	}
-    else if (classify && !a.known_xord())
-	{
-	if (!a.classify (*this))
-	    fatal (format("Failed classify: {} ({},{}) in {}",
-		a.print(), a.corder, a.xorder, name)) ;
-	}
-    if (frozen())
-	gripe (format("Cannot catalog {} into frozen list {}",
-		a.print(), name)) ;
-    PolyTerm ans (store(a), sgn) ;
-    if (blab > 1) cout << "catalog " << name << ": stored " << a
-		       << " -> " << ans[0] << "\n" ;
-    return ans ;
-    }
-
-PolyTerm ObsList::catalog (Obs a, Obs b)		// Catalog Obs in list
-    {							// N.B. pass by value
-    const auto&	blab { Blab::level(Blab::OBS) } ;
-    if (blab > 1) cout << "catalog " << name << ": " << a << ", " << b << "\n" ;
-    if (Obs::check) { a.validate() ; b.validate() ; }
-
-    int	sgna ( canonicalize ? a.canon() : a.findstart() ) ;
-    int	sgnb ( canonicalize ? b.canon() : b.findstart() ) ;
-    numb indxa { find(a) } ;
-    numb indxb { find(b) } ;
-
-    if (indxa < MAXNUM-1 && indxb < MAXNUM-1)
-	{
-	if (blab > 1)
-	    cout << "catalog " << name << ": found "
-		 << a << " at " << indxa << ", "
-		 << b << " at " << indxb << "\n" ;
-	return PolyTerm (PolyIndx (indxa,indxb), sgna * sgnb) ;
-	}
-    if (frozen())
-	gripe (format("Cannot catalog {} {} into frozen list ()",
-		    a.print(), b.print(), name)) ;
-    if (classify && !a.known_xord())
-	{
-	if (!a.classify (*this))
-	    fatal (format("Failed classify: {} ({},{}) in {}",
-		a.print(), a.corder, a.xorder, name)) ;
-	}
-    if (classify && !b.known_xord())
-	{
-	if (!b.classify (*this))
-	    fatal (format("Failed classify: {} ({},{}) in {}",
-		b.print(), b.corder, b.xorder, name)) ;
-	}
-    PolyTerm ans (PolyIndx(store(a), store(b)), sgna * sgnb) ;
-    if (blab > 1)
-	{
-	cout << "catalog " << name << ": stored/found " << a << " & "
-	     << a << " -> " << ans[0] << " & " << ans[1] << "\n" ;
-	}
-    return ans ;
-    }
-
-numb ObsList::store (const Obs& o)			// Store Obs in ObsList
-    {
-    const auto&	blab { Blab::level(Blab::OBS) } ;
-    if (classify)
-	{
-	if (o.bilinear() && !o.is_coord())
-	    {
-	    fatal (format("Non-coord Obs {} in {}", o.print(), name)) ;
-	    }
-	if (o.corder < 0)
-	    {
-	    cout << "Cannot store Obs with unknown corder\n" ;
-	    }
-	if (o.corder < 0 || o.xorder < 0)
-	    {
-	    fatal (format("Unclassified Obs {} ({},{}) in {}",
-		o.print(), o.corder, o.xorder, name)) ;
-	    }
-	}
-    if (blab > 1) cout << "Storing in " << name << ": " << o << "\n" ;
-    auto [iter, isnew] { map.try_emplace (o, (*this).size()) } ;
-    numb indx { iter->second } ;
-    if (isnew)
-	{
-	if (size() == MAXNUM-1)
-	    gripe ("Max # Obs exceeded: recompile without NUM32!") ;
-	push_back (&(iter->first)) ;
-	uint stage { o.is_fermi() } ;
-	hasher (hash(stage), o) ;
-	++nobs (stage) ;
-	}
-    return indx ;
-    }
-
-void ObsList::clear ()					// Empty list
-    {
-    nobsF = nobsG = 0 ;
-    hashF = hashG = 0 ;
-    Obsmap().swap (map) ;
-    vector<const Obs*>().swap (*this) ;
-    store (Obs(Str{}, ObsType::Loop, 0, 0)) ;
-    }
-
-void ObsList::purge (numb limit)			// Purge entries
-    {
-    resize (limit) ;
-    nobsF -= std::erase_if (map, [&](const auto& p)
-	{ return p.second >= limit && p.second >= nobsG; }) ;
-    nobsG -= std::erase_if (map, [&](const auto& p)
-	{ return p.second >= limit && p.second <  nobsG; }) ;
-    if (nobsG + nobsF != size())
-	abort ("purge: Inconsistent ObsList size") ;
-    rehash () ;
-    }
-
-void ObsList::rehash ()				// Recalculate list hashes
-    {
-    hashF = hashG = 0 ;
-    for (const auto& ptr : *this)
-	{
-	hasher (hash(ptr->is_fermi()), *ptr) ;
-	}
-    }
-
-void ObsList::hasher (ulong& hash, const Obs& o)	// List hasher
-    {
-    ulong x { std::hash<string>{}(o) } ;
-    hash ^= x + 0x9e3779b9 + (hash << 6) + (hash >> 2) ;
-    }
-
-void ObsList::ondisk ()			// Leave global.obs on disk
-    {
-    auto stage	{ global.stage } ;
-
-    if (size() > 1) cout << "Swapping " << name << " Obs list to disk\n" ;
-    if (nobsG > 1)
-	{
-	bool		is_open	{ global.info(0).sysfile.stream.is_open() } ;
-	const auto&	obs	{ global.data(0).obs } ;
-	const auto&	obsnum	{ obs.entry().items() } ;
-	global.stage = Global::Gauge ;
-	if (!is_open || nobsG != obsnum) Save::save_sys () ;
-	global.stage = stage ;
-	}
-    if (nobsF > 0)
-	{
-	bool		is_open	{ global.info(1).sysfile.stream.is_open() } ;
-	const auto&	obs	{ global.data(1).obs } ;
-	const auto&	obsnum	{ obs.entry().items() } ;
-	global.stage = Global::Fermi ;
-	if (!is_open || nobsF != obsnum) Save::save_sys () ;
-	global.stage = stage ;
-	}
-    clear() ;
-    global.obs.swapped = true ;
-    }
-
-void ObsList::obsinit (uint stage)		// Load basic Obs
-    {
-    bool iseuc	 { theory.euclid } ;
-    char link[4] { 'x', 'y', 'z', 'w' } ;
-    char Link[4] { 'X', 'Y', 'Z', 'W' } ;
-
-    global.obs.freeze = false ;
-    if (stage == 0)
-	{
-	if (iseuc)				// gauge entropy
-	    {
-	    Str entG ( EntrG ) ;
-	    catalog (Obs(entG,ObsType::Entropy,0,0)) ;
-	    }
-	if (!iseuc)				// E & EE
-	    {
-	    for (int i(0) ; i < theory.dim ; ++i)
-		{
-		Str E ( justE + i ) ;
-		catalog (Obs(E,ObsType::Eloop,0,4)) ;
-		Str EE ( KinG + i ) ;
-		catalog (Obs(EE,ObsType::EEloop,0,4)) ;
-		}
-	    }
-	for (int i(0) ; i < theory.dim ; ++i)	// single plaquettes
-	    {
-	    for (int j(i) ; ++j < theory.dim ;)
-		{
-		string plaq {link[i],link[j],Link[i],Link[j]} ;
-		string Plaq {link[i],Link[j],Link[i],link[j]} ;
-		catalog (Obs(plaq,ObsType::Loop,2,2)) ;
-		catalog (Obs(Plaq,ObsType::Loop,2,2)) ;
-		}
-	    }
-	for (int i(0) ; i < theory.dim ; ++i)	// Polyakov loops 
-	    {
-	    if (theory.box.comp[i])
-		{
-		string polyakov (theory.box.comp[i], char('x'+i)) ;
-		string Polyakov (theory.box.comp[i], char('X'+i)) ;
-		catalog (Obs(polyakov,ObsType::Loop,2,2)) ;
-		catalog (Obs(Polyakov,ObsType::Loop,2,2)) ;
-		}
-	    }
-	if (!neq (global.obs)) global.info(0).maxord = 2 ;
-	}
-    else if (theory.nf)
-	{
-	if (iseuc)				// fermionic entropy
-	    {
-	    Str entF ( EntrF ) ;
-	    catalog (Obs(entF,ObsType::Entropy,0,0)) ;
-	    }
-	if (!iseuc)				// gauge kinetic, fermion contrib
-	    {
-	    for (int i(0) ; i < theory.dim ; ++i)
-		{
-		Str ee ( KinF + i ) ;
-		catalog (Obs(ee,ObsType::EEloop,0,2)) ;
-		}
-	    }
-	for (int i(0) ; i < theory.nf ; i+=2)	// fermion mass
-	    {
-	    string Ff {char('F'+i),char('f'+i)} ;
-	    string Gf {char('G'+i),char('f'+i)} ;
-	    if (iseuc)	catalog (Obs(Ff,ObsType::Fermion,0,0)) ;
-	    else	catalog (Obs(Gf,ObsType::Fermion,0,0)) ;
-	    }
-	for (int i(0) ; i < theory.nf ; i+=2)	// fermion hopping
-	    {
-	    for (int j(0) ; j < theory.dim ; ++j)
-		{
-		string Fxf {char('F'+i),link[j],char('f'+i)} ;
-		string FXf {char('F'+i),Link[j],char('f'+i)} ;
-		catalog (Obs(Fxf,ObsType::Fermion,1,1)) ;
-		catalog (Obs(FXf,ObsType::Fermion,1,1)) ;
-		}
-	    }
-	if (!neq (global.obs))
-	    {
-	    global.info(1).maxord = 1 ;
-	    do_fermiinit() ;
-	    }
-	}
-    global.obs.freeze = true ;
-
-    if (nobsG + nobsF != size())
-	abort (format("Inconsistent ObsList size: {} + {} != {}",
-	    nobsG, nobsF, size())) ;
-    }
-
-int ObsList::do_fermiinit ()			// Initialize fermion -> loop map
-    {
-    const auto&	blab	{ Blab::level(Blab::OBS) } ;
-    uint	initfail (0) ;
-    if (blab > 3) cout << "do_fermiinit start\n" << flush ;
-
-    global.obs.fermiinit.clear () ;
-    for (numb i(nobsG) ; i < size() ; ++i)
-	{
-	const Obs& a { (*this)(i) } ;
-	if (!a.is_Fermion() || !a.isclosed()) continue ;
-
-	Obs b (a.cbegin()+1, a.cend()-1, ObsType::Loop) ;
-	b.joinends() ;
-	if (blab > 3) cout << "fermion " << a << " loop partner " << b << "\n" ;
-	PolyTerm term { is_known (std::move(b)) } ;
-	if (!term.coeff)
-	    {
-	    ++initfail ;
-	    if (blab > 1) cout << "Warning: Cannot initialize " << a << "\n" ;
-	    }
-	else global.obs.fermiinit.emplace_back (i, term[0]) ;
-	}
-    return initfail ;
-    }
-
-ostream& ObsList::print (ostream& stream, numb indx) const	// Print indexed Obs
-    {
-    bool	addvev	 { !neq(global.obs) } ;
-    auto	prevprec { stream.precision(12) } ;
-    const Obs&	obs	 { *at(indx) } ;
-    stream << name << " Obs #" << indx << ": " << std::setprecision(12) ;
-    stream << obs ;
-    if (addvev && indx < numerics.vev.size())
-	stream << " = " << numerics.vev[indx] ;
-    stream << "\n" << std::setprecision (prevprec) ;
-    return stream ;
-    }
-
-ostream& operator<< (ostream& stream, const Obs& obs)		// Print Obs -> stream
+ostream& operator<< (ostream& stream, const Obs& obs)	// Print Obs -> stream
     {
     if (Blab::level(Blab::OBS))
 	{
@@ -603,31 +227,15 @@ ostream& operator<< (ostream& stream, const Obs& obs)		// Print Obs -> stream
     return stream ;
     }
 
-ostream& ObsList::print (ostream& stream) const			// Print ObsList -> stream
-    {
-    bool	addvev	 { !neq(global.obs) } ;
-    auto	prevprec { stream.precision(12) } ;
-    stream << name << " observables:\n" << std::setprecision(12) ;
-    for (int indx(0) ; indx < size() ; ++indx)
-	{
-	stream << " #" << indx << ": " << *at(indx) ;
-	if (addvev && indx < numerics.vev.size())
-	    stream << " = " << numerics.vev[indx] ;
-	stream << "\n" ;
-	}
-    stream << std::setprecision (prevprec) ;
-    return stream ;
-    }
-
-ObsStats::ObsStats (const ObsList& list)			 // Construct ObsStats
+ObsStats::ObsStats (const ObsList& list)		 // Construct ObsStats
     {
     maxloop = 0 ;
     doub	maxloopvev { 0.0 } ;
     ulong	lengthsum (0) ;
-    auto&	vevs { numerics.vev } ;
-    auto	nvev { vevs.size() } ;
-    auto 	beg  { list.begin() } ;
-    auto 	end  { list.end()   } ;
+    auto&	vevs { numerics.vev  } ;
+    auto	nvev { vevs.size()   } ;
+    auto 	beg  { list.cbegin() } ;
+    auto 	end  { list.cend()   } ;
 
     for (auto ptr { beg } ; ptr < end ; ++ptr)
 	{
@@ -640,8 +248,8 @@ ObsStats::ObsStats (const ObsList& list)			 // Construct ObsStats
 	if (c >= (*this)[t].size())	(*this)[t].resize (c+1) ;
 	if (x >= (*this)[t][c].size())	(*this)[t][c].resize (x+1) ;
 
-	if (c > (*this).maxc) (*this).maxc = c ;
-	if (x > (*this).maxx) (*this).maxx = x ;
+	if (c > maxc) maxc = c ;
+	if (x > maxx) maxx = x ;
 
 	++(*this)[t][c][x] ;
 	lengthsum += obs.size() ;
@@ -654,5 +262,6 @@ ObsStats::ObsStats (const ObsList& list)			 // Construct ObsStats
 		}
 	    }
 	}
-    (*this).avglen = (float) lengthsum / list.size() ;
+    avglen = (float) lengthsum / list.size() ;
     }
+

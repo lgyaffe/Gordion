@@ -4,7 +4,7 @@
 #include "Rep.h"
 #include "Gripe.h"
 
-void Test::irreps ()					// Test irrep projector validity
+void Test::irreps ()				// Test irrep projector validity
     {
     Proj* preva { nullptr } ;
     for (const auto& a : Proj::list)
@@ -37,16 +37,16 @@ void Test::irreps ()					// Test irrep projector validity
     cout << "Sum of diagonal projectors " << (v.allzero() ? "is" : "is not") << " complete\n" ;
     }
 
-void Test::jacobi (const string& w1, const string& w2, numb obsindx) // Test specific Jacobi identity
-    {
+void Test::jacobi (const string& w1, const string& w2, numb obsindx)
+    {						// Test specific Jacobi identity
     ObsList	list	{ "JacobiTemp" } ;
-    ObsPoly	poly	{ obsindx, global.obs } ;
-    Obs		obs	{ global.obs(obsindx) } ;
+    ObsPoly	poly	{ global.obs, obsindx } ;
+    Obs		obs	{ global.obs (obsindx) } ;
     PolyMap	ans	{ list } ;
     PolyMap	tmp1	{ list } ;
     PolyMap	tmp2	{ list } ;
-    Gen		g1	{ Op {w1,-1} } ;
-    Gen		g2	{ Op {w2,-1} } ;
+    Gen		g1	{ Op {w1} } ;
+    Gen		g2	{ Op {w2} } ;
     bool	isF	( g1.is_Fermion() ^ g2.is_Fermion() ) ;
     auto&	oplist	{ global.info(isF).ops } ;
     Gen		g21	{ oplist } ;
@@ -64,14 +64,14 @@ void Test::jacobi (const string& w1, const string& w2, numb obsindx) // Test spe
     else		cout << " = " << ans << "\n" ;
     }
 
-void Test::jacobi (numb obsindx)				// Test Jacobi identities on Obs
+void Test::jacobi (numb obsindx)			// Test Jacobi identities on Obs
     {
     auto&	gens	{ global.info().gens[global.repnum] } ;
     auto&	oplist	{ global.info().ops } ;
     uint	ngens	( gens.size() ) ;
     uint	opnum	( oplist.size() ) ;
     ObsList	list	{ "JacobiTemp" } ;
-    Obs		obs	{ global.obs(obsindx) } ;
+    Obs		obs	{ global.obs (obsindx) } ;
 
     for (int i(0) ; i < ngens ; ++i)
 	{
@@ -81,7 +81,7 @@ void Test::jacobi (numb obsindx)				// Test Jacobi identities on Obs
 	    {
 	    Gen&	g2	{ gens[j] } ;
 	    Gen		g21	{ oplist } ;
-	    ObsPoly	poly	{ obsindx, list } ;
+	    ObsPoly	poly	{ list, obsindx } ;
 	    PolyMap	ans	{ list } ;
 	    PolyMap	tmp1	{ list } ;
 	    PolyMap	tmp2	{ list } ;
@@ -101,7 +101,7 @@ void Test::jacobi (numb obsindx)				// Test Jacobi identities on Obs
     oplist.purge (opnum) ;
     }
 
-void Test::jacobi()					// Test all Gen Jacobi identities
+void Test::jacobi()				// Test all Gen Jacobi identities
     {
     auto&	gens	{ global.info().gens[global.repnum] } ;
     auto&	oplist	{ global.info().ops } ;
@@ -137,3 +137,41 @@ void Test::jacobi()					// Test all Gen Jacobi identities
 	}
     oplist.purge (opnum) ;
     }
+
+#ifdef DELPHI
+#include "Master.h"
+
+void Test::unitarity ()					// Test links for unitarity
+    {
+    for (int i(0) ; i < master.basesymbs.size() ; ++i)
+	{
+	char ch { master.basenames[i] } ;
+	symb x  { master.basesymbs[i] } ;
+	if (islink (x)) unitarity (string(1,ch)) ;
+	}
+    }
+
+void Test::unitarity (const string& word)		// Test link matrix unitarity
+    {
+    Str s { word } ;
+    if (!s.alllinks()) gripe ("Non-link field: " + word) ;
+    Mtx m { s } ;
+    unitarity (word, m) ;
+    }
+
+void Test::unitarity (const string& s, const Mtx& mtx)	// Test link matrix unitarity
+    {
+    doub residual (0) ;
+    string sinv { s } ;
+    std::transform (sinv.begin(), sinv.end(), sinv.begin(), [](unsigned char c)
+	{ return std::isupper(c) ? std::tolower(c) : std::toupper(c); });
+    std::reverse (sinv.begin(), sinv.end());
+    mtx.each_slice ([&residual](const Cmtx& m)
+	{
+	doub z { norm (m * m.t() - eye (size(m)),"inf") } ;
+	if (z > residual) residual = z ;
+	}) ;
+    cout << " |" << s << "." << sinv << " - 1| = " << residual << "\n" ;
+    }
+#endif
+

@@ -2,9 +2,9 @@
 
 bool Ode::integrate (doub& s, doub goal, Rvec& y)	//  Integrate dy/ds = rhs(y,s)
     {
-    static Rvec			trial ;
-    static Rvec			error ;
-    static std::vector<Rvec>	deriv ;
+    static Rvec		trial ;
+    static Rvec		error ;
+    static vector<Rvec>	deriv ;
 
     if (deriv.size() != nstage)   deriv.resize (nstage) ;
     if (trial.size() != y.size()) trial.set_size(y.size()) ;

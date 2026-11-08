@@ -1,6 +1,6 @@
 #ifndef ASSESS_H
 #define ASSESS_H
-#include "Gordion.h"
+#include "Types.h"
 #include "Theory.h"
 
 class Site

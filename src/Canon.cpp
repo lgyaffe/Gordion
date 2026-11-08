@@ -9,7 +9,7 @@ int Obs::canon()				// Canonicalize observable
     {
     const auto&	blab { Blab::level(Blab::CANON) } ;
     int		len  ( size() ) ;
-    if (blab > 1) cout << "canon " << *this << "\n" << flush ;
+    if (blab) cout << "canon " << *this << "\n" << flush ;
     ++global.count().canons ;
 
     if (!len)					// identity loop
@@ -33,7 +33,7 @@ int Obs::canon()				// Canonicalize observable
 	}
     else if (is_Loop())					// ObsType::Loop
 	{
-	if (len <= loopchunksize)				// lookup in cache
+	if (len <= loopchunksize)			// lookup in cache
 	    {
 	    auto search = Canon::cache.find (*this) ;
 	    if (search == Canon::cache.end())		// cache miss
@@ -474,7 +474,7 @@ bool Canon::specchunk (uint code, Str& s)	// Map spectbl index -> spec chunk
     symb x { X } ;						// check ligatures
     for (auto p = s.begin() ; p < s.end() ; x = *p++)
 	{
-	if (ligature(x,*p) == X) fatal (format("Bad ligature {}", s.print())) ;
+	if (ligature(x,*p) == X) fatal ("Bad ligature " + s.print()) ;
 	if (x != X && ligature(x,*p)) return false ;
 	}
     return true ;
@@ -666,7 +666,7 @@ void Canon::spectblinit()					// Initialize spectable
     stats.symmsubsets  = symmset.size() ;
     }
 
-void CanonCache::load (const Obsset& inbox)	// Load short inbox Obs into cache
+void CanonCache::load (const ObsSet& inbox)	// Load short inbox Obs into cache
     {
     freeze = false ;
     for (const Obs& obs : inbox)
@@ -692,14 +692,3 @@ void CanonCache::reload ()			// Reload cache
     freeze = true ;
     }
 
-ostream& operator<< (ostream& stream, const CanonCache& cache)
-    {
-    stream << "Short Obs cache:\n" ;
-    for (const auto& [key,indx] : cache)
-	{
-	const Obs& a { global.obs (abs(indx)) } ;
-	stream	<< std::left  << std::setw(12) << Str(key).print() << " -> "
-		<< std::right << std::setw(2) << indx << ": " << a << "\n" ;
-	}
-    return stream ;
-    }

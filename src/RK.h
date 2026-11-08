@@ -17,6 +17,7 @@ class RKdef				// embedded Runge-Kutta method
     const char*		name ;		// Method name
     bool		fsal ;		// First deriv same as last?
 
+    RKdef () ;				// Default constructor
     RKdef (int n, int o,		// Constructor
 	   const double* c,  const double* const* a,
 	   const double* b,  const double* bh,
@@ -28,9 +29,7 @@ class RKdef				// embedded Runge-Kutta method
 	    fsal {b[n-1] == 0 && !std::memcmp(a[n-2],b,(n-1)*sizeof(double))}
 	{}
 
-    RKdef () ;					// Default constructor
-
-    static const std::array<RKdef,7> list ;	// Array of defined methods
+    static const std::array<RKdef,7> list ; // Array of defined methods
     } ;
 
 #endif

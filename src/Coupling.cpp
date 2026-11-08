@@ -2,15 +2,11 @@
 #include "Global.h"
 
 AdjTerm::AdjTerm ()				// Default constructor
-    : poly { global.base }, cpoly { global.obs }
+    : poly { global.baseobs }
     {}
 
 AdjTerm::AdjTerm (Coeff& c, ObsPoly& p, bool img)	// Construct
-    :
-    coeff (c),
-    imag  (img),
-    poly  (p),
-    cpoly { global.obs }
+    : coeff (c), imag  (img), poly  (p)
     {}
 
 uint Coupling::ncoup ()				// # couplings for stage
@@ -57,43 +53,27 @@ bool Coupling::update (const Couplings& tmp)	// Update values?
     return true ;
     }
 
+ostream& operator<< (ostream& stream, const Coeff& coeff)	// Print Coeff
+    {
+    for (const auto& f : coeff)
+	{
+	int  c { f.indx } ;
+	doub e { f.exp  } ;
+	if (!e)			continue ;
+	if (e < 0)		stream << "1/" ;
+				stream << Coupling::list[c].data() ;
+	if (std::abs(e) != 1)	stream << "^" << std::abs(e) ;
+				stream << " " ;
+	}
+    return stream ;
+    }
+
 ostream& operator<< (ostream& stream, const vector<AdjTerm>& vec)	// Print AdjTerm list
     {
-    string	plus { " + " } ;
-    string	sep ;
-    for (auto& term : vec)
+    string sep ;
+    for (const auto& term : vec)
 	{
-	stream << sep ;
-	for (auto& f : term.coeff)
-	    {
-	    int  c { f.indx } ;
-	    doub e { f.exp  } ;
-	    if (!e)			continue ;
-	    if (e < 0)			stream << "1/" ;
-	    				stream << Coupling::list[c].data() ;
-	    if (std::abs(e) != 1)	stream << "^" << std::abs(e) ;
-					stream << " " ;
-	    }
-	stream << "( " << term.poly << " ) " ;
-	sep = "+ " ;
-	}
-    if (vec.front().cpoly.empty()) return stream ;
-    sep = "" ;
-    cout << "\n      = " ;
-    for (auto& term : vec)
-	{
-	stream << sep ;
-	for (auto& f : term.coeff)
-	    {
-	    int  c { f.indx } ;
-	    doub e { f.exp  } ;
-	    if (!e)			continue ;
-	    if (e < 0)			stream << "1/" ;
-	    				stream << Coupling::list[c].data() ;
-	    if (std::abs(e) != 1)	stream << "^" << std::abs(e) ;
-					stream << " " ;
-	    }
-	stream << "( " << term.cpoly << " ) " ;
+	stream << sep << term.coeff << "( " << term.poly << " ) " ;
 	sep = "+ " ;
 	}
     return stream ;

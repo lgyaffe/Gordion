@@ -1,11 +1,11 @@
 #ifndef VERSION_H
 #define VERSION_H
-#include "Gordion.h"
+#include "Types.h"
 
-class Version				// Program version
+class Version				// Gordion program version
     {
     static constexpr uchar	majornum = 2 ;
-    static constexpr uchar	minornum = 3 ;
+    static constexpr uchar	minornum = 4 ;
     static constexpr bool	r_is_f { sizeof (real) == sizeof (float) } ;
     static constexpr ushort	mkversion { (majornum << 4) | (minornum << 1) | r_is_f } ;
 

@@ -1,18 +1,5 @@
 #include "Symm.h"
 
-std::size_t Symmhash::operator()(const Symm& s) const noexcept	// Symm hash function
-    {
-    string buf { s.map.data(), s.map.size() } ;
-    std::size_t h1 = std::hash<std::string>{}(buf) ;
-    std::size_t h2 = std::hash<std::bitset<Nsymb+1>>{}(s.sgn) ;
-    return h1 ^ (h2 << 1) ;
-    }
-
-bool Symm_eq::operator()(const Symm& s, const Symm& t) const	// Equality?
-    {
-    return s.map == t.map && s.sgn == t.sgn ;
-    }
-
 SymmSum SymmTerm::operator+(SymmTerm a) const			// Add SymmTerm's
     {
     return SymmSum { *this, a } ;
@@ -105,6 +92,11 @@ bool Symm::operator==(const Symm&s) const noexcept		// Compare transformation
     return sgn == s.sgn && map == s.map ;
     }
 
+uint Symm::knownindx (const string&& name)			// Return named symmetry index
+    {
+    return list.map.at(name) ;
+    }
+
 SymmTerm Symm::known (const string&& name)			// Return named symmetry
     {
     return SymmTerm { list.map.at(name) } ;
@@ -177,8 +169,8 @@ void Symm::symminit()				// Initialize symmetry group data
 			}
 		    if (C)
 			{
-			if (!isE(c) && !isEE(c)) trans.map[c] ^= Rflag ;
-			if (singleE(c))		 trans.sgn.flip(c) ;
+			if (!(type(c) & 1)) trans.map[c] ^= Rflag ;
+			if (singleE(c))	    trans.sgn.flip(c) ;
 			}
 		    }
 
@@ -220,5 +212,22 @@ void Symm::symminit()				// Initialize symmetry group data
 		}
 	    } while (next_permutation (perm.begin(), perm.begin() + dim) ) ;
 	}
+
+#ifdef DELPHI
+    inverse.reserve (list.size()) ;
+    for (const auto& a : list)				// Build inverse list
+	{
+	Symm b ;
+	for (symb x : Symb::symblist)
+	    {
+	    symb y { a.map[x] } ;
+	    b.map[y] = x ;
+	    b.sgn[y] = a.sgn[x] ;
+	    }
+	b.sgn[Cbit] = a.sgn[Cbit] ;
+	uint indx { trans2indx.at(b) } ;
+	inverse.push_back (indx) ;
+	}
+#endif
     }
 

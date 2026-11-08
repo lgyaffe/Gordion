@@ -1,24 +1,19 @@
 #ifndef SAVE_H
 #define SAVE_H
-#include "Gordion.h"
+#include "Types.h"
 #include "Coupling.h"
-#include "Data.h"
 #include "Version.h"
-#include <mutex>
 
 namespace Save
     {
     void save_sys	() ;		// Save sys info
-    void save_vev	() ;		// Save vev data
-    void load_save	(string) ;	// Load save file
-    void load_save	(int,string) ;	// Load vev file
-    void load_vev	(int) ;		// Load vev set
-    void reload_obs	() ;		// Reload Obs
-    string addsubdir	(string,int) ;	// Add subdirectory
+    void load_save	(int,string) ;	// Load save file
 
+    string mk_filename	(const string&&) ; // Output file names
+    string find_file (const string&, const string&, bool=false) ;
+
+    int  read_header	(fstream&,const string&); // Read header
     void write_syshead	(fstream&) ; 	// Write sys file header
-    void write_vevhead	(fstream&) ;	// Write vev file header
-    int  read_header	(fstream&,const string&) ; // Read file header
 
     void write_sysindex	() ;		// Save SysIndex
     void read_sysindex	() ;		// Load SysIndex
@@ -47,28 +42,36 @@ namespace Save
     void write_geos	() ;		// Save geodesics
     void read_geos	() ;		// Load geodesics
 
-    void write_geo_bckt	(uint) ;	// Save geo bucket
-    void read_geo_bckt	(uint,int) ;	// Load geo bucket
-
     void write_coup	 () ;		// Save Couplings
     Couplings* read_coup (int,bool) ;	// Load Couplings
 
-    void write_vev	() ;		// Save Vev's
-    void read_vev	(int) ;		// Load Vev's
-
     void read_stat	() ;		// Load Statistics
     void write_stat	() ;		// Save Statistics
+
+    long coupsize	() ;		// Coupling record size
+    long datasetsize	() ;		// Total dataset size
+
+    void save_vev	() ;		// Save vev data
+    void load_vev	(int) ;		// Load vev set
+
+    void write_vevhead	(fstream&) ;	// Write vev file header
+    void write_vev	() ;		// Save Vev's
+    void read_vev	(int) ;		// Load Vev's
+    long vevsize	() ;		// Vev record size
+
+    string stageabbrev	(uint, const string&) ; // File name info
+
+    void reload_obs	() ;		// Reload Obs
     void rewrite_stat	() ;		// Save Statistics
 
-    long vevsize	() ;		// Vev record size
-    long coupsize	() ;		// Coupling record size
-    long datasetsize	() ;		// Coup + Vev record size
+    void write_geo_bckt	(uint) ;	// Save geo bucket
+    void read_geo_bckt	(uint,int) ;	// Load geo bucket
 
-    static inline struct FileHdr	// Save file header
+    struct FileHdr			// Save file header
 	{
 	char8	name ;			// theory name
 	Version	version ;		// program version
-	ushort	ncoup ;			// # couplings
+	ushort		ncoup ;		// # couplings
 	union
 	    {
 	    ulong	nvev ;		// # vev's
@@ -79,9 +82,9 @@ namespace Save
 
 	bool is_sysfile() const { return !ncoup ; }
 	bool is_vevfile() const { return  ncoup ; }
-	} filehdr ;
+	} ;
 
-    inline static std::mutex	savemutex ;	// Sys info file mutex
+    inline bool	autosave { false } ;	// Auto save flag
     } ;
 
 #endif

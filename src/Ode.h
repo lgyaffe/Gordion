@@ -1,11 +1,20 @@
 #ifndef ODE_H
 #define ODE_H
-#include "Gordion.h"
+#include "Types.h"
 #include "Linalg.h"
 #include "RK.h"
 
 using OdeRhs  = void (*)(doub, const Rvec&, Rvec&) ;
 using OdeNorm = doub (*)(const Rvec&, const Rvec&) ;
+
+struct OdeStats
+    {
+    uint steps   { 0 } ;			// # total steps
+    uint rejects { 0 } ;			// # steps rejected
+    uint derivs  { 0 } ;			// # derivative evals
+    uint integs  { 0 } ;			// # integrations
+    uint fails   { 0 } ;			// # failed integrations
+    } ;
 
 class Ode : public RKdef			// Runge-Kutta ODE integrator
     {
@@ -26,16 +35,8 @@ class Ode : public RKdef			// Runge-Kutta ODE integrator
     Ode (OdeRhs rhsfunc, OdeNorm normfunc, doub& tol, const RKdef& rk, uint max=dfltmax)
 	: rhs(rhsfunc), norm(normfunc), tolerance(tol), RKdef(rk), maxstep(max) {} ;
 
-    static struct Stats
-	{
-	static inline uint steps   { 0 } ;		// # total steps
-	static inline uint rejects { 0 } ;		// # steps rejected
-	static inline uint derivs  { 0 } ;		// # derivative evals
-	static inline uint integs  { 0 } ;		// # integrations
-	static inline uint fails   { 0 } ;		// # failed integrations
-	} stats ;
-
-    static constexpr int dfltmax = 1500 ;	// Default max steps
+    static inline OdeStats stats ;
+    static constexpr int   dfltmax = 500 ;	// Default max steps
     } ;
 
 #endif

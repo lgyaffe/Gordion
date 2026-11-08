@@ -28,7 +28,7 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 	    const Obs& b { (*this)(indx) } ;
 	    if (classify && a.corder >= 0 && a.corder < b.corder) 
 		{
-		cout << format ("Warning: Bad corder in {}:  indx {} {} cord {} -> {}\n",
+		cout << format("Warning: Bad corder in {}:  indx {} {} cord {} -> {}\n",
 			name, indx, b.print(), b.corder, a.corder) ;
 		}
 	    }
@@ -367,7 +367,7 @@ bool Obs::reduce (short xmin, ObsList& list)	// Commute w. primaries to remove E
 	    if (xorder == xmin) break ;
 	    }
 	}
-    if (xorder != xmin && is_Efermion())	// commute w. fermion hopping term
+    if (xorder != xmin && is_efermion())	// commute w. fermion hopping term
 	{
 	for (const auto& op : global.info(1).ops)
 	    {
@@ -635,7 +635,7 @@ short Obs::noEbound (const ObsList& list) const	// Lower bound xorder, Obs w. E'
     buf.joinends() ;
     if (bilinear()) buf.front() = stag (buf.front()) ;
 
-    ObsType	ntype { is_Efermion() ? ObsType::Fermion : ObsType::Loop } ;
+    ObsType	ntype { is_efermion() ? ObsType::Fermion : ObsType::Loop } ;
     Obs		obs   { buf, ntype, corder, -1 } ; obs.canon() ;
     numb	indx  { list.find (obs) } ;
     short	xord  ( indx == MAXNUM ? SHRT_MAX : list(indx).xorder ) ;

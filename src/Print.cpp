@@ -75,7 +75,7 @@ void Print::print_obs ()			// Print global.obs
     global.obs.print (cout) ;
     }
 
-void Print::print_obs_select (const string& word)	// Print order-selected Obs
+void Print::print_obs_select (const string& word)	// Print type-selected Obs
     {
     if (global.obs.swapped) Save::reload_obs() ;
 
@@ -101,7 +101,7 @@ void Print::print_obs_select (const string& word)	// Print order-selected Obs
 		    }
 		}
 	    }
-	else gripe (format("Invalid obs type {}",otyp)) ;
+	else gripe ("Invalid obs type " + otyp) ;
 	}
     else if (std::regex_match (word, match, patt2))
 	{
@@ -132,14 +132,9 @@ void Print::print_obs_select (const string& word)	// Print order-selected Obs
 		    }
 		}
 	    }
-	else gripe (format("Invalid obs type {}",otyp)) ;
+	else gripe (format("Invalid obs type {}", otyp)) ;
 	}
-    else gripe (format ("Don't understand {}",word)) ;
-    }
-
-void Print::print_base ()			// Print global.base
-    {
-    global.base.print (cout) ;
+    else gripe ("Don't understand " + word) ;
     }
 
 void Print::print_op (numb i, numb j)		// Print OpList range
@@ -163,29 +158,6 @@ void Print::print_op ()				// Print OpList
     {
     const auto& oplist { global.info().ops } ;
     oplist.print (cout) ;
-    }
-
-void Print::print_primary ()			// Print primary Op's
-    {
-    const auto& oplist { global.info().ops } ;
-    cout << "Primary Op's:\n" ;
-    for (const auto& op : oplist)
-	{
-	if (op.primary) cout << op << "\n" ;
-	}
-    }
-
-void Print::print_fermiinit ()			// Print fermi init map
-    {
-    if (global.obs.swapped) Save::reload_obs() ;
-
-    const auto& list { global.obs } ;
-    cout << "Fermion initializations:\n" ;
-    for (const auto& [indx_f,indx_g] : global.obs.fermiinit)
-	{
-	cout << "<" << list(indx_f) << "> = -<"
-		    << list(indx_g) << ">/2\n" ;
-	}
     }
 
 void Print::print_gen (uint i, bool full)	// Print specified Gen
@@ -265,7 +237,7 @@ void Print::print_symm (bool detail)		// Print Symm::list
 void Print::print_symm (const string& word)	// Print specified Symm
     {
     try {
-	cout << Symm::list[Symm::known(std::move(word)).item] << "\n" ;
+	cout << Symm::list[Symm::knownindx(std::move(word))] << "\n" ;
 	}
     catch (const exception& e)
 	{
@@ -286,6 +258,15 @@ void Print::print_symmsets ()			// Print Canon::symmset
 	}
     }
 
+void Print::print_theory()			// Print theory
+    {
+    cout << "Theory is " << theory.name.data() << std::endl ;
+    if (theory.box.point)
+	{
+	cout << "Lattice size: " << theory.box_size() << "\n" ;
+	}
+    }
+
 void Print::print_couplings ()			// Print Coupling::couplings
     {
     cout << "Couplings:\n" ;
@@ -295,28 +276,64 @@ void Print::print_couplings ()			// Print Coupling::couplings
 	}
     }
 
+void Print::print_ham_or_free (int i)		// Print H/F element
+    {
+    const auto&	ham	{ global.data().ham } ;
+    const auto& Hterms	{ global.info().Hterms } ;
+    auto	nterms	{ ham.entry().nelem } ;
+    string	name	{ theory.euclid ? "  F_" : "  H_" } ;
+    int		end	( i < 0 ? nterms : i + 1 ) ;
+    int		indx	{ i < 0 ? 0 : i } ;
+
+    if (end > nterms) gripe (format("Invalid term number {}", i)) ;
+    for (; indx < end ; ++indx)
+	{
+	if (ham(indx).len())
+	    {
+	    cout << name << global.fg() << " (" << indx << ") ="
+		 << ham(indx) << "\n" ;
+	    }
+	}
+    }
+
 void Print::print_ham_or_free ()		// Print H or F
     {
-    string name { theory.euclid ? "  F_" : "  H_" } ;
-    cout << name << global.fg() << " = "
-	 << global.info().Hterms << "\n" ;
+    const auto&	ham	{ global.data().ham } ;
+    const auto&	Hterms	{ global.info().Hterms } ;
+    auto	nterms	{ ham.entry().nelem } ;
+    auto	recptr	{ ham.begin() } ;
+    string	name	{ theory.euclid ? "  F_" : "  H_" } ;
+    string	sep ;
+
+    cout << name << global.fg() << " = " << Hterms ;
+    if (nterms)
+	{
+	cout << "\n      = " ;
+	for (int i(0) ; i < nterms ; ++i, ++recptr)
+	    {
+	    const PolyElem* ptr { &(*recptr) } ;
+	    cout << sep << Hterms[i].coeff << "(" << *ptr << " ) " ;
+	    sep = "+ " ;
+	    }
+	}
+    cout << "\n" ;
     }
 
 void Print::print_grad (uint i, uint j)		// Print gradient element
     {
+    const auto&	ham	{ global.data().ham  } ;
     const auto& grad	{ global.data().grad } ;
     auto	nterms	{ grad.entry().ncol } ;
     auto	neven	{ grad.entry().nrow } ;
 
     if (i < nterms)
 	{
-	const auto& term { global.info().Hterms[i].cpoly } ;
 	if (j < neven)
 	    {
 	    if (grad(j,i).len())
 		{
 		cout << "grad (" << i << "," << j << ") ="
-		     << " d(" << term << ")"
+		     << " d(" << ham(i) << ")"
 		     << "/d(" << global.fg() << j << ") = "
 		     << grad(j,i) << "\n" ;
 		}
@@ -341,6 +358,7 @@ void Print::print_grad (uint i)			// Print gradient row
 
 void Print::print_grad ()			// Print gradient
     {
+    const auto&	ham	{ global.data().ham  } ;
     const auto&	grad	{ global.data().grad } ;
     auto	nterms	{ grad.entry().ncol } ;
     auto	neven	{ grad.entry().nrow } ;
@@ -348,14 +366,13 @@ void Print::print_grad ()			// Print gradient
 
     for (int i(0) ; i < nterms ; ++i)
 	{
-	const auto& term { global.info().Hterms[i].cpoly } ;
 	for (int j(0) ; j < neven ; ++j, ++recptr)
 	    {
 	    const PolyElem* ptr { &(*recptr) } ;
 	    if (ptr->len())
 		{
 		cout << "grad (" << i << "," << j << ") ="
-		     << " d(" << term << ")/d(" << global.fg() << j << ") = "
+		     << " d(" << ham(i) << ")/d(" << global.fg() << j << ") = "
 		     << *ptr << "\n" ;
 		}
 	    }
@@ -364,6 +381,7 @@ void Print::print_grad ()			// Print gradient
 
 void Print::print_curv (uint i, uint j, uint k)	// Print curvature element
     {
+    const auto&	ham	{ global.data().ham } ;
     const auto& curv	{ global.data().curv[global.repnum] } ;
     auto	nterms	{ curv.entry().nslice } ;
     auto	neven	{ curv.entry().ncol } ;
@@ -372,14 +390,13 @@ void Print::print_curv (uint i, uint j, uint k)	// Print curvature element
 
     if (i < nterms)
 	{
-	const auto& term { global.info().Hterms[i].cpoly } ;
 	if (j < neven && k < neven)
 	    {
 	    if (curv(k,j,i).len())
 		{
 		cout << Rep::list[global.repnum].name
 		     << " curv (" << i << "," << j << "," << k << ") ="
-		     << " d^2(" << term << ")"
+		     << " d^2(" << ham(i) << ")"
 		     << "/d(" << global.fg() << j << ")"
 		     << "/d(" << global.fg() << k << ") = "
 		     << curv(k,j,i) << "\n" ;
@@ -422,6 +439,7 @@ void Print::print_curv (uint i)			// Print curvature slice
 
 void Print::print_curv ()			// Print curvature
     {
+    const auto&	ham	{ global.data().ham } ;
     const auto&	curv	{ global.data().curv[global.repnum] } ;
     auto	nterms	{ curv.entry().nslice } ;
     auto	neven	{ curv.entry().ncol } ;
@@ -431,7 +449,6 @@ void Print::print_curv ()			// Print curvature
 
     for (int i(0) ; i < nterms ; ++i)
 	{
-	const auto& term { global.info().Hterms[i].cpoly } ;
 	for (int j(0) ; j < neven ; ++j)
 	    {
 	    for (int k(0) ; k < neven ; ++k, ++recptr)
@@ -441,7 +458,7 @@ void Print::print_curv ()			// Print curvature
 		    {
 		    cout << Rep::list[global.repnum].name
 			 << " curv (" << i << "," << j << "," << k << ") ="
-			 << " d^2(" << term << ")/d(" << global.fg() << j 
+			 << " d^2(" << ham(i) << ")/d(" << global.fg() << j 
 			 << ")/d(" << global.fg() << k << ") = " << *ptr << "\n" ;
 		    }
 		}
@@ -503,7 +520,31 @@ void Print::print_lagrange ()			// Print Lagrange bracket
 	}
     }
 
-void Print::print_geodesic (numb i, uint j)	// Print specified geodesic equation
+void Print::print_spectrum ()			// Print spectrum eigenvalues
+    {
+    auto prevprec { cout.precision(12) } ;
+    cout << Rep::list[numerics.lastrep].name ;
+    numerics.spectrum.raw_print (" spectrum =") ;
+    cout << setprecision (prevprec) ;
+    }
+
+void Print::print_mode (uint i)			// Print spectrum eigenvectors
+    {
+    const auto& repnam { Rep::list[numerics.lastrep].name } ;
+    const auto& modes  { numerics.modes } ;
+
+    if (i < numerics.modes.n_cols)
+	{
+	cout << repnam << " mode " << i << " =\n" << modes.col(i) ;
+	}
+    }
+
+void Print::print_mode ()			// Print spectrum eigenvectors
+    {
+    for (int i(0) ; i < numerics.modes.n_cols ; ++i) print_mode (i) ;
+    }
+
+void Print::print_geodesic (numb i, uint j)	// Print specified geodesics
     {
     const auto&	list  { global.obs } ;
 
@@ -530,7 +571,7 @@ void Print::print_geodesic (numb i, uint j)	// Print specified geodesic equation
     else gripe (format("Invalid observable number {}", i)) ;
     }
 
-void Print::print_geodesic (numb i)		// Print geo eqns for specified Obs
+void Print::print_geodesic (numb i)		// Print geodesic for specified Obs
     {
     if (global.obs.swapped) Save::reload_obs() ;
     if (i < global.obs.size())
@@ -561,7 +602,7 @@ void Print::print_geodesic ()			// Print all geodesic equations
 	if (global.geoswap) Save::read_geo_bckt (stage, bcktnum) ;
 
 	auto		recptr	{ geos.begin() } ;
-	for (int i(first) ; i < last ; ++i)
+	for (int i(first) ; i <= last ; ++i)
 	    {
 	    for (int j(0) ; j < neven ; ++j, ++recptr)
 		{
@@ -577,93 +618,138 @@ void Print::print_geodesic ()			// Print all geodesic equations
 	}
     }
 
-void Print::print_spectrum ()			// Print spectrum eigenvalues
+void Print::print_base ()			// Print basic Obs
     {
-    auto prevprec { cout.precision(12) } ;
-    cout << Rep::list[numerics.lastrep].name ;
-    numerics.spectrum.raw_print (" spectrum =") ;
-    cout << std::setprecision (prevprec) ;
+    global.baseobs.print (cout) ;
     }
 
-void Print::print_mode (uint i)			// Print spectrum eigenvectors
+void Print::print_bcktlist ()			// Print bucket list
     {
-    const auto& repnam { Rep::list[numerics.lastrep].name } ;
-    const auto& modes  { numerics.modes } ;
+    auto& bcktlist { global.info().bckt } ;
 
-    if (i < numerics.modes.n_cols)
+    cout << "    Bucket      Beg         End\n" ;
+    for (auto& bckt : bcktlist)
 	{
-	cout << repnam << " mode " << i << " =\n" << modes.col(i) ;
+	cout << format(" {:6d} {:11d} {:11d}\n", bckt[0], bckt[1], bckt[2]) ;
 	}
     }
 
-void Print::print_mode ()			// Print spectrum eigenvectors
+void Print::print_blab ()			// Print blab levels
     {
-    for (int i(0) ; i < numerics.modes.n_cols ; ++i) print_mode (i) ;
-    }
-
-void Print::print_cache ()			// Print canonicalization cache
-    {
-    cout << Canon::cache ;
-    }
-
-void Print::print_sysindex ()			// Print sys data index
-    {
-    auto& info { global.info() } ;
-    if (info.sysfile.path.size())
+    for (const auto& [name,indx] : Blab::blabmap)
 	{
-	cout << "Save file: " << info.sysfile.path << "\n" ;
-	cout << "RecID  nslice  ncol      nrow     reclen      filebeg      fileend\n" ;
-	for (auto& entry : info.sysindex)
-	    {
-	    if (!entry.reclen) continue ;
-	    auto fileend { entry.filepos + entry.reclen * sizeof (Element) } ;
-	    cout << RecIndx::idname[(int) entry.id] << "\t"
-		 << std::setw(3)  << (int) entry.nslice << " "
-		 << std::setw(7)  << entry.ncol << " "
-		 << std::setw(9)  << entry.nrow << " "
-		 << std::setw(10) << entry.reclen << " "
-		 << std::setw(12) << entry.filepos << " "
-		 << std::setw(12) << fileend << "\n" ;
-	    }
+	cout << " Blab level [" << name << "]\t= " << Blab::level(indx) << "\n" ;
 	}
-    else gripe ("No opened sys info file") ;
     }
 
-void Print::print_vevindex ()			// Print vev data index
+void Print::print_canon ()			// Print canonicalization cache
     {
-    auto& info { global.info() } ;
-    if (info.vevfile.stream.is_open())
+    using Strpair = pair<Str,int> ;
+    const auto& cache { Canon::cache } ;
+    auto mysort { [](const Strpair a, const Strpair b)
+		{ return Str::compare (a.first, b.first) ; } } ;
+    cout << "Short Obs cache:\n" ;
+    vector<Strpair> items ;
+    items.reserve (cache.size()) ;
+    for (const auto& p : cache) items.push_back (p) ;
+    std::sort (items.begin(), items.end(), mysort) ;
+    for (const auto& [s,indx] : items)
 	{
-	int		i (0) ;
-	Couplings*	listptr ;
-	cout << "Vev data sets in " << info.vevfile.path << ":\n" ;
-	while ((listptr = Save::read_coup (i,false)))
+	cout << " " << std::left << std::setw(8) << Str(s).print()
+	     << " -> " << std::right << (indx < 0 ? '-' : ' ')
+	     << global.obs (std::abs(indx)) << "\n" ;
+	}
+    }
+
+void Print::print_fermiinit ()			// Print fermi init map
+    {
+    if (global.obs.swapped) Save::reload_obs() ;
+
+    const auto& list { global.obs } ;
+    cout << "Fermion initializations:\n" ;
+    for (const auto& [indx_f,indx_g] : global.obs.fermiinit)
+	{
+	cout << "<" << list(indx_f) << "> = -<"
+		    << list(indx_g) << ">/2\n" ;
+	}
+    }
+
+void Print::print_obsstats ()			// Print observable statistics
+    {
+    if (global.obs.swapped) Save::reload_obs() ;
+
+    const auto&		types	 { Obs::type_name } ;
+    ObsStats		obsstats { global.obs } ;
+    auto&		maxl	 { obsstats.maxloop } ;
+    vector<ulong>	total ;
+
+    cout << " scorder corder xorder" ;
+    for (int t(0) ; t < obsstats.size() ; ++t)
+	{
+	total.push_back (obsstats.get(t)) ;
+	if (total.back()) cout << std::setw(11) << types[t] ;
+	}
+    cout << "\n" ;
+
+    for (int sc(0) ; sc <= obsstats.maxc + obsstats.maxx ; ++sc)
+	{
+	for (int c(0) ; c <= sc ; ++c)
 	    {
-	    cout << "  #" << i++ ;
-	    auto sep { ": " } ;
-	    for (auto& c : *listptr)
+	    int x { sc - c } ;
+	    if (!obsstats.get(c,x)) continue ;
+	    cout << format("{:6d} {:6d} {:6d} ", sc, c, x) ;
+	    for (int t(0) ; t < obsstats.size() ; ++t)
 		{
-		cout << sep << c << " = " << c.value ;
-		sep = ", " ;
+		if (!total[t]) continue ;
+		auto count { obsstats.get(t,c,x) } ;
+		if (count)	cout << std::setw(11) << count ;
+		else		cout << std::setw(11) << "-" ;
 		}
 	    cout << "\n" ;
 	    }
 	}
-    else gripe ("No open vev data file") ;
-    }
-
-void Print::print_theory()			// Print theory
-    {
-    cout << "Theory is " << theory.name.data() << std::endl ;
-    if (theory.box.point)
+    cout << std::setw(21) << "" ;
+    for (auto& count : total) if (count) cout << std::setw(11) << "---" ;
+    cout << "\n" ;
+    cout << std::left << std::setw(21) << " Totals by type:" << std::right ;
+    for (auto& count : total) if (count) cout << std::setw(11) << count ;
+    cout << format("\n Avg Obs Length: {:<4.1f}\n", obsstats.avglen) ;
+    if (maxl)
 	{
-	cout << "Lattice size: " << theory.box_size() << "\n" ;
+	auto maxvev { numerics.vev[maxl] } ;
+	cout << format(" Max Loop Vev: #{} = {:4.2f}\n", maxl, maxvev) ;
 	}
+    return ;
     }
 
-void Print::print_version()			// Print program version
+void Print::print_polystats ()			// Print polynomial statistics
     {
-    cout << "Program version: " << global.version << "\n" ;
+    try { cout.imbue (std::locale("en_US.UTF-8")) ; }
+    catch (const std::exception&) {}
+    const auto& gradstats { global.count().gradstats } ;
+    const auto& curvstats { global.count().curvstats } ;
+    const auto& lagrstats { global.count().lagrstats } ;
+    const auto& geostats  { global.count().geostats  } ;
+
+    cout << std::setw(16) << std::left << "Poly statistics:"
+	 <<  "     eqns     terms " << std::right ;
+    for (int i(0) ; i <= PSIZ ; ++i) cout << std::setw(9) << "order " << i ;
+    cout << "\n" ;
+    if (gradstats.eqns()) cout << std::setw(16) << "Gradient:"  << gradstats ;
+    if (curvstats.eqns()) cout << std::setw(16) << "Curvature:" << curvstats ;
+    if (lagrstats.eqns()) cout << std::setw(16) << "Lagrange brkt:" << lagrstats ;
+    if  (geostats.eqns()) cout << std::setw(16) << "Geodesic eqns:" << geostats  ;
+    cout.imbue (std::locale::classic()) ;
+    }
+
+void Print::print_primary ()			// Print primary Op's
+    {
+    const auto& oplist { global.info().ops } ;
+    cout << "Primary Op's:\n" ;
+    for (const auto& op : oplist)
+	{
+	if (op.primary) cout << op << "\n" ;
+	}
     }
 
 void Print::print_rkmethods()			// Print Runge-Kutta method name
@@ -682,11 +768,49 @@ void Print::print_stage ()			// Print minimization stage
     cout << "Current minimization stage: " << stage << "\n" ;
     }
 
+void Print::print_state ()			// Print global state variables
+    {
+    int	stage ( global.stage ) ;
+    cout << " Theory:             " << theory.name.data() << "\n" ;
+    cout << " Lattice size:       " << theory.box_size() << "\n" ;;
+    cout << " Stage:              " << (stage ? "fermion" : "gauge") << "\n" ;
+    cout << " Active rep:         " << Rep::list[global.repnum].name << "\n" ;
+    cout << " Max obs order:      " << global.info().maxord << "\n" ;
+    cout << " Max gen order:      " << global.info().maxgen << "\n" ;
+    cout << " Max threads:        " << global.maxthread  << "\n" ;
+    cout << " Obs approx:         " << global.approx     << "\n" ;
+    cout << " Add curvature obs:  " << global.xtraobs    << "\n" ;
+    cout << " Auto E-loop gens:   " << Gen::autoEgens    << "\n" ;
+    cout << " Auto save:          " << Save::autosave    << "\n" ;
+    cout << " Geo swap:           " << global.geoswap    << "\n" ;
+    cout << " Obs swap:           " << global.obsswap    << "\n" ;
+    cout << " Check obs:          " << Obs::check        << "\n" ;
+    cout << " Dot obs:            " << Str::dots         << "\n" ;
+    cout << " Normalize gens:     " << Gen::gennorm      << "\n" ;
+    cout << " Max Newton iters:   " << numerics.maxnewt  << "\n" ;
+    cout << " Max ODE steps:      " << numerics.maxode   << "\n" ;
+    cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
+    cout << " Minimize tolerance: " << numerics.mintol   << "\n" ;
+    cout << " Neg curvature ok:   " << numerics.oknegeig << "\n" ;
+    cout << " Symmetrize curv:    " << numerics.symcurv  << "\n" ;
+    cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
+    cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
+    cout << " Input directory:    " << global.inputdir   << "\n" ;
+    cout << " Save directory:     " << global.savedir    << "\n" ;
+    cout << " Sys info file:      " << global.info().sysfile.path   << "\n" ;
+    cout << " Vev data file:      " << global.info().vevfile.path   << "\n" ;
+    cout << " Vev file append:    " << global.info().vevfile.append << "\n" ;
+    cout << " MMA directory:      " << global.MMAdir                << "\n" ;
+    cout << " MMA result file:    " << global.info().MMAfile.path   << "\n" ;
+    cout << " MMA file append:    " << global.info().MMAfile.append << "\n" ;
+    cout << " MMA obs subset:     " << global.info().MMAfile.obs    << "\n" ;
+    }
+
 void Print::print_stats ()			// Print global statistics
     {
     try { cout.imbue (std::locale("en_US.UTF-8")) ; }
     catch (const std::exception&) {}
-    cout << "  Basic obs:            " << global.base.size()        << "\n" ;
+    cout << "  Basic obs:            " << global.baseobs.size()     << "\n" ;
     cout << "  Canonical obs:        " << global.obs.size()         << "\n" ;
     cout << "      # gauge obs:      " << global.obs.nobsG          << "\n" ;
     cout << "      # fermi obs:      " << global.obs.nobsF          << "\n" ;
@@ -730,128 +854,54 @@ void Print::print_stats ()			// Print global statistics
     cout.imbue (std::locale::classic()) ;
     }
 
-void Print::print_state ()			// Print global state variables
+void Print::print_sysindex ()			// Print sys data index
     {
-    int	stage ( global.stage ) ;
-    cout << " Theory:             " << theory.name.data() << "\n" ;
-    cout << " Lattice size:       " << theory.box_size() << "\n" ;;
-    cout << " Stage:              " << (stage ? "fermion" : "gauge") << "\n" ;
-    cout << " Active rep:         " << Rep::list[global.repnum].name << "\n" ;
-    cout << " Max obs order:      " << global.info().maxord << "\n" ;
-    cout << " Max gen order:      " << global.info().maxgen << "\n" ;
-    cout << " Max threads:        " << global.maxthread  << "\n" ;
-    cout << " Obs approx:         " << global.approx     << "\n" ;
-    cout << " Add curvature obs:  " << global.xtraobs    << "\n" ;
-    cout << " Auto E-loop gens:   " << Gen::autoEgens    << "\n" ;
-    cout << " Geo swap:           " << global.geoswap    << "\n" ;
-    cout << " Obs swap:           " << global.obsswap    << "\n" ;
-    cout << " Auto save:          " << global.autosave   << "\n" ;
-    cout << " Check obs:          " << Obs::check        << "\n" ;
-    cout << " Dot obs:            " << Str::dots         << "\n" ;
-    cout << " Normalize gens:     " << Gen::gennorm      << "\n" ;
-    cout << " Max Newton iters:   " << numerics.maxnewt  << "\n" ;
-    cout << " Max ODE steps:      " << numerics.maxode   << "\n" ;
-    cout << " Ode tolerance:      " << numerics.odetol   << "\n" ;
-    cout << " Minimize tolerance: " << numerics.mintol   << "\n" ;
-    cout << " Neg curvature ok:   " << numerics.oknegeig << "\n" ;
-    cout << " Symmetrize curv:    " << numerics.symcurv  << "\n" ;
-    cout << " Ode RK method:      " << numerics.rk.name  << "\n" ;
-    cout << " SVD cutoff:         " << numerics.svdcut   << "\n" ;
-    cout << " Save directory:     " << global.savedir    << "\n" ;
-    cout << " Sys info file:      " << global.info().sysfile.path   << "\n" ;
-    cout << " Vev data file:      " << global.info().vevfile.path   << "\n" ;
-    cout << " Vev file append:    " << global.info().vevfile.append << "\n" ;
-    cout << " MMA directory:      " << global.MMAdir                << "\n" ;
-    cout << " MMA result file:    " << global.info().MMAfile.path   << "\n" ;
-    cout << " MMA file append:    " << global.info().MMAfile.append << "\n" ;
-    cout << " MMA obs subset:     " << global.info().MMAfile.obs    << "\n" ;
-    }
-
-void Print::print_blab ()			// Print blab levels
-    {
-    for (const auto& [name,indx] : Blab::blabmap)
+    auto& info { global.info() } ;
+    if (info.sysfile.path.size())
 	{
-	cout << " Blab level [" << name << "]\t= " << Blab::level(indx) << "\n" ;
-	}
-    }
-
-void Print::print_bcktlist ()			// Print bucket list
-    {
-    auto& bcktlist { global.info().bckt } ;
-
-    cout << "    Bucket      Beg         End\n" ;
-    for (auto& bckt : bcktlist)
-	{
-	cout << format(" {:6d} {:11d} {:11d}\n", bckt[0], bckt[1], bckt[2]) ;
-	}
-    }
-
-void Print::print_obsstats ()			// Print observable statistics
-    {
-    if (global.obs.swapped) Save::reload_obs() ;
-
-    ObsStats		obsstats { global.obs } ;
-    auto		maxc { obsstats.maxc } ;
-    auto		maxx { obsstats.maxx } ;
-    auto		maxl { obsstats.maxloop } ;
-    ulong		total[]  { 0, 0, 0, 0, 0 } ;
-    static ObsType	types[] { ObsType::Loop, ObsType::Eloop, ObsType::EEloop,
-				  ObsType::Fermion, ObsType::Efermion } ;
-
-    cout << " scorder corder xorder     Loop     E-loop    EE-loop    Fermion  E-fermion\n" ;
-
-    for (int sc(0) ; sc <= maxc + maxx ; ++sc)
-	{
-	for (int c(0) ; c <= sc ; ++c)
+	cout << "Save file: " << info.sysfile.path << "\n" ;
+	cout << "RecID  nslice  ncol      nrow     reclen      filebeg      fileend\n" ;
+	for (auto& entry : info.sysindex)
 	    {
-	    int x { sc - c } ;
-	    if (!obsstats.get(c,x)) continue ;
+	    if (!entry.reclen) continue ;
+	    auto fileend { entry.filepos + entry.reclen * sizeof (Element) } ;
+	    cout << RecIndx::idname[(int) entry.id] << "\t"
+		 << std::setw(3)  << (int) entry.nslice << " "
+		 << std::setw(7)  << entry.ncol << " "
+		 << std::setw(9)  << entry.nrow << " "
+		 << std::setw(10) << entry.reclen << " "
+		 << std::setw(12) << entry.filepos << " "
+		 << std::setw(12) << fileend << "\n" ;
+	    }
+	}
+    else gripe ("No opened sys info file") ;
+    }
 
-	    cout << format("{:6d} {:6d} {:6d}", sc, c, x) ;
-	    for (auto t : types)
+void Print::print_version()			// Print program version
+    {
+    cout << "Program version: " << global.version << "\n" ;
+    }
+
+void Print::print_vevindex ()			// Print vev data index
+    {
+    auto& info { global.info() } ;
+    if (info.vevfile.stream.is_open())
+	{
+	int		i (0) ;
+	Couplings*	listptr ;
+	cout << "Vev data sets in " << info.vevfile.path << ":\n" ;
+	while ((listptr = Save::read_coup (i,false)))
+	    {
+	    cout << "  #" << i++ ;
+	    auto sep { ": " } ;
+	    for (auto& c : *listptr)
 		{
-		auto count { obsstats.get((int) t,c,x) } ;
-		if (count)	cout << format(" {:10d}", count) ;
-		else		cout << format(" {:>10s}", "-") ;
-		total[(int) t] += count ;
+		cout << sep << c << " = " << c.value ;
+		sep = ", " ;
 		}
 	    cout << "\n" ;
 	    }
 	}
-    cout << std::setw(20) << "" ;
-    for (auto t : types)
-	{
-	ulong count { total[(int) t] } ;
-	if (count) cout << format(" {: >10s}", "---") ;
-	else	   cout << format(" {:10s}", "") ;
-	}
-    cout << format("\n {:19s}", "Totals by type:") ;
-    for (auto t : types)
-	{
-	ulong count { total[(int) t] } ;
-	if (count) cout << format(" {:10d}", count) ;
-	else	   cout << format(" {:10s}", "") ;
-	}
-    cout << "\n" ;
-    cout << format(" Avg Obs Length: {:<4.1f}\n", obsstats.avglen) ;
-    if (maxl)
-	{
-	auto maxvev { numerics.vev[maxl] } ;
-	cout << format(" Max Loop Vev: #{} = {:4.2f}\n", maxl, maxvev) ;
-	}
-    return ;
+    else gripe ("No open vev data file") ;
     }
 
-void Print::print_geostats ()			// Print geodesic statistics
-    {
-    try { cout.imbue (std::locale("en_US.UTF-8")) ; }
-    catch (const std::exception&) {}
-    cout << "Geodesic equations:\t" << global.count().ngeos << "\n" ;
-    cout << "\t terms:   \t" << global.count().geoterms << "\n" ;
-    for (int ord (0) ; ord <= PSIZ ; ++ord)
-	{
-	if (ulong k { global.count().geotermord [ord] })
-	    cout << "\t   order " << ord << ":\t" << k << "\n" ;
-	}
-    cout.imbue (std::locale::classic()) ;
-    }

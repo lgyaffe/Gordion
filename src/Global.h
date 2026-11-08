@@ -7,20 +7,7 @@
 #include "Version.h"
 #include <atomic>
 
-#ifdef PARALLEL
-#include <tbb/task_arena.h>
-#include <tbb/global_control.h>
-#include <tbb/parallel_for_each.h>
-#define FOR_EACH tbb::parallel_for_each
-#define TASK_ARENA(n,cap,code) \
-    if (n) { tbb::task_arena arena(n); arena.execute([cap]{code;}); } else code ;
-#else
-#include <execution>
-#define FOR_EACH std::for_each
-#define TASK_ARENA(n,cap,code) code
-#endif
-
-static constexpr int MAXBCKT = 256 ;		// Max # Obs buckets
+inline constexpr int MAXBCKT = 256 ;		// Max # Obs buckets
 
 struct SerialData				// Serialised stage data
     {
@@ -37,7 +24,7 @@ struct SerialData				// Serialised stage data
     PolyArr<MAXBCKT>	geos ;		// Geodesic equations
     } ;
 
-static constexpr int NENTRY = 6 + 2 * NREP + MAXBCKT + 1 ;
+inline constexpr int NENTRY = 6 + 2 * NREP + MAXBCKT + 1 ;
 
 class SysIndex : public RecIndxArr<NENTRY> {} ;	// Sys-info file index
 
@@ -101,7 +88,7 @@ class ObsInfo : public ObsList			// Canonical Obs info
     bool		swapped {false};	// Swapped to disk?
 
     static inline thread_local bool	freeze {true} ;	// Freeze master list?
-    static inline thread_local Obsset	inbox ;		// Obs awaiting insertion
+    static inline thread_local ObsSet	inbox ;		// Obs awaiting insertion
     } ;
 
 class Global					// Global data
@@ -114,18 +101,18 @@ class Global					// Global data
     SerialData	stagedata [2] { stageinfo[0].sysindex,
 				stageinfo[1].sysindex } ;
 
-    ObsList	base {"Basic" } ;		// Basic Obs
+    ObsList	baseobs {"Basic" } ;		// Basic Obs
     ObsInfo	obs  {"Canonical",true,true} ;	// Canonicalized Obs
 
-    Stage	stage ;				// Minimization stage
+    Stage	stage	   { Gauge } ;		// Minimization stage
     short	repnum     { 0 } ;		// Active irrep number
     short	approx     { 0 } ;		// Approximate Obs's?
     uint	maxthread  { 0 } ;		// Thread limit
     bool	xtraobs	   { false } ;		// Add all curvature Obs?
-    bool	autosave   { false } ;		// Auto save on build/flow?
     bool	geoswap    { false } ;		// Swap geo bckts to disk
     bool	obsswap    { false } ;		// Swap obs list to disk
     atombool	interrupt  { false } ;		// Interrupt flag
+    string	inputdir   { "./" } ;		// Input file directory
     string	savedir    { "./save/" } ;	// Save file directory
     string	MMAdir	   { "./MMA/"  } ;	// MMA result directory
     Version	version    ;			// Program version
@@ -137,18 +124,13 @@ class Global					// Global data
     auto&	count	()	{ return info().count ; }
     numb	nobs	()	{ return stage ? obs.nobsF : obs.nobsG ; }
 
-    string	stageabbrev (uint, const string&) ; // File name info
-    string	mk_filename (const string&&) ;	// Output file names
-    string	addsubdir     (string) ;	// Add theory subdir
-    void	mk_bcktlist   ()    ;		// Make bucket list
     void	close_streams (uint) ;		// Close output streams
     void	clearpolys    (uint) ;		// Clear polys
-    numb3	bckt_pos      (numb) ;		// Obs bucket position
     void	stageinit     (uint) ;		// Stage initialization
+    void	mk_bcktlist   ()    ;		// Make bucket list
+    numb3	bckt_pos      (numb) ;		// Obs bucket position
     char	fg (int stage)	const { return stage ? 'f' : 'g' ; }
     char	fg ()		const { return fg (this->stage) ; }
-
-    static string addsubdir (string, uint) ;	// Add theory subdir
     } ;
 
 inline Global global ;					// Global information

@@ -1,6 +1,6 @@
 #ifndef SYMB_H
 #define SYMB_H
-#include "Gordion.h"
+#include "Types.h"
 #include "Theory.h"
 #include <numeric>
 
@@ -19,51 +19,46 @@ namespace Symb					// Symbol namespace
     //   0x38:	symbol type mask
     //   0x3c:	symbol type and reflection mask
 
-    static const symb Rflag { 0x04 } ;	// reflection flag
-    static const symb addE  { 0x10 } ;	// link -> Elink, etc
-    static const symb addEE { 0x20 } ;	// link -> EElink, etc
-    static const symb justE { 0x08 } ;	// first E symbol
-    static const symb KinG  { 0x18 } ;	// first EE symbol
-    static const symb YMend { 0x28 } ;	// end of pure gauge symbols
-    static const symb Nsymb { 0x30 } ;	// end of matter symbols
-    static const symb KinF  { 0x30 } ;	// first EE_F symbol
-    static const symb TandR { 0x3c } ;	// type and reflection mask
-    static const symb EntrG { 0x34 } ;	// gauge entropy symbol
-    static const symb EntrF { 0x35 } ;	// fermi entropy symbol
-    static const symb Null  { 0x36 } ;	// null ligature flag
-    static const symb X     { 0x37 } ;	// invalid ligature flag
+    inline const symb Rflag { 0x04 } ;	// reflection flag
+    inline const symb justE { 0x08 } ;	// first E symbol
+    inline const symb addE  { 0x10 } ;	// link -> Elink, etc
+    inline const symb KinG  { 0x18 } ;	// first EE symbol
+    inline const symb addEE { 0x20 } ;	// link -> EElink, etc
+    inline const symb YMend { 0x28 } ;	// end of pure gauge symbols
+    inline const symb Nsymb { 0x30 } ;	// end of matter symbols
+    inline const symb KinF  { 0x30 } ;	// first EE_F symbol
+    inline const symb TandR { 0x3c } ;	// type and reflection mask
+    inline const symb EntrG { 0x34 } ;	// gauge entropy symbol
+    inline const symb EntrF { 0x35 } ;	// fermi entropy symbol
+    inline const symb Null  { 0x36 } ;	// null ligature flag
+    inline const symb X     { 0x37 } ;	// invalid ligature flag
 
-    inline int	type	  (symb c)	{ return c >> 3  ; }
-    inline int	tnR	  (symb c)	{ return c >> 2  ; }
+    inline int	group	  (symb c)	{ return c >> 2 ; }
+    inline int	type	  (symb c)	{ return c >> 3 ; }
 
-    // symb transforms:
-    inline symb stag	  (symb c)	{ return (c ^ 0x01) ; }
-    inline symb refl	  (symb c)	{ return (c ^ 0x04) ; }
-
-    // TnR (= type + reflection) tests:
-    inline bool is_L	  (symb c)	{ return tnR(c) ==  1 ; }
-    inline bool is_LEl	  (symb c)	{ return tnR(c) ==  3 ; }
-    inline bool is_LE	  (symb c)	{ return tnR(c) ==  5 ; }
-    inline bool is_f	  (symb c)	{ return tnR(c) == 10 ; }
-    inline bool is_F	  (symb c)	{ return tnR(c) == 11 ; }
-    inline bool is_ee	  (symb c)	{ return tnR(c) == 12 ; }
-    inline bool is_S	  (symb c)	{ return tnR(c) == 13 ; }
+    // Group (= type + reflection) tests:
+    inline bool is_l	(symb c)	{ return group(c) ==  0 ; }
+    inline bool is_L	(symb c)	{ return group(c) ==  1 ; }
+    inline bool is_E	(symb c)	{ return group(c) ==  2 ; }
+    inline bool is_LEl	(symb c)	{ return group(c) ==  3 ; }
+    inline bool is_LE	(symb c)	{ return group(c) ==  5 ; }
+    inline bool is_f	(symb c)	{ return group(c) == 10 ; }
+    inline bool is_F	(symb c)	{ return group(c) == 11 ; }
+    inline bool is_ee	(symb c)	{ return group(c) == 12 ; }
+    inline bool is_S	(symb c)	{ return group(c) == 13 ; }
 
     // Type tests:
-    inline bool	nonlink	  (symb c)	{ return type(c) != 0 ; }
-    inline bool	nongauge  (symb c)	{ return type(c) >  4 ; }
-    inline bool isxtra	  (symb c)	{ return type(c) >  5 ; }
-    inline bool islink	  (symb c)	{ return type(c) == 0 ; }
-    inline bool isE	  (symb c)	{ return type(c) == 1 ; }
-    inline bool isElink	  (symb c)	{ return type(c) == 2 ; }
-    inline bool isEE	  (symb c)	{ return type(c) == 3 ; }
-    inline bool isEElink  (symb c)	{ return type(c) == 4 ; }
-    inline bool isferm	  (symb c)	{ return type(c) == 5 ; }
-    inline bool	inclE	  (symb c)	{ return type(c)  > 0 &&
+    inline bool islink	 (symb c)	{ return type(c) == 0 ; }
+    inline bool isE	 (symb c)	{ return type(c) == 1 ; }
+    inline bool isElink	 (symb c)	{ return type(c) == 2 ; }
+    inline bool isEE	 (symb c)	{ return type(c) == 3 ; }
+    inline bool isEElink (symb c)	{ return type(c) == 4 ; }
+    inline bool isferm	 (symb c)	{ return type(c) == 5 ; }
+    inline bool	nonlink	 (symb c)	{ return type(c) != 0 ; }
+    inline bool isxtra	 (symb c)	{ return type(c) >  5 ; }
+    inline bool	nongauge (symb c)	{ return type(c) >  4 ; }
+    inline bool	inclE	 (symb c)	{ return type(c)  > 0 &&
     						 type(c)  < 5 ; }
-    inline symb conj	  (symb c)	{ return type(c) != 1 &&
-    						 type(c) != 3 ?
-						 refl(c) : c ; }
 
     // symb properties:
     inline bool	isstag	  (symb c)	{ return c & 0x01 ; }
@@ -80,10 +75,18 @@ namespace Symb					// Symbol namespace
     inline bool doubleE	  (symb c)	{ return isEE(c) || isEElink(c)
 							 || is_ee(c) ; }
 
-    static const vector<string>	symbname	// symb -> printable map
+    // symb transforms:
+    inline symb stag	(symb c)	{ return (c ^ 0x01) ; }
+    inline symb refl	(symb c)	{ return (c ^ 0x04) ; }
+    inline symb conj	(symb c)	{ return nostep(c) ? c : refl(c) ; }
+//    inline symb conj	(symb c)	{ return type(c) != 1 &&
+//    						 type(c) != 3 ?
+//						 refl(c) : c ; }
+
+    inline const vector<string>	symbname	// symb -> printable map
 	{
-	"x",    "y",    "z",    "w",	// 0x00 .. 0x03	(l)ink
-	"X",    "Y",    "Z",    "W",	// 0x04 .. 0x07 (L)ink
+	"x",    "y",    "z",    "w",	// 0x00 .. 0x03	link
+	"X",    "Y",    "Z",    "W",	// 0x04 .. 0x07 Link
 	"A",    "B",    "C",    "D",	// 0x08 .. 0x0b	E
 	"XAx",  "YBy",  "ZCz",  "WDw",	// 0x0c .. 0x0f	LEl
 	"Ax",   "By",   "Cz",   "Dw",	// 0x10 .. 0x13	El
@@ -92,13 +95,13 @@ namespace Symb					// Symbol namespace
 	"XAAx", "YBBy", "ZCCz", "WDDw",	// 0x1c .. 0x1f	LEEl
 	"AAx",  "BBy",  "CCz",  "DDw",	// 0x20 .. 0x23	EEl
 	"XAA",  "YBB",  "ZCC",  "WDD",	// 0x24 .. 0x27	LEE
-	"f",     "g",    "h",    "i",	// 0x28 .. 0x2b	f
-	"F",     "G",    "H",    "I",	// 0x2c .. 0x2f	F
+	"f",     "g",    "j",    "k",	// 0x28 .. 0x2b	f
+	"F",     "G",    "J",    "K",	// 0x2c .. 0x2f	F
 	"aa",    "bb",  "cc",   "dd",	// 0x30 .. 0x33	EE_f
 	"S",     "s"			// 0x34 .. 0x37	S_g, S_f, X
 	} ;
 
-    static const symb ligtable[10][10]		// ligature table
+    inline const symb ligtable[10][10]		// ligature table
 	{
 	//  l  L  E LEl El LE EE LEEl EEl LEE
 	  { 0, 1, 0, 4, 0, 2, 0,  8,  0,  6 },	// l    0
@@ -112,8 +115,8 @@ namespace Symb					// Symbol namespace
 	  { 0, 6, X, X, X, X, X,  X,  X,  X },	// EEl  8
 	  { 7, 0, X, X, X, X, X,  X,  X,  X }	// LEE  9
 	//
-	//	ligtable maps tnR pair -> codes of 0, 1, X
-	//	or tnR code of resulting ligature:
+	//	ligtable maps group pair -> codes of 0, 1, X
+	//	or group code of resulting ligature:
 	//
 	// 0 :=					-> no join
 	// 1 := l.L,      L.l			-> no resulting symb
@@ -128,24 +131,24 @@ namespace Symb					// Symbol namespace
 	// X := 				-> invalid (excess E's)
 	} ;
 
-    inline int ligature (symb a, symb b)		// Combine symbs?
+    inline int ligature (symb a, symb b) noexcept	// Combine symbs?
 	{
 	if (isferm(a) || isferm(b)) return 0 ;
 	if (axis(a) == axis(b))
-	    if (symb x { ligtable[tnR(a)][tnR(b)] })
+	    if (symb x { ligtable [group(a)] [group(b)] })
 		return (x == 1) ? Null : ((x << 2) | axis(a)) ;
 	return 0 ;
 	}
 
-    inline bool in_thy(symb c) noexcept		// Valid symb?
+    inline bool in_thy (symb c) noexcept		// Valid symb?
 	{
 	if (c >= Nsymb)					return false ;
-	if (c >= YMend && flav(c) >= 2*theory.nf)	return false ;
-	if (c <  YMend && axis(c) >=  theory.dim)	return false ;
+	if ( isferm(c) && flav(c) >= 2*theory.nf)	return false ;
+	if (!isferm(c) && axis(c) >=  theory.dim)	return false ;
 	return true ;
 	}
 
-    inline symb char_to_symb(char c) noexcept	// Map character -> symb
+    inline symb char_to_symb (char c) noexcept	// Map character -> symb
 	{
 	for (symb x(0) ; x < symbname.size() ; ++x)
 	    {
@@ -155,13 +158,13 @@ namespace Symb					// Symbol namespace
 	return -1 ;
 	}
 
-    inline static constexpr array<symb, Nsymb> countup() // return 0,1,2,...
+    inline constexpr array<symb, Nsymb> countup() // return 0,1,2,...
 	{
 	array<symb,Nsymb> tmp {} ;
 	std::iota (tmp.begin(), tmp.end(), 0) ;
 	return tmp ;
 	}
-    static const auto symblist { countup() } ;		// Symbol list
+    inline const auto symblist { countup() } ;		// Symbol list
     } ;
 
 using namespace Symb ;

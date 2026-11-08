@@ -1,36 +1,10 @@
 #include "Global.h"
 #include "Numerics.h"
-#include <filesystem>
 
 void Global::stageinit (uint i)			// Stage initialization
     {
     if (i && !theory.nf) gripe ("No fermions!!!") ;
     stage = i ? Global::Fermi : Global::Gauge ;
-    }
-
-string Global::mk_filename (const string&& ext)	// Make data file names
-    {
-    auto	thyname	{ global.stage ? theory.name : theory.parent() } ;
-    string	filenam { thyname.data() } ;
-    		filenam += stageabbrev(0, ext) ;
-    if (stage)	filenam += stageabbrev(1, ext) ;
-    if (approx)	filenam += format ("a{}", approx) ;
-		filenam += format (".{}", ext) ;
-    return filenam ;
-    }
-
-string Global::addsubdir (string dir, uint stage) // Add save sub-directory
-    {
-    dir.append (stage ? theory.name.data() : theory.parent().data() ) ;
-    dir += '/' ;
-    if (std::filesystem::create_directory (dir))
-	cout << "Created subdirectory " << dir << "\n" ;
-    return dir ;
-    }
-
-string Global::addsubdir (string dir)		// Return save sub-directory
-    {
-    return addsubdir (dir, stage) ;
     }
 
 void Global::close_streams (uint keep)		// Close output streams
@@ -43,18 +17,12 @@ void Global::close_streams (uint keep)		// Close output streams
 	}
     }
 
-string Global::stageabbrev (uint stage, const string& ext)
+void Global::clearpolys (uint stage)		// Clear polynomial scripts
     {
-    int		obsord	{ info(stage).maxord } ;
-    int		genord	{ info(stage).maxgen } ;
-    string	answer	{ format ("_{}{}{}", genord, fg(stage), obsord) } ;
-    if (ext != "m")
-	{
-	ulong	obshash	{ stage ? global.obs.hashF : global.obs.hashG } ;
-	string	suffix	{ char('A' + obshash % 26), char('A' + (obshash * 7) % 26) } ;
-	answer += suffix ;
-	}
-    return answer ;
+    data(stage).grad.clear() ;
+    for (auto& rec : data(stage).geos) rec.clear() ;
+    for (auto& rec : data(stage).lagr) rec.clear() ;
+    for (auto& rec : data(stage).curv) rec.clear() ;
     }
 
 void Global::mk_bcktlist ()			// Make Obs bucket list
@@ -92,13 +60,6 @@ numb3 Global::bckt_pos (numb i)			// Return stage/bucket/indx
 	    }
 	else fatal ("Invalid observable number!") ;
 	}
-    else gripe (format ("Make stage {} observables first!", stage)) ;
+    else gripe (format("Make stage {} observables first!", stage)) ;
     }
 
-void Global::clearpolys (uint stage)		// Clear polynomial scripts
-    {
-    data(stage).grad.clear() ;
-    for (auto& rec : data(stage).geos) rec.clear() ;
-    for (auto& rec : data(stage).lagr) rec.clear() ;
-    for (auto& rec : data(stage).curv) rec.clear() ;
-    }

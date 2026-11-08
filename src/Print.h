@@ -1,6 +1,6 @@
 #ifndef PRINT_H
 #define PRINT_H
-#include "Gordion.h"
+#include "Types.h"
 
 namespace Print
     {
@@ -19,9 +19,6 @@ namespace Print
     void print_op (numb) ;
     void print_op () ;
 
-    void print_base () ;
-    void print_primary () ;
-
     void print_gen (uint,bool) ;
     void print_gen (bool) ;
 
@@ -30,6 +27,13 @@ namespace Print
 
     void print_symm (const string&) ;
     void print_symm (bool) ;
+    void print_symmsets () ;
+
+    void print_theory	 () ;
+    void print_couplings () ;
+
+    void print_ham_or_free (int) ;
+    void print_ham_or_free () ;
 
     void print_grad (uint,uint) ;
     void print_grad (uint) ;
@@ -40,35 +44,33 @@ namespace Print
     void print_curv (uint) ;
     void print_curv () ;
 
-    void print_mode (uint) ;
-    void print_mode () ;
+    void print_lagrange (uint,uint) ;
+    void print_lagrange (uint) ;
+    void print_lagrange () ;
 
-    void print_ham_or_free () ;
-    void print_spectrum    () ;
+    void print_spectrum	() ;
+    void print_mode	(uint) ;
+    void print_mode	() ;
 
     void print_geodesic (numb,uint) ;
     void print_geodesic (numb) ;
     void print_geodesic () ;
 
-    void print_lagrange (uint,uint) ;
-    void print_lagrange (uint) ;
-    void print_lagrange () ;
-
+    void print_base	 () ;
     void print_blab      () ;
-    void print_bcktlist  () ;
-    void print_cache     () ;
-    void print_couplings () ;
-    void print_fermiinit () ;
-    void print_geostats	 () ;
+    void print_canon     () ;
     void print_obsstats  () ;
+    void print_polystats () ;
     void print_rkmethods () ;
     void print_stage     () ;
     void print_state     () ;
     void print_stats     () ;
-    void print_symmsets  () ;
     void print_sysindex  () ;
-    void print_theory    () ;
     void print_version   () ;
+
+    void print_bcktlist  () ;
+    void print_fermiinit () ;
+    void print_primary   () ;
     void print_vevindex  () ;
     } ;
 

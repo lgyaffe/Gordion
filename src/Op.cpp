@@ -1,25 +1,14 @@
 #include "Op.h"
-#include "Commute.h"
 #include "Global.h"
 #include "Gripe.h"
 #include <numeric>
 #include <regex>
 
-OpSum::OpSum (OpList& oplist)			// Constructor
-    :
-    vector<OpTerm>::vector(), list (oplist)
-    {}
-
-OpSum::OpSum (OpTerm* beg, OpTerm* end, OpList& oplist) // Constructor
-    :
-    vector<OpTerm>::vector(beg, end), list (oplist)
-    {}
-
 Op::Op(const string& s, OpType t, short ord)	// Construct from string
     :
     Str(s), type(t), order(ord)
     {
-    if (order > MAXORD) gripe ("Max Op order exceeded: recompile without NUM32") ;
+    if (order > MAXORD) gripe ("Max Op order exceeded: recompile with NUM64") ;
     if (type == OpType::Loop) findstart() ;
     joinends() ;
     validate() ;
@@ -29,7 +18,7 @@ Op::Op(const string& s, short ord)		// Construct from string
     :
     Str(s), type(optype(s)), order(ord)
     {
-    if (order > MAXORD) gripe ("Max Op order exceeded: recompile without NUM32") ;
+    if (order > MAXORD) gripe ("Max Op order exceeded: recompile with NUM64") ;
     joinends() ;
     if (type == OpType::Loop) findstart() ;
     validate() ;
@@ -91,7 +80,7 @@ OpType Op::optype (const string s)		// Determine Op type
     if      (nE == 0 && nF == 0) return OpType::Loop ;
     else if (nE == 1 && nF == 0) return OpType::Eloop ;
     else if (nE == 0 && nF == 1) return OpType::Fermion ;
-    else gripe (format ("Op {} is invalid type", s)) ;
+    else gripe (format("Op {} is invalid type", s)) ;
     }
 
 void Op::findstart()				// Rotate to preferred start
@@ -109,6 +98,16 @@ void Op::findstart()				// Rotate to preferred start
 	}
     if (a) rotate (begin(), begin() + a, end()) ;
     }
+
+OpSum::OpSum (OpList& oplist)				// Constructor
+    :
+    vector<OpTerm>::vector(), list (oplist)
+    {}
+
+OpSum::OpSum (OpTerm* beg, OpTerm* end, OpList& oplist) // Constructor
+    :
+    vector<OpTerm>::vector(beg, end), list (oplist)
+    {}
 
 OpSum OpSum::flipT () const			// Flip bilinear staggering
     {
@@ -198,228 +197,6 @@ ostream& operator<< (ostream& stream, const OpSum& s)	// Print OpSum
 	{
 	Print::coeffprt (stream, t.coeff) ;
 	stream << s.oplist() [t.item] ;
-	}
-    return stream ;
-    }
-
-void OpList::opinit (uint stage)		// Operator initialization
-    {
-    bool isham { !theory.euclid } ;
-    char l[4]  { 'x', 'y', 'z', 'w' } ;
-    char L[4]  { 'X', 'Y', 'Z', 'W' } ;
-    char f[4]  { 'f', 'g', 'h', 'i' } ;
-    char F[4]  { 'F', 'G', 'H', 'I' } ;
-
-    if (stage == 0)
-	{
-	OpType	loop { OpType::Loop } ;
-	OpList&	list { global.info(0).ops } ;
-
-	for (int i(0) ; i < theory.dim ; ++i)		// 1x1 plaq
-	    {
-	    for (int j(0) ; j < theory.dim ; ++j)
-		{
-		if (i == j) continue ;
-		Op plaq { string {l[i],l[j],L[i],L[j]}, loop, 2 } ;
-		if (isham) list.store (plaq) ;
-		OpSum::loop_dt (plaq, list) ;
-
-		Op Plaq { string {l[i],L[j],L[i],l[j]}, loop, 2 } ;
-		if (isham) list.store (Plaq) ;
-		OpSum::loop_dt (Plaq, list) ;
-		}
-	    }
-	for (int i(0) ; i < theory.dim ; ++i)		// 2x1 fig-8, possibly bent
-	    {
-	    for (int j(0) ;  j < theory.dim ; ++j)
-		{
-		for (int k(0) ;  k < theory.dim ; ++k)
-		    {
-		    if (i == k || j == k) continue ;
-		    Op figa { string {l[i],l[k],l[j],L[k],L[j],l[k],L[i],L[k]}, loop, 4 } ;
-		    if (isham) list.store (figa) ;
-		    OpSum::loop_dt (figa, list) ; 
-		    Op figb { string {l[i],L[k],l[j],l[k],L[j],L[k],L[i],l[k]}, loop, 4 } ;
-		    if (isham) list.store (figb) ;
-		    OpSum::loop_dt (figb, list) ; 
-		    Op figc { string {l[i],l[k],L[j],L[k],l[j],l[k],L[i],L[k]}, loop, 4 } ;
-		    if (isham) list.store (figc) ;
-		    OpSum::loop_dt (figc, list) ; 
-		    Op figd { string {l[i],L[k],L[j],l[k],l[j],L[k],L[i],l[k]}, loop, 4 } ;
-		    if (isham) list.store (figd) ;
-		    OpSum::loop_dt (figd, list) ; 
-		    }
-		for (int k(0) ;  k < theory.dim ; ++k)
-		    {
-		    if (i == k || j == k) continue ;
-		    Op figa { string {L[i],l[k],l[j],L[k],L[j],l[k],l[i],L[k]}, loop, 4 } ;
-		    if (isham) list.store (figa) ;
-		    OpSum::loop_dt (figa, list) ; 
-
-		    Op figb { string {L[i],L[k],l[j],l[k],L[j],L[k],l[i],l[k]}, loop, 4 } ;
-		    if (isham) list.store (figb) ;
-		    OpSum::loop_dt (figb, list) ; 
-
-		    Op figc { string {L[i],l[k],L[j],L[k],l[j],l[k],l[i],L[k]}, loop, 4 } ;
-		    if (isham) list.store (figc) ;
-		    OpSum::loop_dt (figc, list) ; 
-
-		    Op figd { string {L[i],L[k],L[j],l[k],l[j],L[k],l[i],l[k]}, loop, 4 } ;
-		    if (isham) list.store (figd) ;
-		    OpSum::loop_dt (figd, list) ; 
-		    }
-		}
-	    }
-	for (int i(0) ; i < theory.dim ; ++i)		// polyakov loop
-	    {
-	    if (theory.box.comp[i])
-		{
-		Op polyakov  { string (theory.box.comp[i], l[i]), loop, 2 } ;
-		if (isham) list.store (polyakov) ;
-		OpSum::loop_dt (polyakov, list) ; 
-
-		Op Polyakov  { string (theory.box.comp[i], L[i]), loop, 2 } ;
-		if (isham) list.store (Polyakov) ;
-		OpSum::loop_dt (Polyakov, list) ; 
-		}
-	    }
-	for (int i(0) ; i < theory.dim ; ++i)		// plaq.polyakov
-	    {
-	    if (theory.box.comp[i])
-		{
-		for (int j(0) ; j < theory.dim ; ++j)
-		    {
-		    if (i == j) continue ;
-		    string poly (theory.box.comp[i], l[i]) ;
-		    string plaqa {l[i],l[j],L[i],L[j]} ;
-		    Op plaqpolya { plaqa+poly, loop, 4 } ;
-		    if (isham) list.store (plaqpolya) ;
-		    OpSum::loop_dt (plaqpolya, list) ; 
-
-		    string plaqb {l[i],L[j],L[i],l[j]} ;
-		    Op plaqpolyb { plaqb+poly, loop, 4 } ;
-		    if (isham) list.store (plaqpolyb) ;
-		    OpSum::loop_dt (plaqpolyb, list) ; 
-
-		    string Poly (theory.box.comp[i], L[i]) ;
-		    string plaqc {L[i],l[j],l[i],L[j]} ;
-		    Op plaqPolyc { plaqc+Poly, loop, 4 } ;
-		    if (isham) list.store (plaqPolyc) ;
-		    OpSum::loop_dt (plaqPolyc, list) ; 
-
-		    string plaqd {L[i],L[j],l[i],l[j]} ;
-		    Op plaqPolyd { plaqd+Poly, loop, 4 } ;
-		    if (isham) list.store (plaqPolyd) ;
-		    OpSum::loop_dt (plaqPolyd, list) ; 
-		    }
-		}
-	    }
-	list.setprimary () ;
-	}
-    else if (theory.nf > 0)
-	{
-	OpList&	list { global.info(1).ops } ;
-	OpType	ferm { OpType::Fermion } ;
-
-	for (int k(0) ; k < theory.nf ; k += 2)		// Fxf, Gxf
-	    {
-	    for (int i(0) ; i < theory.dim ; ++i)
-		{
-		Op Gxf { string {F[k+1],l[i],f[k]}, ferm, 1 } ;
-		list.store (Gxf) ;
-		Op GXf { string {F[k+1],L[i],f[k]}, ferm, 1 } ;
-		list.store (GXf) ;
-		if (!isham) continue ;
-		Op Fxf { string {F[k],l[i],f[k]}, ferm, 1 } ;
-		list.store (Fxf) ;
-		Op FXf { string {F[k],L[i],f[k]}, ferm, 1 } ;
-		list.store (FXf) ;
-		}
-	    }
-	list.setprimary () ;
-	}
-    }
-
-void OpList::setprimary ()			// Determine Op primacy
-    {
-    int	opnum ( size() ) ;
-    int maxopord (0) ;
-
-    for (auto& op : *this)
-	{
-	if (!op.order) continue ;
-	if (op.order > maxopord) maxopord = op.order ;
-	op.primary = true ;
-	}
-    for (int ord(0) ; ord <= maxopord ; ++ord)
-	{
-	for (int i(0) ; i < opnum ; ++i)
-	    {
-	    auto ord1 { (*this)[i].order } ;
-	    if (!ord1) continue ;
-	    Op op1 { (*this)[i] } ;			// N.B. non-ref needed
-	    for (int j(0) ; j <= i ; ++j)		// N.B. include j == i
-		{
-		auto ord2 { (*this)[j].order } ;
-		if (!ord2 || ord1 + ord2 > ord) continue ;
-		Op op2 { (*this)[j] } ;			// N.B. non-ref needed
-		Gen ans1 (*this) ;
-
-		for (int k(0) ; k <= j ; ++k)		// N.B. include k == j
-		    {
-		    auto ord3 { (*this)[k].order } ;
-		    if (!ord3 || ord1 + ord2 + ord3 != ord) continue ;
-		    Op op3 { (*this)[j] } ;		// N.B. non-ref needed
-
-		    if (ans1.empty())
-			Commute::op_commute (1.0, op1, op2, ans1) ;
-
-		    for (auto& term : ans1)		// N.B. don't collect
-			{
-			const Op tmp { (*this)[term.item] } ;
-			Gen ans2 (*this) ;
-			Commute::op_commute (1.0, op3, tmp, ans2) ;
-
-			for (auto& term : ans2)		// N.B. don't collect
-			    {
-			    Op& new2 { (*this)[term.item] } ;
-			    if (new2.order == ord)
-				new2.primary = false ;
-			    else if (new2.order > ord)
-				cout << "Warning:: mis-ordered Op: " << new2 << "\n" ;
-			    }
-			}
-		    }
-		if (ord1 + ord2 != ord) continue ;
-		if (ans1.empty())
-		    Commute::op_commute (1.0, op1, op2, ans1) ;
-		for (auto& term : ans1)			// N.B. don't collect
-		    {
-		    Op& new1 { (*this)[term.item] } ;
-		    if (new1.order == ord)
-			new1.primary = false ;
-		    else if (new1.order > ord)
-			cout << "Warning: mis-ordered Op: " << new1 << "\n" ;
-		    }
-		}
-	    }
-	}
-    purge (opnum) ;
-    }
-
-ostream& OpList::print (ostream& stream, numb indx) const	// Print indexed Op
-    {
-    const Op& op { (*this)[indx] } ;
-    return stream << " op #" << indx << " = " << op << "\n" ;
-    }
-
-ostream& OpList::print (ostream& stream) const			// Print OpList
-    {
-    stream << " operators:\n" ;
-    for (int indx(0) ; indx < size() ; ++indx)
-	{
-	const Op& op { (*this)[indx] } ;
-	stream  << " #" << indx << " = " << op << "\n" ;
 	}
     return stream ;
     }

@@ -1,13 +1,23 @@
 #include "Numerics.h"
+#include "Build.h"
 #include "Data.h"
-#include "Gen.h"
 #include "Global.h"
+#include "Parallel.h"
 #include "Print.h"
 #include "Rep.h"
 #include "Save.h"
 #include "Blab.h"
 #include "Gripe.h"
 #include <filesystem>
+
+using arma::eig_gen ;
+using arma::eig_pair ;
+using arma::pinv ;
+using arma::solve ;
+using arma::sort ;
+using arma::sort_index ;
+using arma::sqrt ;
+using arma::svd ;
 
 void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
     {
@@ -34,14 +44,14 @@ void Numerics::do_flow (uint indx, doub v0, doub v1, doub inc)	// Flow coupling
 	    {
 	    cout.precision (prevprec) ;
 	    cout << std::defaultfloat << e.what() << "\n" ;
-	    abort (format ("Aborting flow at {} = {:.6f}", coupling.data(), value)) ;
+	    abort (format("Aborting flow at {} = {:.6f}", coupling.data(), value)) ;
 	    }
 	if (value == v1)				 break ;
 	else if (std::abs(value-v1) > std::abs(1.6*inc)) value += inc ;
 	else if (std::abs(value-v1) > std::abs(inc))	 value  = (value + v1)/2 ;
 	else						 value  = v1 ;
 	}
-    cout << std::setprecision (prevprec) << std::defaultfloat ;
+    cout << setprecision (prevprec) << std::defaultfloat ;
     }
 
 void Numerics::do_minimize ()				// Do minimization
@@ -72,7 +82,7 @@ void Numerics::do_minimize ()				// Do minimization
 	++stats.fails ;
 	abort ("ODE integration failed!") ;
 	}
-    if (global.autosave && !global.interrupt) Save::save_vev () ;
+    if (Save::autosave && !global.interrupt) Save::save_vev () ;
     }
 
 int Numerics::do_step (doub tol)		// Do geodesic integration step
@@ -83,12 +93,11 @@ int Numerics::do_step (doub tol)		// Do geodesic integration step
     Ode		ode	{ do_dvev, err_norm, odetol, rk, maxode } ;
     doub	dnorm	{ eval_delta() } ;
     numb	n	{ global.nobs() } ;
-    doub	s (0) ;
+    doub	s	( 0 ) ;
     bool	ok ;
 
     if (blab > 1) cout << "  |delta| = " << dnorm << ", " << flush ;
     if (blab > 2) delta.raw_print ("\n   delta =") ;
-
     if (tol && dnorm <= tol) return 0 ;			// converged?
 
     if (n != vev.size())				// integrate vev subvec
@@ -99,16 +108,18 @@ int Numerics::do_step (doub tol)		// Do geodesic integration step
 	}
     else ok = ode.integrate (s, 1.0, vev) ;
 
-    if (blab > 1) cout << ode.steps << " step(s) "
-		       << ode.rejects << " rejects "
-		       << (theory.euclid ? "F = " : "H = ")
-		       << eval_ham() << "\n" << flush ;
-
+    if (blab > 1)
+	{
+	auto prevprec { cout.precision(12) } ;
+	cout << ode.steps << " step(s) " << ode.rejects << " rejects "
+	     << (theory.euclid ? "F = " : "H = ") << eval_ham() << "\n"
+	     << flush << setprecision (prevprec) ;
+	}
     if (global.stage != Global::Fermi) global.info(1).validvev = false ;
     return ok ? ode.steps : -ode.steps ;
     }
 
-const Uvec& Numerics::eval_inuse (uint repnum, bool T_odd)
+const Uvec& Numerics::eval_inuse (uint repnum, bool T_odd) // Make active gen list
     {
     auto&	inuse	{ T_odd ? Todds : Tevens } ;
     const auto& gens	{ global.info().gens[repnum] } ;
@@ -127,45 +138,49 @@ const Uvec& Numerics::eval_inuse (uint repnum, bool T_odd)
 
 doub Numerics::eval_ham (bool print)		// Evaluate Hamiltonian/free energy
     {
-    auto label { theory.euclid ? "Free energy" : "Hamiltonian" } ;
+    const auto&	ham	{ global.data().ham } ;
+    const auto&	Hterms	{ global.info().Hterms } ;
+    int		nterms	( Hterms.size() ) ;
 
+    if (ham.entry().nelem != nterms) Build::mk_ham() ;
     if (!global.info().validvev) initialize () ;
-    H = 0 ;
-    for (const auto& Hterm : global.info().Hterms)
+
+    auto	label	{ theory.euclid ? "Free energy" : "Hamiltonian" } ;
+    auto	recptr	{ ham.begin() } ;
+    doub	H (0) ;
+
+    for (int i(0) ; i < nterms ; ++i, ++recptr)
 	{
-	doub val (0.0) ;
-	if (Hterm.cpoly.empty()) gripe (format("Build {} first!",label)) ;
-	for (const auto& term : Hterm.cpoly) val += termvalue (term) ;
-	H += Hterm.coeff() * val ;
+	const PolyElem*	ptr { &(*recptr) } ;
+	const PolyElem*	end { ptr++->end() } ;
+	doub		val (0.0) ;
+	while (ptr < end) val += termvalue (ptr) ;
+	H += Hterms[i].coeff() * val ;
 	}
     if (print)
 	{
 	auto prevprec { cout.precision(12) } ;
 	cout << label << " = " << H << "\n" ;
-	cout << std::setprecision (prevprec) ;
+	cout << setprecision (prevprec) ;
 	}
     return H ;
     }
 
 const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
     {
-    const auto&	use	{ eval_inuse (0, false) } ;
     const auto&	grad	{ global.data().grad } ;
     const auto&	Hterms	{ global.info().Hterms } ;
-    const auto&	gens	{ global.info().gens[0] } ;
     int		neven	{ global.info().neven[0] } ;
     int		nterms	( Hterms.size() ) ;
-    auto	recptr	{ grad.begin() } ;
 
     if (grad.entry().ncol != nterms ||
-	grad.entry().nrow != neven)
-	    {
-	    cout << " ncol " << grad.entry().ncol << " nterms " << nterms << "\n" ;
-	    cout << " nrow " << grad.entry().nrow << " neven " << neven << "\n" ;
-	    gripe ("Need to (re)build gradient!") ;
-	    }
-
+	grad.entry().nrow != neven) Build::mk_grad() ;
     if (!global.info().validvev) initialize () ;
+
+    const auto&	use	{ eval_inuse (0, false) } ;
+    const auto&	gens	{ global.info().gens[0] } ;
+    auto	recptr	{ grad.begin() } ;
+
     gradient.zeros (neven) ;
     for (int i(0) ; i < nterms ; ++i)
 	{
@@ -189,27 +204,28 @@ const Dvec& Numerics::eval_grad (bool print)		// Evaluate gradient vector
 	{
 	auto prevprec { cout.precision(12) } ;
 	gradient.raw_print ("Gradient =") ;
-	cout << std::setprecision (prevprec) ;
+	cout << setprecision (prevprec) ;
 	}
     return gradient ;
     }
 
-const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curvature
+const Dmtx& Numerics::eval_curv (uint repnum, int print) // Evaluate T-even curv
     {
-    const auto&	use	{ eval_inuse (repnum, false) } ;
     const auto&	curv	{ global.data().curv[repnum] } ;
     const auto&	Hterms	{ global.info().Hterms } ;
     const auto&	gens	{ global.info().gens[repnum] } ;
-    int		neven	{ global.info().neven[repnum] } ;
     int		ngen	( gens.size() ) ;
     int		nterms	( Hterms.size() ) ;
-    auto	recptr	{ curv.begin() } ;
 
     if (curv.entry().nslice != nterms ||
 	curv.entry().ncol != ngen  ||
-	curv.entry().nrow != ngen) gripe ("Need to (re)build curvature!") ;
-
+	curv.entry().nrow != ngen) Build::mk_curv(repnum) ;
     if (!global.info().validvev) initialize () ;
+
+    const auto&	use	{ eval_inuse (repnum, false) } ;
+    int		neven	{ global.info().neven[repnum] } ;
+    auto	recptr	{ curv.begin() } ;
+
     curvature.zeros (neven, neven) ;
     for (int i(0) ; i < nterms ; ++i)
 	{
@@ -242,29 +258,30 @@ const Dmtx& Numerics::eval_curv (uint repnum, int print)	// Evaluate T-even curv
 	    curvature.raw_print (" T-even curvature =") ;
 	    }
 	cout << Rep::list[repnum].name ;
-	arma::sort (arma::eig_gen (curvature)).raw_print (" T-even curvature eigenvalues =") ;
-	cout << std::setprecision (prevprec) ;
+	sort (eig_gen (curvature)).raw_print (" T-even curvature eigenvalues =") ;
+	cout << setprecision (prevprec) ;
 	}
     return curvature ;
     }
 
-const Dmtx& Numerics::eval_metr (uint repnum, int print)	// Evaluate T-odd curvature
+const Dmtx& Numerics::eval_metr (uint repnum, int print) // Evaluate T-odd curv
     {
-    const auto&	use	{ eval_inuse (repnum, true) } ;
     const auto&	curv	{ global.data().curv[repnum] } ;
     const auto&	Hterms	{ global.info().Hterms } ;
     const auto&	gens	{ global.info().gens[repnum] } ;
     int		ngen	( global.info().gens[repnum].size() ) ;
-    int		neven	{ global.info().neven[repnum] } ;
-    int		nodd	{ ngen - neven } ;
     int		nterms	( Hterms.size() ) ;
-    auto	recptr	{ curv.begin() } ;
 
     if (curv.entry().nslice != nterms ||
 	curv.entry().ncol != ngen  ||
-	curv.entry().nrow != ngen) gripe ("Need to (re)build curvature!") ;
-
+	curv.entry().nrow != ngen) Build::mk_curv(repnum) ;
     if (!global.info().validvev) initialize () ;
+
+    const auto&	use	{ eval_inuse (repnum, true) } ;
+    int		neven	{ global.info().neven[repnum] } ;
+    int		nodd	{ ngen - neven } ;
+    auto	recptr	{ curv.begin() } ;
+
     metric.zeros (nodd, nodd) ;
     for (int i(0) ; i < nterms ; ++i)
 	{
@@ -297,27 +314,28 @@ const Dmtx& Numerics::eval_metr (uint repnum, int print)	// Evaluate T-odd curva
 	    metric.raw_print (" T-odd curvature =") ;
 	    }
 	cout << Rep::list[repnum].name ;
-	arma::sort (arma::eig_gen (metric)).raw_print (" T-odd curvature eigenvalues =") ;
-	cout << std::setprecision (prevprec) ;
+	sort (eig_gen (metric)).raw_print (" T-odd curvature eigenvalues =") ;
+	cout << setprecision (prevprec) ;
 	}
     return metric ;
     }
 
-const Dmtx& Numerics::eval_lagr (uint repnum, int print)	// Evaluate Lagrange bracket matrix
+const Dmtx& Numerics::eval_lagr (uint repnum, int print) // Evaluate Lagrange brkt
     {
-    const auto&	evens	{ eval_inuse (repnum, false) } ;
-    const auto&	odds	{ eval_inuse (repnum, true)  } ;
     const auto&	lagr	{ global.data().lagr[repnum] } ;
     const auto&	gens	{ global.info().gens[repnum] } ;
     int		neven	{ global.info().neven[repnum] } ;
     int		ngen	( gens.size() ) ;
     int		nodd	{ ngen - neven } ;
-    auto	recptr	{ lagr.begin() } ;
 
     if (lagr.entry().ncol != neven ||
-	lagr.entry().nrow != nodd) gripe ("Need to build Lagrange matrix!") ;
-
+	lagr.entry().nrow != nodd) Build::mk_lagr(repnum) ;
     if (!global.info().validvev) initialize () ;
+
+    const auto&	evens	{ eval_inuse (repnum, false) } ;
+    const auto&	odds	{ eval_inuse (repnum, true)  } ;
+    auto	recptr	{ lagr.begin() } ;
+
     lagrange.zeros (neven, nodd) ;
     for (int i(0) ; i < neven ; ++i)
 	{
@@ -345,23 +363,23 @@ const Dmtx& Numerics::eval_lagr (uint repnum, int print)	// Evaluate Lagrange br
 	    lagrange.raw_print (" Lagrange bracket =") ;
 	    }
 	cout << Rep::list[repnum].name ;
-	arma::svd(lagrange).raw_print (" Lagrange bracket singular values =") ;
-	cout << std::setprecision (prevprec) ;
+	svd(lagrange).raw_print (" Lagrange bracket singular values =") ;
+	cout << setprecision (prevprec) ;
 	}
     return lagrange ;
     }
 
-doub Numerics::eval_delta (bool print)			// Evaluate delta vector
+doub Numerics::eval_delta (bool print)			// Predict minimum
     {
-    const auto&	use   { eval_inuse (0, false) } ;
-    const auto&	grad  { eval_grad  () } ;
-    const auto&	curv  { eval_curv  (0,0) } ;
-    int		ngens { global.info().neven.front() } ;
+    const auto&	use	{ eval_inuse (0, false) } ;
+    const auto&	curv	{ eval_curv  (0,0) } ;
+    const auto&	grad	{ eval_grad  () } ;
+    int		ngens	{ global.info().neven.front() } ;
     Dvec	del ;
 
     check_curv (curv) ;
-    if (svdcut)	del = -arma::pinv  (curv, svdcut) * grad ;
-    else	del = -arma::solve (curv, grad, opts) ;
+    if (svdcut)	del = -pinv  (curv, svdcut) * grad ;
+    else	del = -solve (curv, grad, armaopts) ;
 
     delta.zeros (ngens) ;
     delta(use) = del ;
@@ -369,18 +387,18 @@ doub Numerics::eval_delta (bool print)			// Evaluate delta vector
 	{
 	auto prevprec { cout.precision(12) } ;
 	delta.raw_print ("Delta =") ;
-	cout << std::setprecision (prevprec) ;
+	cout << setprecision (prevprec) ;
 	}
     return arma::norm (delta,"inf") ;
     }
 
-const Cvec& Numerics::eval_spectra (string word, bool print)	// Evaluate particle spectrum
+const Cdvec& Numerics::eval_spectra (string word, bool print)	// Evaluate spectrum
     {
     try { return eval_spectra (Rep::known (word), print) ; }
     catch (const exception& e) { gripe ("Unknown representation " + word) ; }
     }
 
-const Cvec& Numerics::eval_spectra (uint repnum, bool print)	// Evaluate particle spectrum
+const Cdvec& Numerics::eval_spectra (uint repnum, bool print)	// Evaluate spectrum
     {
     auto&	metr	{ eval_metr (repnum) } ;
     auto&	lagr	{ eval_lagr (repnum) } ;
@@ -391,13 +409,13 @@ const Cvec& Numerics::eval_spectra (uint repnum, bool print)	// Evaluate particl
     if (symcurv) curv = (curv + curv.t()) / 2.0 ;
     check_curv (curv) ;
 
-    if (!arma::eig_pair (spectrum, modes, curv, inertia))
+    if (!eig_pair (spectrum, modes, curv, inertia))
 	abort ("Cannot solve generalized eigensystem") ;
     if (curv_rpt (repnum)) cout << "\n" ;
 
     lastrep  = repnum ;
-    spectrum = arma::sqrt (spectrum) ;
-    if (!spectrum.has_nan()) spectrum = arma::sort (spectrum) ;
+    spectrum = sqrt (spectrum) ;
+    if (!spectrum.has_nan()) spectrum = sort (spectrum) ;
     if (print) Print::print_spectrum() ;
     return spectrum ;
     }
@@ -520,10 +538,7 @@ void Numerics::do_dvev_bckt (const numb3& bucket)		// Evaluate dvev bucket
     if (global.geoswap) Save::read_geo_bckt (stage, -bcktnum-1) ;
     }
 
-doub Numerics::err_norm (const Rvec& err, const Rvec& y)	// ODE error vector norm
-    //
-    //	Evaluate ODE error norm
-    //
+doub Numerics::err_norm (const Rvec& err, const Rvec& y) // ODE error norm
     {
     if (global.interrupt) return 0 ;
 
@@ -538,15 +553,18 @@ doub Numerics::err_norm (const Rvec& err, const Rvec& y)	// ODE error vector nor
 
 void Numerics::status_rpt (uint iters, uint steps)
     {
-    bool	euclidF { global.stage && theory.euclid } ;
-    doub&	mostneg { status.negeig[0] } ;
-    auto&	maxi	{ status.maxloopi  } ;
-    auto&	maxv	{ status.maxloopv  } ;
-    bool	unphys  { !global.stage && check_loops() } ;
+    bool	euclidF  { global.stage && theory.euclid } ;
+    doub&	mostneg  { status.negeig[0] } ;
+    auto&	maxi	 { status.maxloopi  } ;
+    auto&	maxv	 { status.maxloopv  } ;
+    bool	unphys   { !global.stage && check_loops() } ;
+    auto	prevprec { cout.precision(12) } ;
 
-    if (!curv_rpt() && !unphys) cout << " ok" ;
+    if (!curv_rpt() && !unphys) cout << " ok," ;
     else if (unphys) cout << format(" unphys (#{}={:3.1f})", maxi, maxv) ;
-    cout << " " << iters << "/" << steps << " iters/steps\n" << flush ;
+    cout << std::setw(22) << format(" {}/{} iters/steps, ", iters, steps) 
+	 << (theory.euclid ? "F = " : "H = ") << eval_ham() << "\n"
+	 << flush << setprecision (prevprec) ;
 
     if (!euclidF && !oknegeig && mostneg < -svdcut)
 	abort ("Negative curvature eigenvalues") ;
@@ -557,8 +575,8 @@ bool Numerics::open_MMA ()				// Open MMA output file
     const auto&	MMAdir		{ global.MMAdir  } ;
     auto&	MMApath		{ global.info().MMAfile.path } ;
     auto&	MMAstream	{ global.info().MMAfile.stream } ;
-    string	file		{ global.mk_filename("m") } ;
-    string	path		{ global.addsubdir (MMAdir) + file } ;
+    string	file		{ Save::mk_filename("m") } ;
+    string	path		{ theory.addsubdir (MMAdir) + file } ;
     auto	mode		{ std::ios::out } ;
     string	okmsg		{ "Writing results to " } ;
     ofstream	stream ;
@@ -602,9 +620,10 @@ void Numerics::write_data ()				// Write data to MMAfile
 
     data_write (stream, HorF, eval_ham()) ;
 
-    for (auto& [i,o] : global.info().MMAfile.obs)
+    for (auto& [o,i] : global.info().MMAfile.obs)
 	{
-	data_write (stream, o.print(), vev[i]) ;
+	if (i < 0) i = global.obs.find (o) ;
+	if (i < MAXNUM) data_write (stream, o.print(), vev[i]) ;
 	}
 
     if (!theory.euclid)
@@ -618,7 +637,7 @@ void Numerics::write_data ()				// Write data to MMAfile
     stream << flush ;
     }
 
-bool Numerics::check_loops ()					// Loop vevs < 1?
+bool Numerics::check_loops ()				// Loop vevs < 1?
     {
     if (global.obs.swapped) return false ;
     
@@ -643,13 +662,13 @@ bool Numerics::check_loops ()					// Loop vevs < 1?
     return maxv > 1.0 ;
     }
 
-bool Numerics::check_curv (const Dmtx& curv)			// OK curvature eigs?
+bool Numerics::check_curv (const Dmtx& curv)		// OK curvature eigs?
     {
-    if (curv.n_rows) 
+    if (curv.n_rows)
 	{
-	Cvec	eigs  { arma::eig_gen(curv) } ;
-	Uvec	reals { arma::sort_index (arma::real (eigs),"ascend")  } ;
-	Uvec	imags { arma::sort_index (arma::imag (eigs),"descend") } ;
+	Cdvec	eigs  { eig_gen(curv) } ;
+	Uvec	reals { sort_index (arma::real (eigs),"ascend")  } ;
+	Uvec	imags { sort_index (arma::imag (eigs),"descend") } ;
 	bool	negok { theory.euclid && global.stage } ;
 	uint	minr  ( reals[0] ) ;
 	uint	maxi  ( imags[0] ) ;
@@ -680,7 +699,7 @@ bool Numerics::check_curv (const Dmtx& curv)			// OK curvature eigs?
     return status.warn ;
     }
 
-bool Numerics::curv_rpt (int repnum)
+bool Numerics::curv_rpt (int repnum)		// Report curvature issues
     {
     if (status.warn)
 	{
@@ -715,7 +734,7 @@ bool Numerics::curv_rpt (int repnum)
     return false ;
     }
 
-bool Numerics::built_rep (uint repnum)				// Is irrep built?
+bool Numerics::built_rep (uint repnum)			// Is irrep built?
     {
     const auto&	curv	{ global.data().curv[repnum] } ;
     const auto&	lagr	{ global.data().lagr[repnum] } ;
@@ -729,7 +748,7 @@ bool Numerics::built_rep (uint repnum)				// Is irrep built?
 	    curv.entry().nslice == Hterms && ngens > 0 ;
     }
 
-void Numerics::data_write (ofstream& out, const string s, doub v)	// Save value
+void Numerics::data_write (ofstream& out, const string s, doub v) // Save value
     {
     string c { Coupling::values() } ;
     out << s << "[" << c << "] = " << MMAform(v) << " ;\n" ;
@@ -751,7 +770,7 @@ void Numerics::data_write (ofstream& out, const string s, const Rvec& vec) // Sa
 	}
     }
 
-void Numerics::data_write (ofstream& out, const string s, const Cvec& vec) // Save vector
+void Numerics::data_write (ofstream& out, const string s, const Cdvec& vec) // Save vector
     {
     string c { Coupling::values() } ;
     if (vec.size())
@@ -771,7 +790,7 @@ void Numerics::data_write (ofstream& out, const string s, const Cvec& vec) // Sa
 string Numerics::MMAform (doub x)			// Convert to MMA input form
     {
     std::stringstream buf ;
-    buf << std::setprecision(12) << x ;
+    buf << setprecision(12) << x ;
     string	s   { buf.str() } ;
     auto	pos { s.find ("e") } ;
     if (pos != s.npos) { s.replace(pos, 1, "*^") ; }

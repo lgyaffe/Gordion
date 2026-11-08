@@ -1,6 +1,6 @@
 #ifndef COUPLING_H
 #define COUPLING_H
-#include "Obs.h"
+#include "Poly.h"
 
 class Coupling : public char8		// Adjustable coupling constant
     {
@@ -40,7 +40,8 @@ class Coupling : public char8		// Adjustable coupling constant
 	{ return stream << coup.data() ; }
     } ;
 
-using Couplings = vector<Coupling> ;
+using  Couplings = vector<Coupling> ;
+inline Couplings	Coupling::list ;	// Defined Coupling's
 
 struct Factor
     {
@@ -60,9 +61,8 @@ class Coeff : public vector<Factor>
 	    if (f.exp) ans *= std::pow(list[f.indx].value, f.exp) ;
 	return ans ;
 	}
+    friend ostream& operator<< (ostream&, const Coeff&) ;
     } ;
-
-inline Couplings	Coupling::list ;		// Defined Coupling's
 
 class AdjTerm				// ObsPoly times adjustable coupling
     {
@@ -70,7 +70,6 @@ class AdjTerm				// ObsPoly times adjustable coupling
     Coeff	coeff ;			// Adjustable coefficient
     bool	imag  ;			// Imaginary coefficient?
     ObsPoly	poly  ;			// Observable polynomial
-    ObsPoly	cpoly ;			// Canonicalized form
 
     AdjTerm () ;				
     AdjTerm (Coeff&, ObsPoly&, bool = false) ;

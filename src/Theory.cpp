@@ -2,6 +2,7 @@
 #include "Print.h"
 #include "Global.h"
 #include "Obs.h"
+#include <filesystem>
 #ifndef MASSSCALE
 #define MASSSCALE 0
 #endif
@@ -12,13 +13,27 @@ void Theory::theoryinit()			// Report theory and version
     Print::print_version() ;
     }
 
+string Theory::addsubdir (string dir, uint stage, bool create) const
+    {						// Add theory subdirectory
+    dir.append (stage ? name.data() : parent().data() ) ;
+    dir += '/' ;
+    if (create && std::filesystem::create_directory (dir))
+	cout << "Created subdirectory " << dir << "\n" ;
+    return dir ;
+    }
+
+string Theory::addsubdir (string dir, bool create) const
+    {						// Add theory sub-directory
+    return addsubdir (dir, global.stage, create) ;
+    }
+
 void Theory::theorydefn (uint stage)		// Define hamiltonian or action
     {
     Coeff	unitcoeff {} ;
     char8	lambda	  {"lambda"} ;
     int		lamindx   ( Coupling::indx (lambda) ) ;
-    ObsList&	baslist   { global.base } ;
-    PolyMap	map	  { global.base } ;
+    ObsList&	baslist   { global.baseobs } ;
+    PolyMap	map	  { global.baseobs } ;
     symb	link[4]   { 'x', 'y', 'z', 'w' } ;
     symb	Link[4]   { 'X', 'Y', 'Z', 'W' } ;
     symb	ferm[4]   { 'f', 'g', 'h', 'i' } ;
@@ -39,17 +54,17 @@ void Theory::theorydefn (uint stage)		// Define hamiltonian or action
 	{
 	global.info(0).Hterms.clear() ;
 
-	if (isham)				// Hamiltonian gauge kinetic
+	if (isham)				// Gauge electric energy
 	    {
-	    ObsPoly	kinetic  { baslist } ;
+	    ObsPoly	electricG  { baslist } ;
 	    doub	coeff    { theory.dim > 1 ? 0.25 : 1.0 } ;
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
 		numb	indx	{ baslist.find (Str (KinG + i)) } ;
 		if (indx == MAXNUM) fatal ("Baselist missing EE") ;
-		kinetic.push_back (PolyTerm (indx, coeff)) ;
+		electricG.push_back (PolyTerm (indx, coeff)) ;
 		}
-	    global.info(0).Hterms.emplace_back (lamcoeff, kinetic) ;
+	    global.info(0).Hterms.emplace_back (lamcoeff, electricG) ;
 	    }
 	else					// Euclidean gauge entropy
 	    {
@@ -57,7 +72,7 @@ void Theory::theorydefn (uint stage)		// Define hamiltonian or action
 	    numb	indx	{ baslist.find (Str (EntrG)) } ;
 	    if (indx == MAXNUM) fatal ("Baselist missing S") ;
 	    gauge_ent.push_back (PolyTerm (indx, -1.0)) ;
-	    global.info(1).Hterms.emplace_back (unitcoeff, gauge_ent) ;
+	    global.info(0).Hterms.emplace_back (unitcoeff, gauge_ent) ;
 	    }
 
 	ObsPoly plaquette  (baslist) ;
@@ -111,14 +126,22 @@ void Theory::theorydefn (uint stage)		// Define hamiltonian or action
 	
 	if (isham)				// Fermion electric energy
 	    {
-	    ObsPoly kinetic_F  (baslist) ;
+	    ObsPoly electricF  (baslist) ;
 	    for (int i(0) ; i < theory.dim ; ++i)
 		{
 		numb    indx	{ baslist.find (Str (KinF + i)) } ;
 		if (indx == MAXNUM) fatal ("Baselist missing ee") ;
-		kinetic_F.push_back (PolyTerm (indx,  0.25)) ;
+		electricF.push_back (PolyTerm (indx,  0.25)) ;
 		}
-	    global.info(1).Hterms.emplace_back (lamcoeff, kinetic_F) ;
+	    global.info(1).Hterms.emplace_back (lamcoeff, electricF) ;
+	    }
+	else					// Fermion entropy
+	    {
+	    ObsPoly	fermi_ent (baslist) ;
+	    numb	indx	{ baslist.find (Str {EntrF}) } ;
+	    if (indx == MAXNUM) fatal ("Baselist missing s") ;
+	    fermi_ent.push_back (PolyTerm (indx, -1.0)) ;
+	    global.info(1).Hterms.emplace_back (unitcoeff, fermi_ent) ;
 	    }
 
 	ObsPoly hop_term   (baslist) ;
@@ -146,14 +169,5 @@ void Theory::theorydefn (uint stage)		// Define hamiltonian or action
 	    mass_term.push_back (PolyTerm (indx, 1.0)) ;
 	    }
 	global.info(1).Hterms.emplace_back (masscoeff, mass_term, iseuc) ;
-
-	if (iseuc)
-	    {
-	    ObsPoly	fermi_ent (baslist) ;
-	    numb	indx	{ baslist.find (Str {EntrF}) } ;
-	    if (indx == MAXNUM) fatal ("Baselist missing s") ;
-	    fermi_ent.push_back (PolyTerm (indx, -1.0)) ;
-	    global.info(1).Hterms.emplace_back (unitcoeff, fermi_ent) ;
-	    }
 	}
     }

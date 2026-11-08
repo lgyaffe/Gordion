@@ -1,53 +1,65 @@
 #ifndef DATA_H
 #define DATA_H
-#include "Gordion.h"
+#include "Types.h"
 #include "Gripe.h"
 #include <functional>
 
-#ifdef NUM32
-    struct OpHdr				// Op record item header
-	{
-	ushort	order : 6 ;
-	ushort	type  : 2 ;
-	ushort	prim  : 1 ;
-	} ;
+#ifdef DELPHI
 
-    struct ObsHdr				// Obs record item header
-	{
-	ushort	corder : 6 ;
-	ushort	xorder : 6 ;
-	ushort	type   : 3 ;
-	} ;
+struct OpHdr  { ushort type ; } ;	// Op record item header
+struct ObsHdr { ushort type ; } ;	// Obs record item header
+struct GenHdr				// Gen record item header
+    {
+    ushort	rep   : 6 ;
+    ushort	group : 6 ;
+    ushort	type  : 2 ;
+    ushort	T_odd : 1 ;
+    } ;
 
-    struct GenHdr				// Gen record item header
-	{
-	ushort	rep   : 6 ;
-	ushort	order : 6 ;
-	ushort	type  : 2 ;
-	ushort	T_odd : 1 ;
-	} ;
+#elif NUM64
+
+struct OpHdr				// Op record item header
+    {
+    uint	order : 10 ;
+    uint	type  : 2  ;
+    uint	prim  : 1  ;
+    } ;
+struct ObsHdr				// Obs record item header
+    {
+    uint	corder : 10 ;
+    uint	xorder : 10 ;
+    uint	type   : 4  ;
+    } ;
+struct GenHdr				// Gen record item header
+    {
+    uint	rep   : 8 ;
+    uint	order : 10 ;
+    uint	type  : 2 ;
+    uint	T_odd : 1 ;
+    } ;
+
 #else
-    struct OpHdr				// Op record item header
-	{
-	uint	order : 10 ;
-	uint	type  : 2  ;
-	uint	prim  : 1  ;
-	} ;
 
-    struct ObsHdr				// Obs record item header
-	{
-	uint	corder : 10 ;
-	uint	xorder : 10 ;
-	uint	type   : 4  ;
-	} ;
+struct OpHdr				// Op record item header
+    {
+    ushort	order : 6 ;
+    ushort	type  : 2 ;
+    ushort	prim  : 1 ;
+    } ;
+struct ObsHdr				// Obs record item header
+    {
+    ushort	corder : 6 ;
+    ushort	xorder : 6 ;
+    ushort	type   : 3 ;
+    } ;
+struct GenHdr				// Gen record item header
+    {
+    ushort	rep   : 6 ;
+    ushort	order : 6 ;
+    ushort	type  : 2 ;
+    ushort	T_odd : 1 ;
+    } ;
 
-    struct GenHdr				// Gen record item header
-	{
-	uint	rep   : 8 ;
-	uint	order : 10 ;
-	uint	type  : 2 ;
-	uint	T_odd : 1 ;
-	} ;
 #endif
 
 struct RecHdr				// Data record header

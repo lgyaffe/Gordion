@@ -1,7 +1,6 @@
 #ifndef BUILD_H
 #define BUILD_H
 #include "Op.h"
-#include <mutex>
 
 class Gen ;
 class PolyMap ;
@@ -11,7 +10,7 @@ namespace Build
     void mk_ham		() ;
     void mk_grad	() ;
     void mk_geos	() ;
-    void mk_eqns	(int) ;
+    void mk_eqns	(uint) ;
     void mk_curv	(uint) ;
     void mk_lagr	(uint) ;
     void mk_eqns	(string) ;
@@ -23,26 +22,20 @@ namespace Build
     void mk_Eloops	() ;
     void mk_EEloops	() ;
     void mk_fermions	() ;
-    void mk_Efermions	() ;
+    void mk_efermions	() ;
 
-    void do_geostats	  () ;
-    void do_geo_bckt	  (const numb3&) ;
     void do_Loop_bckt	  (const numb3&) ;
     void do_Eloop_bckt	  (const numb3&) ;
     void do_EEloop_bckt   (const numb3&) ;
     void do_Fermion_bckt  (const numb3&) ;
-    void do_Efermion_bckt (const numb3&) ;
+    void do_efermion_bckt (const numb3&) ;
+    void do_geo_bckt	  (const numb3&) ;
     void do_geostat_bckt  (const numb3&) ;
+    void do_geostats	  () ;
 
     void check_xorder	(numb, const Gen&, const PolyMap&) ;
     void clear_obs	(uint) ;
     void added_obs	() ;
-
-    inline static int		cord ;			// Current creation order
-    inline static Obsset	newobs ;		// Newly generated Obs
-    inline static vector<Op>	primepOps ;		// primary conj mom Ops
-    inline static std::mutex	obsmutex ;		// newobs insertion lock
-    constexpr int		single_thread = 1024 ;	// multi-threading threshold
     } ;
 
 #endif

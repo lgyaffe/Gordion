@@ -11,11 +11,11 @@ enum class ObsType : char			// Observable categories
     Eloop,
     Fermion,
     EEloop,
-    Efermion,
+    efermion,
     Entropy,
     _Count_
     } ;
-constexpr int nobstype { (int) ObsType::_Count_ } ;
+inline constexpr int nobstype { (int) ObsType::_Count_ } ;
 
 class Op ;
 class Symm ;
@@ -29,11 +29,11 @@ class Obs : public Str				// Obs = Str + meta-info
     mutable short	midE   { -1 } ;		// mid-E location
     ObsType		type ;			// Observable type
 
-    explicit Obs (const Op&) ;					// Constructor
-    explicit Obs (const string&) ;				// Constructor
-    explicit Obs (const string&, ObsType, short, short) ;	// Constructor
+    explicit Obs (const Op&) ;				// Constructor
+    explicit Obs (const string&) ;			// Constructor
+    explicit Obs (const string&, ObsType, short,short);	// Constructor
 
-    Obs(const Str& s, const ObsHdr& hdr)			// Constructor
+    Obs(const Str& s, const ObsHdr& hdr)		// Constructor
 	:
 	Str	(s),
 	type	((ObsType) hdr.type),
@@ -41,7 +41,7 @@ class Obs : public Str				// Obs = Str + meta-info
 	xorder	(hdr.xorder)
 	{}
 
-    Obs(const Str& s, ObsType t, short cord, short xord)	// Constructor
+    Obs(const Str& s, ObsType t, short cord, short xord) // Constructor
 	:
 	Str	(s),
 	type	(t),
@@ -57,13 +57,13 @@ class Obs : public Str				// Obs = Str + meta-info
 	xorder	(xord)
 	{ if (check) validate() ; } ;			
 
-    int		canon() ;				// Canonicalize
-    int		findstart() noexcept ;			// Rotate to start
-    short	middleE()   const ;			// Return mid-E loc
-    bool	Esublat()   const ; 			// E sublattice?
-    void	validate()  const ;			// Validate
-    SiteVec&	sitelist()  const ;			// Sort site coords
-    int		trans (const Symm&, int) noexcept;	// Symmetry transform
+    int		canon	  () ;				// Canonicalize
+    int		findstart () noexcept ;			// Rotate to start
+    short	middleE	  () const ;			// Return mid-E loc
+    bool	Esublat	  () const ; 			// E sublattice?
+    void	validate  () const ;			// Validate
+    SiteVec&	sitelist  () const ;			// Sort site coords
+    int		trans (const Symm&, int) noexcept ;	// Symmetry transform
 
     PolyTerm	approximate (const ObsList&) const ;	// Factor/approx
     short	noEbound    (const ObsList&) const ;	// no-E xorder bound
@@ -75,11 +75,11 @@ class Obs : public Str				// Obs = Str + meta-info
     short order()	const { return corder + xorder ; }
     bool  known_xord()	const { return xorder >= 0 ; }
     bool  bilinear()	const { return type == ObsType::Fermion ||
-				       type == ObsType::Efermion ; }
+				       type == ObsType::efermion ; }
     bool  EorEEloop()	const { return type == ObsType::Eloop ||
 				       type == ObsType::EEloop ; }
     bool  midEtype()	const { return type == ObsType::EEloop ||
-				       type == ObsType::Efermion ; }
+				       type == ObsType::efermion ; }
     bool staggered()	const { return bilinear() && isstag(front())
 						   ^ isstag(back()) ; }
 
@@ -87,10 +87,11 @@ class Obs : public Str				// Obs = Str + meta-info
     bool is_Eloop()	const { return type == ObsType::Eloop ; }
     bool is_EEloop()	const { return type == ObsType::EEloop ; }
     bool is_Fermion()	const { return type == ObsType::Fermion ; }
-    bool is_Efermion()	const { return type == ObsType::Efermion ; }
+    bool is_efermion()	const { return type == ObsType::efermion ; }
     bool is_Entropy()	const { return type == ObsType::Entropy ; }
     bool is_FermionO()	const { return is_Fermion() &&  (size() % 2) ; }
-    bool imag()		const { return theory.euclid && !is_FermionO() ; }
+    bool is_FermionE()	const { return is_Fermion() && !(size() % 2) ; }
+    bool imag()		const { return theory.euclid && is_FermionE() ; }
 
     bool is_gauge() const { return is_Loop()
 				|| is_Eloop()
@@ -98,27 +99,27 @@ class Obs : public Str				// Obs = Str + meta-info
 				|| front() == EntrG ; }
     bool has_Es()   const { return is_Eloop()
 				|| is_EEloop()
-				|| is_Efermion() ; }
+				|| is_efermion() ; }
     bool is_fermi() const { return is_Fermion()
-				|| is_Efermion()
+				|| is_efermion()
 				|| is_ee(front())
 				|| front() == EntrF ; }
     bool is_coord() const { return theory.euclid ?
 				is_Loop() || is_Fermion() && !staggered() :
 				is_Loop() || is_EEloop() ||
 				is_Fermion()  && staggered() ^  oddlen() ||
-				is_Efermion() && staggered() ^ !oddlen() ; }
+				is_efermion() && staggered() ^ !oddlen() ; }
 
     bool oddlen() const				// Odd length bilinear?
 	{
-	return (size() % 2) ^ (is_Efermion() && nostep((*this)[middleE()])) ;
+	return (size() % 2) ^ (is_efermion() && nostep((*this)[middleE()])) ;
 	}
-
-    static inline bool	check { false } ;	 // Extra validity tests?
     static ObsType	obstype (const string) ; // Determine Obs type
 
-    static constexpr const char* type_name[] = 		// ObsType names
-	    { "Loop", "Eloop", "Fermion", "EEloop", "Efermion", "Entropy" } ;
+    static inline bool	check { false } ;	 // Extra validity tests?
+
+    static constexpr const char* type_name[] = 	 // ObsType names
+	    { "Loop", "Eloop", "Fermion", "EEloop", "efermion", "Entropy" } ;
 
     static inline const std::map<string,ObsType> obstypes
 	{
@@ -126,89 +127,21 @@ class Obs : public Str				// Obs = Str + meta-info
 	{ "Eloop",    ObsType::Eloop    },
 	{ "EEloop",   ObsType::EEloop   },
 	{ "Fermion",  ObsType::Fermion  },
-	{ "Efermion", ObsType::Efermion },
+	{ "efermion", ObsType::efermion },
 	{ "Entropy",  ObsType::Entropy  }
 	} ;
 
     friend ostream& operator<< (ostream&, const Obs&) ;
     } ;
 
-using Obsset = unordered_set<Obs,strhash,str_eq> ;
-using Obsmap = hash<Obs,numb,strhash,str_eq> ;
+using ObsSet = unordered_set<Obs,Strhash,Str_eq> ;
 
-class ObsList: vector<const Obs*>
-    {
-    Obsmap 		map ;			// Hash table
-
-    public:
-    string		name ;			// List name
-    bool		canonicalize ;		// Canonicalize entries?
-    bool		classify ;		// Classify entries?
-    bool		approx {false} ;	// Approximate exclusions?
-    numb		nobsG = 0 ;		// # gauge Obs
-    numb		nobsF = 0 ;		// # fermi Obs
-    ulong		hashG = 0 ;		// gauge Obs hash
-    ulong		hashF = 0 ;		// fermi Obs hash
-
-    using vector::const_iterator ;		// Base const_iterator
-    const_iterator begin() const { return vector::cbegin() ; }
-    const_iterator end()   const { return vector::cend()   ; }
-
-    ObsList (const string, bool=false, bool=false) ;
-
-    const Obs&	operator() (numb indx) const	// Return indexed Obs
-		    { return *(*this)[indx] ; }
-
-    auto	size() const { return vector::size() ; } // List size
-    auto	shrink() { return shrink_to_fit() ; }	// Shrink
-
-    void	reserve (int len)		// Reserve space
-		    {
-		    vector::reserve (len) ;
-		    map.reserve (len) ;
-		    }
-    void	insert	(Obsset& set)		// Merge new Obs set
-		    {
-		    reserve (size() + set.size()) ;
-		    for (const auto& obs : set) store (obs) ;
-		    }
-
-    bool	neq  (const ObsList& l) const { return this != &l ; }
-    numb	find (const Str&) const ;	// Find Obs, return index
-    bool	frozen   () const ;		// Frozen master list?
-    bool	freezeif () const ;		// Freeze if master list
-    void	refreezeif (bool) const ;	// Reset freeze if master list
-
-    int		do_fermiinit () ;		// Load Fermion -> Loop map
-    void	obsinit	(uint) ;		// Load basic Obs
-    ostream&	print	(ostream&, numb) const ;// Print obs
-    ostream&	print	(ostream&) const ;	// Print list
-
-    numb	store	 (const Obs&) ;		// Store in list
-    void	purge	 (numb)	;		// Purge entries
-    void	clear	 () ;			// Clear list
-    void	ondisk	 () ;			// Leave ObsList on disk
-    void	rehash	 () ; 			// Recalculate hashes
-    void	hasher	 (ulong&,const Obs&) ;	// ObsList hasher
-    PolyTerm	catalog  (Obs) ;		// Catalog Obs
-    PolyTerm	catalog  (Obs, Obs) ;		// Catalog Obs
-    PolyTerm	is_known (Obs&)  const ;	// Find in list
-    PolyTerm	is_known (Obs&&) const ;	// Find in list
-    PolyTerm	is_known (Obs&&, Obs&&) const ;	// Find in list
-    PolyTerm	assess   (Obs&) ;		// Store, approx or discard?
-
-    numb&  nobs	(int stage) { return stage ? nobsF : nobsG ; }
-    ulong& hash	(int stage) { return stage ? hashF : hashG ; }
-
-    static void	retain (const Obs&) ;		// Retain for later insertion
-    } ;
-
-class ObsSubset : public std::map<numb,Obs>	// Obs subset
+class ObsSubset : public std::map<Obs,numb>		// Obs subset
     {
     public:
     friend ostream& operator<< (ostream& stream, const ObsSubset& s)
 	{
-	for (const auto& [i,o] : s) stream << o << " " ;
+	for (const auto& [o,i] : s) stream << o << " " ;
 	return stream ;
 	}
     } ;
@@ -216,17 +149,16 @@ class ObsSubset : public std::map<numb,Obs>	// Obs subset
 class ObsStats : public array<vector<vector<ulong>>,nobstype>	// Obs statistics
     {
     public:
-
     ObsStats (const ObsList&) ;
 
-    numb get(int t, int c, int x) const
+    numb get(int t, int c, int x) const		// given type, corder, xorder
 	{
 	return (t < size()
 		&& c >= 0 && c < (*this)[t].size()
 		&& x >= 0 && x < (*this)[t][c].size())
 		? (*this)[t][c][x] : 0 ;
 	}
-    ulong get(int c, int x) const
+    ulong get(int c, int x) const		// given corder, xorder
 	{
 	int sum (0) ;
 	for (int t(0) ; t < size() ; ++t)
@@ -236,6 +168,19 @@ class ObsStats : public array<vector<vector<ulong>>,nobstype>	// Obs statistics
 		sum += (*this)[t][c][x] ;
 	    }
 	return sum ;
+	}
+    ulong get(int t) const			// given type
+	{
+	if (t < size())
+	    {
+	    const auto& column { (*this)[t] } ;
+	    int sum (0) ;
+	    for (int c(0) ; c < column.size() ; ++c)
+		for (int x(0) ; x < column[c].size() ; ++x)
+		    sum += column[c][x] ;
+	    return sum ;
+	    }
+	return 0 ;
 	}
     short maxc = 0 ;
     short maxx = 0 ;

@@ -30,6 +30,9 @@ Str::Str (const string& s)		// Construct from printable string
 	resize (q + 1 - begin()) ;
 	}
     else push_back (it-symbname.begin()) ;
+#ifdef DELPHI
+    validate() ;
+#endif
     }
 
 bool Str::isclosed(const_iterator beg, const_iterator end)	// Closed (sub)string?
@@ -138,3 +141,89 @@ ostream& operator<< (ostream& stream, const Str& str)		// Print -> stream
     else stream << "1" ;
     return stream ;
     }
+
+#ifdef DELPHI
+#include "Global.h"
+#include "Symm.h"
+#include "Blab.h"
+
+void Str::validate () const
+    {
+    if (size() == 0) return ;
+    if (Blab::level(Blab::STR) > 1)
+	cout << "Str::validate " << *this << "\n" << flush ;
+
+    int	S	(0) ;
+    int	fs	(0) ;
+    int	Fs	(0) ;
+    int	Es	(0) ;
+    int	nf	(0) ;
+    int	dim	(0) ;
+    int derivs	(0) ;
+    bool iseuc	{ theory.euclid } ;
+
+    const char* err { nullptr } ;
+    for (const auto c : *this)
+	{
+	if (islink(c) && dim <= axis(c))	dim = axis(c)+1 ;
+	if (isferm(c) && nf  <= flav(c))	nf  = flav(c)/2+1 ;
+	if (is_S(c))				++S ;
+	if (isferm(c) && !isconj(c))		++fs ;
+	if (isferm(c) &&  isconj(c))		++Fs ;
+	if (isferm(c) && isderiv(c))		++derivs ;
+	if (isE(c)  || isElink(c))		++Es ;
+	if (isEE(c) || isEElink(c))		Es += 2 ;
+	}
+    if      (nf  > theory.nf)	 	err = "has excess fermion flavors" ;
+    else if (dim > theory.dim)	 	err = "exceeds lattice dimension" ;
+    else if (S && size() != 1)	 	err = "is malformed entropy" ;
+    else if (fs + Fs && (fs != Fs))	err = "has bad fermion insertions" ;
+    else if (fs > 1)			err = "has excessive fermions" ;
+    else if (Fs > 1)			err = "has excessive Fermions" ;
+    else if ((fs || Fs) && (Es > 1))	err = "has excessive E's" ;
+    else if (Fs && !is_F(front()))	err = "is malformed fermion string" ;
+    else if (fs && !is_f(back()))	err = "is malformed fermion string" ;
+    else if (iseuc && derivs)		err = "has Grassmann derivative" ;
+
+    if (!err && size() > 1)
+	{
+	for (auto p = cbegin()+1 ; !err && p < cend() ; ++p)
+	    {
+	    if (ligature (p[-1],p[0])) err = "is malformed" ;
+	    }
+	}
+    if (err) gripe (format("Bad Str: {} {}", print(), err)) ;
+    }
+
+bool Str::nongauge () const				// All symbs gauge?
+    {
+    for (symb c : *this) if (Symb::nongauge (c)) return true ;
+    return false ;
+    }
+
+bool Str::alllinks () const				// All link symb's?
+    {
+    for (symb c : *this) if (!islink(c)) return false ;
+    return true ;
+    }
+
+int Str::trans (const Symm& symm) noexcept		// Symmetry transform Str
+    {
+    if (front() == EntrG || front() == EntrF)	return 1 ;
+    if (symm.is_id())				return 1 ;
+
+    bool neg	{ false } ;
+    uint blab	{ Blab::level(Blab::SYMB) } ;
+    if (blab > 0) cout << "Symm " << symm.name << " on " << *this << " -> " ;
+    if (symm.isCodd()) std::reverse (begin(), end()) ;
+    for (auto& c : *this)
+	{
+	neg ^= symm.sgn[c] ;
+	c = symm.map[c] ;
+	}
+    if (blab > 0) cout << (neg ? "-" : "") << *this << "\n" << flush ;
+    ++global.count().symmtrans ;
+    return neg ? -1 : 1 ;
+    }
+#endif
+
