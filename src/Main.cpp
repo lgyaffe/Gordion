@@ -30,30 +30,6 @@ void process_flags (int argc, char** argv)	// Get command line flags
     cout << std::boolalpha ;
     }
 
-string nicetime (float secs)
-    {
-    constexpr sv fmt	{ "{:8.2f} {}" };
-    float	 min	{ 60 } ;
-    float	 hr	{ 60 * min } ;
-    float	 day	{ 24 * hr  } ;
-    if      (secs > day)	return format(fmt, secs / day, "day") ;
-    else if (secs > hr)		return format(fmt, secs / hr,  "hr")  ;
-    else if (secs > min)	return format(fmt, secs / min, "min") ;
-    else			return format(fmt, secs,       "sec") ;
-    }
-
-string nicemem (float rss)
-    {
-    constexpr sv  fmt	{ "{:8.2f} {}" };
-    constexpr int KB	{ 1024 } ;
-    constexpr int MB	{ 1024 * KB } ;
-    constexpr int GB	{ 1024 * MB } ;
-    if      (rss > GB)	return format(fmt, rss / GB, "GB") ;
-    else if (rss > MB)	return format(fmt, rss / MB, "MB")  ;
-    else if (rss > KB)	return format(fmt, rss / KB, "KB") ;
-    else		return format(fmt, rss,      "bytes") ;
-    }
-
 [[noreturn]] void quit (int code)		// Exit program
     {
     auto	end	{ high_resolution_clock::now() } ;	// Ending time
@@ -62,9 +38,9 @@ string nicemem (float rss)
     if (Parse::timing && delta > 0.01)
 	{
 	Parse::myout << "Clock time:    " << nicetime (delta)     << "\n"
-		     << "CPU time:      " << nicetime (cputime()) << "\n"
+		     << "CPU time:      " << nicetime (cpumsec()) << "\n"
 		     << "Memory used:   " << nicemem  (memused()) << "\n"
-		     << "System memory: " << nicemem  (totmem())  << "\n" ;
+		     << "System memory: " << nicemem  (memtot())  << "\n" ;
 	}
     exit (code) ;
     }

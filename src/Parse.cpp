@@ -1,6 +1,7 @@
 #include "Parse.h"
 #include "Build.h"
 #include "Commute.h"
+#include "Main.h"
 #include "Numerics.h"
 #include "Print.h"
 #include "Rep.h"
@@ -95,7 +96,7 @@ void Parse::parse_cmd (const string& buf)		// Parse command
 
     auto end  { high_resolution_clock::now() } ;
     auto tics { duration_cast<milliseconds>(end - beg).count() } ;
-    if (timing && tics > 10) cout << tics << " msec\n" ;
+    if (timing && tics > 10) cout << nicetime (tics) << " msec\n" ;
     }
 
 bool Parse::parse_read (istringstream& line)		// Parse "read" command

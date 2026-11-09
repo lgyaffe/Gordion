@@ -66,12 +66,20 @@ void Save::load_save (int set, string file)		// Load save file
 	global.stageinit (read_header (stream, path)) ;
 	if (filehdr.is_sysfile())			// sys info file
 	    {
+	    const auto& geoswap { global.geoswap } ;
+	    auto	filesiz { std::filesystem::file_size(path) > 0.5 * memtot() } ;
+
 	    if (set >= 0) gripe ("No set numbers in sys info files") ;
 
 	    cout << "Loading sys info from " << path << "\n" ;
 	    global.info().sysfile.path	 = std::move (path) ;
 	    global.info().sysfile.stream = std::move (stream) ;
 
+	    if (!geoswap && filesiz > 0.5 * memtot())
+		{
+		cout << "Setting geoswap true\n" ;
+		global.geoswap = true ;
+		}
 	    read_sysindex () ;
 	    read_op	() ;
 	    read_obs	() ;
