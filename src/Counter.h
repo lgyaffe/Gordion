@@ -67,7 +67,11 @@ class PolyStats : public CountArr		// Polynomial statistics
 	*this += count ;
 	}
 
-#ifdef DELPHI
+#ifndef DELPHI
+#define PW 12
+#else
+#define PW 9
+
     void add (const GeoRec& p)
 	{
 	array<ulong,PSIZ+3> count {} ;
@@ -93,8 +97,10 @@ class PolyStats : public CountArr		// Polynomial statistics
 
     friend ostream& operator<< (ostream& stream, const PolyStats& s)
 	{
-	stream << std::setw(8) << s.eqns() << std::setw(10) << s.terms() ;
-	for (int i(0) ; i <= PSIZ ; ++i) stream << std::setw(10) << s[i] ;
+	stream << std::setw(PW) << s.eqns() ;
+	stream << std::setw(PW) << s.terms() ;
+	stream << std::setw(PW-1) << s[0] ;
+	for (int i(1) ; i <= PSIZ ; ++i) stream << std::setw(PW) << s[i] ;
 	return stream << "\n" ;
 	}
     } ;

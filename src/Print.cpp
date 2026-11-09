@@ -731,9 +731,11 @@ void Print::print_polystats ()			// Print polynomial statistics
     const auto& lagrstats { global.count().lagrstats } ;
     const auto& geostats  { global.count().geostats  } ;
 
-    cout << std::setw(16) << std::left << "Poly statistics:"
-	 <<  "     eqns     terms " << std::right ;
-    for (int i(0) ; i <= PSIZ ; ++i) cout << std::setw(9) << "order " << i ;
+    cout << std::setw(16) << std::left << "Poly statistics:" << std::right
+	 << std::setw(PW) << "eqns"
+	 << std::setw(PW) << "terms"
+	 << std::setw(PW-1) << "order 0" ;
+    for (int i(1) ; i <= PSIZ ; ++i) cout << std::setw(PW-1) << "order " << i ;
     cout << "\n" ;
     if (gradstats.eqns()) cout << std::setw(16) << "Gradient:"  << gradstats ;
     if (curvstats.eqns()) cout << std::setw(16) << "Curvature:" << curvstats ;
