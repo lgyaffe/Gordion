@@ -70,7 +70,7 @@ class PolyStats : public CountArr		// Polynomial statistics
 #ifndef DELPHI
 #define PW 12
 #else
-#define PW 9
+#define PW 10
 
     void add (const GeoRec& p)
 	{

@@ -4,7 +4,7 @@
 #if defined(__APPLE__) || defined(__MACH__)
 #include <sys/sysctl.h>
 #define PAGESIZE 16 * 1024
-inline size_t totmem()
+inline size_t memtot()
     {
     uint64_t mem { 0 } ;
     size_t   len { sizeof(mem) } ;
@@ -27,7 +27,7 @@ inline double cpumsec()
 #include <unistd.h>
 #include <sys/resource.h>
 #define PAGESIZE 4096
-inline size_t totmem()
+inline size_t memtot()
     {
     long pages	   { sysconf (_SC_PHYS_PAGES) } ;
     long page_size { sysconf (_SC_PAGE_SIZE) } ;
@@ -50,7 +50,7 @@ inline double cpumsec()
 #include <windows.h>
 #include <psapi.h>
 #define PAGESIZE 4096
-inline size_t totmem()
+inline size_t memtot()
     {
     ULONGLONG mem_siz { 0 } ;
     if (GetPhysicallyInstalledSystemMemory (&mem_kb)) mem_siz *= 1024 ;
