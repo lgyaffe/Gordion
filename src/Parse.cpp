@@ -96,7 +96,7 @@ void Parse::parse_cmd (const string& buf)		// Parse command
 
     auto end  { high_resolution_clock::now() } ;
     auto tics { duration_cast<milliseconds>(end - beg).count() } ;
-    if (timing && tics > 10) cout << nicetime (tics) << " msec\n" ;
+    if (timing && tics > 10) cout << nicetime (tics) << "\n" ;
     }
 
 bool Parse::parse_read (istringstream& line)		// Parse "read" command

@@ -32,12 +32,12 @@ void process_flags (int argc, char** argv)	// Get command line flags
 
 [[noreturn]] void quit (int code)		// Exit program
     {
-    auto	end	{ high_resolution_clock::now() } ;	// Ending time
-    float	delta	{ std::chrono::duration<float>(end - starttime).count() } ;
+    auto end  { high_resolution_clock::now() } ;	// Ending time
+    auto tics { duration_cast<milliseconds>(end - starttime).count() } ;
 
-    if (Parse::timing && delta > 0.01)
+    if (Parse::timing && tics > 10)
 	{
-	Parse::myout << "Clock time:    " << nicetime (delta)     << "\n"
+	Parse::myout << "Clock time:    " << nicetime (tics)      << "\n"
 		     << "CPU time:      " << nicetime (cpumsec()) << "\n"
 		     << "Memory used:   " << nicemem  (memused()) << "\n"
 		     << "System memory: " << nicemem  (memtot())  << "\n" ;
