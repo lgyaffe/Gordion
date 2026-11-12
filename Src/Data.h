@@ -165,6 +165,8 @@ class DataRec : public vector<Element>		// Data record
 	if (!entry().reclen) return ;
 	stream.seekg (entry().filepos, std::ios_base::beg) ;
 	stream.read (recptr(), size() * sizeof (Element)) ;
+	if (stream.gcount() != entry().reclen * sizeof (Element))
+	    ioerror ("I/O error: short read") ;
 	}
     void clear()				// Clear data record
 	{
@@ -176,6 +178,10 @@ class DataRec : public vector<Element>		// Data record
     void free()					// Free data record
 	{
 	vector<Element>().swap(*this) ;
+	}
+    ulong filepos() const			// File position
+	{
+	return entry().filepos ;
 	}
     } ;
 

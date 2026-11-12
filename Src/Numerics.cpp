@@ -449,7 +449,8 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     if (geos[0].entry().nrow != ngens || !geos[0].entry().ncol)
 	gripe ("Need to (re)build geodesic equations!") ;
 
-    if (blab > 2) cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,v.n_elem) ;
+    if (blab > 2)
+	cout << format("do_dvev: s = {:.6f}, nvev = {}, ",s,v.n_elem) << flush ;
 
     dv.zeros(n) ;
     numerics.dvev_buf = dv.memptr() ;

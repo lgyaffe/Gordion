@@ -625,12 +625,20 @@ void Print::print_base ()			// Print basic Obs
 
 void Print::print_bcktlist ()			// Print bucket list
     {
-    auto& bcktlist { global.info().bckt } ;
+    const auto& bcktlist { global.info().bckt } ;
+    const auto& geos	 { global.data().geos } ;
+    bool	addpos	 { geos[0].entry().filepos > 0 } ;
+    auto	xtra	 { addpos ? "       FilePos" : "" } ;
 
-    cout << "    Bucket      Beg         End\n" ;
-    for (auto& bckt : bcktlist)
+    cout << "    Bucket      Beg         End" << xtra << "\n" ;
+    for (int i(0) ; i < bcktlist.size() ; ++i)
 	{
-	cout << format(" {:6d} {:11d} {:11d}\n", bckt[0], bckt[1], bckt[2]) ;
+	const auto& bucket  { bcktlist[i] } ;
+	const auto& record  { geos[bucket[0]] } ;
+	const auto& filepos { record.entry().filepos } ;
+	cout << format(" {:6d} {:11d} {:11d}", bucket[0], bucket[1], bucket[2]) ;
+	if (filepos) cout << format (" {:13d}", filepos) ;
+	cout << "\n" ;
 	}
     }
 
@@ -732,10 +740,10 @@ void Print::print_polystats ()			// Print polynomial statistics
     const auto& geostats  { global.count().geostats  } ;
 
     cout << std::setw(16) << std::left << "Poly statistics:" << std::right
-	 << std::setw(PW) << "eqns"
-	 << std::setw(PW) << "terms"
-	 << std::setw(PW-1) << "order 0" ;
-    for (int i(1) ; i <= PSIZ ; ++i) cout << std::setw(PW-1) << "order " << i ;
+	 << std::setw(PW-1) << "eqns"
+	 << std::setw(PW+1) << "terms"
+	 << std::setw(PW-5) << "order 0" ;
+    for (int i(1) ; i <= PSIZ ; ++i) cout << std::setw(PW) << "order " << i ;
     cout << "\n" ;
     if (gradstats.eqns()) cout << std::setw(16) << "Gradient:"  << gradstats ;
     if (curvstats.eqns()) cout << std::setw(16) << "Curvature:" << curvstats ;

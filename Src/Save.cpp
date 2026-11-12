@@ -8,10 +8,12 @@
 #include "Gripe.h"
 #include <filesystem>
 #include <mutex>
+#include "OS.h"
 
 using  std::ios_base ;
 static Save::FileHdr	filehdr ;
 static constexpr int	elemsiz { sizeof (Element) } ;
+static ulong		maxrec ;
 static union Buffer					// Alignment buffer
     {
     Buffer() {} ;
@@ -67,7 +69,7 @@ void Save::load_save (int set, string file)		// Load save file
 	if (filehdr.is_sysfile())			// sys info file
 	    {
 	    const auto& geoswap { global.geoswap } ;
-	    auto	filesiz { std::filesystem::file_size(path) > 0.5 * memtot() } ;
+	    auto	filesiz { std::filesystem::file_size(path) } ;
 
 	    if (set >= 0) gripe ("No set numbers in sys info files") ;
 
@@ -75,9 +77,9 @@ void Save::load_save (int set, string file)		// Load save file
 	    global.info().sysfile.path	 = std::move (path) ;
 	    global.info().sysfile.stream = std::move (stream) ;
 
-	    if (!geoswap && filesiz > 0.5 * memtot())
+	    if (!geoswap && filesiz > memtot() / 2)
 		{
-		cout << "Setting geoswap true\n" ;
+		cout << "Setting geoswap true\n" << flush ;
 		global.geoswap = true ;
 		}
 	    read_sysindex () ;
@@ -156,18 +158,22 @@ void Save::save_vev ()					// Save vev data
     write_vev  () ;
     }
 
-string Save::find_file (const string& dir, const string& file, bool create)
+string Save::find_file (const string& dir, const string& file)
     {
-    string path { dir + file } ;;
+    char c { file.front() } ;
+    if ((c == '/' || c == '/') && std::filesystem::exists (file))
+	return std::move (file) ;
+
+    string path { dir + file } ;
     if (std::filesystem::exists (path)) return std::move (path) ;
 
-    path = theory.addsubdir (dir, create) + file ;
+    path = theory.addsubdir (dir, false) + file ;
     if (std::filesystem::exists (path)) return std::move (path) ;
 
-    path = theory.addsubdir (dir, !global.stage, create) + file ;
+    path = theory.addsubdir (dir, !global.stage, false) + file ;
     if (std::filesystem::exists (path)) return std::move (path) ;
 
-    return string { "" } ;
+    return string {} ;
     }
 
 string Save::mk_filename (const string&& ext)	// Make data file names
@@ -369,6 +375,7 @@ void Save::read_op ()				// Read Op record
 
     if (record.entry().id != RecordID::Op)
 	abort ("read_op: bad record ID!") ;
+    record.reserve (record.entry().reclen) ;
     record.readrec (stream) ;
     if (stream.fail()) ioerror ("read_op: I/O error!") ;
 
@@ -452,6 +459,7 @@ void Save::read_obs ()				// Read Obs record
 
     if (global.obsswap) { global.obs.swapped = true ; return ; }
 
+    record.reserve (record.entry().reclen) ;
     record.readrec (stream) ;
     if (stream.fail()) ioerror ("read_obs: I/O error!") ;
 
@@ -510,6 +518,7 @@ void Save::reload_obs ()			// Reload Obs record
 
 	if (record.entry().id != RecordID::Obs)
 	    abort ("reload_obs: bad record ID!") ;
+	record.reserve (record.entry().reclen) ;
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror ("reload_obs: I/O error!") ;
@@ -589,6 +598,7 @@ void Save::read_gen ()				// Read Gen record
 
     if (record.entry().id != RecordID::Gen)
 	abort ("read_gen: bad record ID!") ;
+    record.reserve (record.entry().reclen) ;
     record.readrec (stream) ;
     if (stream.fail())
 	ioerror ("read_gen: I/O error!") ;
@@ -651,6 +661,7 @@ void Save::read_ham ()				// Read Ham record
 
     if (record.entry().id != RecordID::Ham)
 	abort ("read_ham: bad record ID!") ;
+    record.reserve (record.entry().reclen) ;
     record.readrec (stream) ;
     if (stream.fail())
 	ioerror ("read_ham: I/O error!") ;
@@ -680,6 +691,7 @@ void Save::read_grad ()				// Read Grad record
 
     if (record.entry().id != RecordID::Grad)
 	abort ("read_grad: bad record ID!") ;
+    record.reserve (record.entry().reclen) ;
     record.readrec (stream) ;
     if (stream.fail())
 	ioerror ("read_grad: I/O error!") ;
@@ -720,6 +732,7 @@ void Save::read_curv ()				// Read Curv records
 
 	if (record.entry().id != RecordID::Curv)
 	    abort (format("read_curv {}: bad record ID!", repname)) ;
+	record.reserve (record.entry().reclen) ;
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_curv {}: I/O error!", repname)) ;
@@ -764,6 +777,7 @@ void Save::read_lagr ()				// Read Lagr records
 
 	if (record.entry().id != RecordID::Lagr)
 	    abort (format("read_lagr {}: bad record ID!", repname)) ;
+	record.reserve (record.entry().reclen) ;
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_lagr {}: I/O error!", repname)) ;
@@ -802,21 +816,44 @@ void Save::write_geos ()				// Write Geo records
 void Save::read_geos ()				// Read Geo records
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
+    auto&	geos	{ global.data().geos } ;
     auto&	stream	{ global.info().sysfile.stream } ;
-    auto	nbckts	{ global.info().bckt.size() } ;
+    auto&	bckts	{ global.info().bckt } ;
+    auto&	maxthrd { global.maxthread } ;
+    auto	nbckts	{ bckts.size() } ;
 
-    if (global.geoswap) return ;
+    if (global.geoswap)
+	{
+	std::sort (bckts.begin(), bckts.end(), 
+	    [&geos](const numb3& a, const numb3& b)
+		{ return geos[a[0]].filepos() < geos[b[0]].filepos() ; }) ;
+	for (const auto& record : geos)
+	    if (maxrec < record.entry().reclen)
+		maxrec = record.entry().reclen ;
+
+	if (!maxthrd)
+	    {
+	    maxthrd = 4 ;
+	    cout << "Setting maxthread to " << maxthrd << "\n" ;
+	    }
+	return ;
+	}
+    if (blab > 1) cout << "Loading Geos: " ;
     for (int bcktnum(0) ; bcktnum < nbckts ; ++bcktnum)
 	{
-	auto&	record	{ global.data().geos[bcktnum] } ;
+	auto&	record	{ geos[bcktnum] } ;
 
 	if (record.entry().id != RecordID::Geos)
 	    abort (format("read_geos [{}]: bad record ID!",bcktnum)) ;
+	record.reserve (record.entry().reclen) ;
 	record.readrec (stream) ;
 	if (stream.fail())
 	    ioerror (format("read_geos [{}]: I/O error!",bcktnum)) ;
 	else if (record.size() && blab > 1)
-	    cout << "Loaded Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
+	    {
+	    if (blab == 2) cout << '.' << flush ;
+	    else cout << "[" << bcktnum << "/" << nbckts << "]" << flush ;
+	    }
 	}
     }
 
@@ -879,6 +916,8 @@ void Save::read_geo_bckt (uint stage, int bcktnum)	// Read Geo bucket
 
 	if (!checkout)
 	    {
+	    if (myvec.capacity() < record.entry().reclen)
+		myvec.reserve (maxrec) ;
 	    record.swap (myvec) ;
 	    checkout = true ;
 	    }
@@ -888,7 +927,11 @@ void Save::read_geo_bckt (uint stage, int bcktnum)	// Read Geo bucket
 	if (mystream.fail())
 	    ioerror (format("read_geo_bckt [{}]: I/O error!", bcktnum)) ;
 	if (blab > 1)
-	    cout << "Loaded Geos [" << bcktnum << "/" << nbckts << "]\n" << flush ;
+	    {
+	    float Gb ( memused() / 1024.0 / 1024.0 / 1024.0 ) ;
+	    if (blab == 2) cout << '.' << flush ;
+	    else cout << "[" << bcktnum << "/" << nbckts << "] " << Gb << "Gb\n" << flush ;
+	    }
 	}
     else if (checkout)
 	{

@@ -10,7 +10,7 @@ namespace Save
     void load_save	(int,string) ;	// Load save file
 
     string mk_filename	(const string&&) ; // Output file names
-    string find_file (const string&, const string&, bool=false) ;
+    string find_file (const string&, const string&) ;
 
     int  read_header	(fstream&,const string&); // Read header
     void write_syshead	(fstream&) ; 	// Write sys file header
