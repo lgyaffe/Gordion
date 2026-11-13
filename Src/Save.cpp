@@ -928,9 +928,8 @@ void Save::read_geo_bckt (uint stage, int bcktnum)	// Read Geo bucket
 	    ioerror (format("read_geo_bckt [{}]: I/O error!", bcktnum)) ;
 	if (blab > 1)
 	    {
-	    float Gb ( memused() / 1024.0 / 1024.0 / 1024.0 ) ;
 	    if (blab == 2) cout << '.' << flush ;
-	    else cout << "[" << bcktnum << "/" << nbckts << "] " << Gb << "Gb\n" << flush ;
+	    else cout << "[" << bcktnum << "/" << nbckts << "]\n" << flush ;
 	    }
 	}
     else if (checkout)

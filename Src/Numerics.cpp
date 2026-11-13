@@ -464,7 +464,7 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 	}
     else numerics.vev_buf = numerics.vev.memptr() ;
 
-    TASK_ARENA (global.maxthread, bckt,
+    TASK_ARENA (std::min (global.maxthread, 4u), bckt,
 	FOR_EACH (bckt.begin(), bckt.end(), do_dvev_bckt)) ;
 
     if (blab > 2)
