@@ -1,6 +1,7 @@
 #ifndef OP_H
 #define OP_H
 #include "Data.h"
+#include "List.h"
 #include "Obs.h"
 #include "Term.h"
 
@@ -88,6 +89,30 @@ class OpSum : public vector<OpTerm>			// Op linear combination
     static OpSum& 	loop_dt (OpTerm, OpSum&) ;	// Return [EE,loops]/2
 
     friend ostream& operator<< (ostream&, const OpSum&) ;
+    } ;
+
+class OpList : public Index<Op>			// Indexed list of Op's
+    {
+    public:
+    numb	store () ;			// Store Op in list
+    void	setprimary () ;			// Identify primary Op's
+
+    numb store (const Op& op)			// Store Op in list
+	{
+	auto	len  ( size() ) ;
+	numb	indx { Index::store (op,op) } ;
+	if (indx >= size()) fatal ("OpList::store: bad store! ") ;
+	return indx ;
+	}
+    void purge (numb limit)			// Purge entries
+	{
+	std::erase_if (map, [&](const auto& p) { return p.second >= limit ; }) ;
+	resize (limit) ;
+	}
+    static void opinit (uint) ;			// List initialization
+
+    ostream& print (ostream&, numb) const ;	// Print indexed Op
+    ostream& print (ostream&) const ;		// Print Op list
     } ;
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef SYMM_H
 #define SYMM_H
 #include "List.h"
+#include "Op.h"
+#include "Term.h"
 #include <bitset>
 
 class Symm ;

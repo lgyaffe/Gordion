@@ -1,6 +1,7 @@
 #ifndef OBS_H
 #define OBS_H
 #include "Assess.h"
+#include "List.h"
 #include "Poly.h"
 #include "Str.h"
 #include <map>
@@ -186,6 +187,61 @@ class ObsStats : public array<vector<vector<ulong>>,nobstype>	// Obs statistics
     short maxx = 0 ;
     float avglen ;
     numb  maxloop ;
+    } ;
+
+class ObsList: public List<Obs>			// Indexed list of Obs's
+    {
+    public:
+    string		name ;			// List name
+    bool		canonicalize ;		// Canonicalize entries?
+    bool		classify ;		// Classify entries?
+    bool		approx { false } ;	// Approximate exclusions?
+    numb		nobsG = 0 ;		// # gauge Obs
+    numb		nobsF = 0 ;		// # fermi Obs
+    ulong		hashG = 0 ;		// gauge Obs hash
+    ulong		hashF = 0 ;		// fermi Obs hash
+
+    ObsList (const string, bool=false, bool=false) ;	// Constructor
+
+    using vector::const_iterator ;		// Base const_iterator
+    const_iterator begin() const { return vector::cbegin() ; }
+    const_iterator end()   const { return vector::cend()   ; }
+
+    void	obsinit	(uint) ;		// Load basic Obs
+    ostream&	print	(ostream&, numb) const ;// Print Obs
+    ostream&	print	(ostream&) const ;	// Print list
+    bool	neq (const ObsList& l) const { return this != &l ; }
+
+    numb	store	 (const Obs&) ;		// Store in list
+    void	purge	 (numb) ;		// Purge entries
+    void	clear	 () ;			// Clear list
+    void	rehash	 () ;			// Recalculate hashes
+    void	hasher	 (ulong&,const Obs&) const ; // List hasher
+    PolyTerm	catalog  (Obs) ;		// Catalog Obs
+    PolyTerm	catalog  (Obs, Obs) ;		// Catalog Obs
+    PolyTerm	is_known (Obs&&) const ;	// Find in list
+    PolyTerm	is_known (Obs&&, Obs&&) const ;	// Find in list
+
+    numb&  nobs	(int stage) { return stage ? nobsF : nobsG ; }
+    ulong& hash	(int stage) { return stage ? hashF : hashG ; }
+
+    PolyTerm	is_known (Obs&) const ;		// Find in list
+    PolyTerm	assess   (Obs&) ;		// Store, approx or discard?
+    numb	find (const Str&) const ;	// Find Obs, return index
+    void	ondisk	 () ;			// Leave ObsList on disk
+    bool	frozen   () const ;		// Frozen master list?
+    bool	freezeif () const ;		// Freeze if master list
+    void	refreezeif (bool) const ;	// Reset freeze if master list
+    int		do_fermiinit () ;		// Load Fermion -> Loop map
+
+    void	insert	(ObsSet& set)		// Merge new Obs set
+		    {
+		    reserve (size() + set.size()) ;
+		    for (const auto& obs : set) store (obs) ;
+		    }
+    auto	shrink() { return shrink_to_fit() ; } // Shrink
+
+    static void	retain (const Obs&) ;		// Retain for later insertion
     } ;
 
 #endif
