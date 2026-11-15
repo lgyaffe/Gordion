@@ -88,7 +88,7 @@ class ObsInfo : public ObsList			// Canonical Obs info
     bool		swapped {false};	// Swapped to disk?
 
     static inline thread_local bool	freeze {true} ;	// Freeze master list?
-    static inline thread_local ObsSet	inbox ;		// Obs awaiting insertion
+    static inline thread_local ObsBag	inbox ;		// Obs awaiting insertion
     } ;
 
 class Global					// Global data

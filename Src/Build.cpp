@@ -10,7 +10,7 @@
 #include <mutex>
 
 static uint		cord ;			// Current creation order
-static ObsSet	 	newobs ;		// Newly generated Obs
+static ObsBag	 	newobs ;		// Newly generated Obs
 static vector<Op>	primepOps ;		// primary conj mom Ops
 static std::mutex	obsmutex ;		// newobs insertion lock
 static constexpr int	single_thread { 1024 };	// multithreading threshold
@@ -353,8 +353,8 @@ void Build::mk_obs (uint target)		// Build observables
 	    global.clearpolys (1) ;
 	    }
 	}
-    ObsSet().swap (newobs) ;
-    ObsSet().swap (global.obs.inbox) ;
+    ObsBag().swap (newobs) ;
+    ObsBag().swap (global.obs.inbox) ;
     Canon::cache.freeze	= true ;
     global.obs.freeze	= true ;
     obslist.classify	= false ;
@@ -393,7 +393,7 @@ void Build::mk_loops ()				// Build Loop's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    ObsSet().swap	(newobs) ;
+	    ObsBag().swap	(newobs) ;
 	    }
 	if (blab > 1 && delta_n)
 	    cout << "\n" << std::left << std::setw(12) << "Loops"
@@ -439,7 +439,7 @@ void Build::mk_Eloops ()			// Build Eloop's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    ObsSet().swap	(newobs) ;
+	    ObsBag().swap	(newobs) ;
 	    }
 	if (blab > 1 && delta_n)
 	    cout << "\n" << std::left << std::setw(12) << "Eloops"
@@ -484,7 +484,7 @@ void Build::mk_EEloops ()			// Build EEloop's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    ObsSet().swap	(newobs) ;
+	    ObsBag().swap	(newobs) ;
 	    }
 	if (blab > 1)
 	    cout << "\n" << std::left << std::setw(12) << "EEloops"
@@ -529,7 +529,7 @@ void Build::mk_fermions ()			// Build Fermion's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    ObsSet().swap	(newobs) ;
+	    ObsBag().swap	(newobs) ;
 	    }
 	if (blab > 1)
 	    cout << "\n" << std::left << std::setw(12) << "Fermions"
@@ -574,7 +574,7 @@ void Build::mk_efermions ()			// Build efermion's
 	    {
 	    Canon::cache.load	(newobs) ;
 	    obslist.insert	(newobs) ;
-	    ObsSet().swap	(newobs) ;
+	    ObsBag().swap	(newobs) ;
 	    }
 	if (blab > 1)
 	    cout << "\n" << std::left << std::setw(12) << "efermions"

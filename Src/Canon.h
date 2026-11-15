@@ -1,7 +1,11 @@
 #ifndef CANON_H
 #define CANON_H
-#include "Obs.h"
+#include "List.h"
 #include "Theory.h"
+
+class Str ;
+class Obs ;
+class ObsBag ;
 
 inline constexpr int loopchunksize = theory.dim == 4 ? 6 :	// Loop chuck size
 				     theory.dim == 3 ? 7 : 9 ;
@@ -40,7 +44,7 @@ class CanonCache : public hash<Str,int,Strhash,Str_eq>	// Short Obs cache
 	    { std::erase_if (*this, [indx](const auto& p)
 		{ return abs(p.second) >= indx ; }) ; }
 
-    void load (const ObsSet&) ;		// load short inbox Obs into cache
+    void load (const ObsBag&) ;		// load short inbox Obs into cache
     void reload () ;			// reload cache
     } ;
 

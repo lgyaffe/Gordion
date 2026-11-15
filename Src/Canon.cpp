@@ -666,7 +666,7 @@ void Canon::spectblinit()					// Initialize spectable
     stats.symmsubsets  = symmset.size() ;
     }
 
-void CanonCache::load (const ObsSet& inbox)	// Load short inbox Obs into cache
+void CanonCache::load (const ObsBag& inbox)	// Load short inbox Obs into cache
     {
     freeze = false ;
     for (const Obs& obs : inbox)

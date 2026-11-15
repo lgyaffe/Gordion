@@ -135,7 +135,8 @@ class Obs : public Str				// Obs = Str + meta-info
     friend ostream& operator<< (ostream&, const Obs&) ;
     } ;
 
-using ObsSet = unordered_set<Obs,Strhash,Str_eq> ;
+class ObsBag : public unordered_set<Obs,Strhash,Str_eq>	// Bag of Obs
+    {} ;
 
 class ObsSubset : public std::map<Obs,numb>		// Obs subset
     {
@@ -234,7 +235,7 @@ class ObsList: public List<Obs>			// Indexed list of Obs's
     void	refreezeif (bool) const ;	// Reset freeze if master list
     int		do_fermiinit () ;		// Load Fermion -> Loop map
 
-    void	insert	(ObsSet& set)		// Merge new Obs set
+    void	insert	(ObsBag& set)		// Merge new Obs set
 		    {
 		    reserve (size() + set.size()) ;
 		    for (const auto& obs : set) store (obs) ;

@@ -184,23 +184,6 @@ int OpSum::collect (bool divgcd)		// Collect terms, optionally
     else return 1 ;
     }
 
-ostream& OpList::print (ostream& stream, numb indx) const	// Print indexed Op
-    {
-    const Op& op { (*this)[indx] } ;
-    return stream << " op #" << indx << " = " << op << "\n" ;
-    }
-
-ostream& OpList::print (ostream& stream) const			// Print OpList
-    {
-    stream << " operators:\n" ;
-    for (int indx(0) ; indx < size() ; ++indx)
-	{
-	const Op& op { (*this)[indx] } ;
-	stream  << " #" << indx << " = " << op << "\n" ;
-	}
-    return stream ;
-    }
-
 void OpList::opinit (uint stage)		// Operator initialization
     {
     bool isham { !theory.euclid } ;
@@ -420,6 +403,23 @@ ostream& operator<< (ostream& stream, const OpSum& s)	// Print OpSum
 	{
 	Print::coeffprt (stream, t.coeff) ;
 	stream << s.oplist() [t.item] ;
+	}
+    return stream ;
+    }
+
+ostream& OpList::print (ostream& stream, numb indx) const	// Print indexed Op
+    {
+    const Op& op { (*this)[indx] } ;
+    return stream << " op #" << indx << " = " << op << "\n" ;
+    }
+
+ostream& OpList::print (ostream& stream) const			// Print OpList
+    {
+    stream << " operators:\n" ;
+    for (int indx(0) ; indx < size() ; ++indx)
+	{
+	const Op& op { (*this)[indx] } ;
+	stream  << " #" << indx << " = " << op << "\n" ;
 	}
     return stream ;
     }
