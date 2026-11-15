@@ -1,9 +1,6 @@
 #ifndef OP_H
 #define OP_H
-#include "Data.h"
-#include "List.h"
 #include "Obs.h"
-#include "Term.h"
 
 enum class OpType : char			// Operator types
     {

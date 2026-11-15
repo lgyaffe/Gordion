@@ -1,8 +1,6 @@
 #ifndef CANON_H
 #define CANON_H
-#include "List.h"
 #include "Obs.h"
-#include "Symb.h"
 #include "Theory.h"
 
 inline constexpr int loopchunksize = theory.dim == 4 ? 6 :	// Loop chuck size
