@@ -36,7 +36,13 @@ int Obs::canon()				// Canonicalize observable
 	if (len <= loopchunksize)			// lookup in cache
 	    {
 	    auto search = Canon::cache.find (*this) ;
-	    if (search == Canon::cache.end())		// cache miss
+	    if (search != Canon::cache.end())		// cache hit
+		{
+		*this = global.obs (search->second) ;
+		if (blab > 1) cout << "canon L0 returning: " << *this << "\n" << flush ;
+		++global.count().cachehits ;
+		}
+	    else					// cache miss
 		{
 		if (blab > 2) cout << "cache miss: " << *this << "\n" << flush ;
 		uint minscore	{ UINT_MAX } ;
@@ -88,12 +94,6 @@ int Obs::canon()				// Canonicalize observable
 		else if (blab > 2) cout << "Canon: cannot cache " << *this << "\n" ;
 		if (blab > 1) cout << "canon L1 returning: " << *this << "\n" << flush ;
 		++global.count().cachemiss ;
-		}
-	    else					// cache hit
-		{
-		*this = global.obs (search->second) ;
-		if (blab > 1) cout << "canon L0 returning: " << *this << "\n" << flush ;
-		++global.count().cachehits ;
 		}
 	    }
 	else						// compare starting chunks
@@ -216,7 +216,15 @@ int Obs::canon()				// Canonicalize observable
 	if (size() - 2 * isFf  <= specchunksize)	// lookup in cache
 	    {
 	    auto search = Canon::cache.find (*this) ;
-	    if (search == Canon::cache.end())		// cache miss
+	    if (search != Canon::cache.end())		// cache hit
+		{
+		sgn1  = search->second < 0 ? -1 : 1 ;
+		*this = global.obs (abs(search->second)) ;
+		if (blab > 1) cout << "canon S0 returning: " << sgn0 * sgn1
+			       << " " << *this << "\n" << flush ;
+		++global.count().cachehits ;
+		}
+	    else					// cache miss
 		{
 		if (blab > 2) cout << "cache miss: " << *this << "\n" << flush ;
 
@@ -290,14 +298,6 @@ int Obs::canon()				// Canonicalize observable
 		if (blab > 1) cout << "canon S1 returning " << sgn0 * sgn1
 				   << " " << *this << "\n" << flush ;
 		++global.count().cachemiss ;
-		}
-	    else					// cache hit
-		{
-		sgn1  = search->second < 0 ? -1 : 1 ;
-		*this = global.obs (abs(search->second)) ;
-		if (blab > 1) cout << "canon S0 returning: " << sgn0 * sgn1
-			       << " " << *this << "\n" << flush ;
-		++global.count().cachehits ;
 		}
 	    }
 	else						// compare starting chunks
