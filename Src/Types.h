@@ -48,7 +48,6 @@ using std::chrono::high_resolution_clock ;
 
 using symb   = char ;			// Basic symbol type
 using doub   = double ;			// Spectral matrices, etc.
-using cmplx  = complex<float> ;		// Complex matrix elements
 using dcmplx = complex<doub> ;		// Complex eigenvalues
 using uchar  = uint8_t ;		// Hterm #
 using ushort = uint16_t ;		// Gen #, Obs/Poly length
@@ -73,6 +72,7 @@ inline constexpr int  MAXGRP = 63 ;	// Mas Op group
 inline constexpr int  MAXORD = 63 ;	// Max Op/Obs order
 inline constexpr long MAXNUM = INT_MAX; // Max Obs index
 #endif
+using cmplx  = complex<real> ;		// Complex matrix elements
 using numb2  = pair<numb,numb> ;	// Index range, fermion init
 using numb3  = array<numb,3> ;		// Obs bucket position
 

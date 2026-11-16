@@ -86,7 +86,6 @@ PolyTerm ObsList::assess (Obs& a)	// classify/store/approx/discard Obs?
 			 << " retained/stored -> " << name << "\n" ;
 		    }
 		--depth ;
-		++global.count().stored ;
 		return PolyTerm (PolyIndx(MAXNUM-1), sgn) ;
 		}
 	    else if (a.order() < maxord)

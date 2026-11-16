@@ -110,7 +110,6 @@ struct Counters					// Thread-safe counters
     Counter	canons ;	// # Obs canonicalizations
     Counter	symmtrans ;	// # Symmetry transforms
     Counter	commutes ;	// # Commutations
-    Counter	stored ;	// # Obs stored
 #ifdef DELPHI
     Counter	obs_hit ;	// # Canon::obscache hits
     Counter	obs_miss ;	// # Canon::obscache misses
