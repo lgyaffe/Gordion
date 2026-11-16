@@ -68,7 +68,7 @@ int Obs::canon()				// Canonicalize observable
 			shrink_to_fit() ;
 			if (blab) cout << "canon: storing " << *this << "\n" ;
 			numb	indx { global.obs.store (*this) } ;
-			int	maxrot { theory.dim > 1 ? len : 0 } ;
+			int	maxrot { theory.dim > 1 ? len : 1 } ;
 
 			for (int rot(0) ; rot < maxrot ; ++rot)	// add cache entries
 			    {
