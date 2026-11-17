@@ -794,6 +794,7 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	else if (isword(word,"symmsets")    && eos(line))	print_symmsets () ;
 	else if (isword(word,"sysindex")    && eos(line))	print_sysindex () ;
 	else if (isword(word,"vevindex")    && eos(line))	print_vevindex () ;
+	else if (isword(word,"version")     && eos(line))	print_version  () ;
 	else valid = false ;
 	}
     else valid = false ;
@@ -1052,6 +1053,7 @@ print		baseobs
 		symmsets
 		sysindex
 		vevindex
+		version
 
 purge		observables
 
