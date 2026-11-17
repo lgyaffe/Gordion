@@ -2,6 +2,7 @@
 #include "Build.h"
 #include "Data.h"
 #include "Global.h"
+#include "OS.h"
 #include "Parallel.h"
 #include "Print.h"
 #include "Rep.h"
@@ -440,9 +441,11 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
     const auto&	blab	{ Blab::level(Blab::NUMERICS) } ;
     const auto&	geos	{ global.data().geos } ;
     const auto&	bckt	{ global.info().bckt } ;
+    const auto&	maxgeo	{ Save::maxgeorec } ;
     long	offset	{ global.stage ? global.obs.nobsG : 0 } ;
     int		ngens	{ global.info().neven.front() } ;
     long	n	{ global.nobs() } ;
+    auto	nthread	{ global.maxthread } ;
 
     if (global.interrupt) return ;
     if (numerics.delta.n_elem != ngens) gripe ("Need to (re)evaluate delta!"); 
@@ -464,7 +467,14 @@ void Numerics::do_dvev (doub s, const Rvec& v, Rvec& dv)	// Evaluate vev derivs
 	}
     else numerics.vev_buf = numerics.vev.memptr() ;
 
-    TASK_ARENA (std::min (global.maxthread, 4u), bckt,
+    if (global.geoswap)
+	{
+	auto maxthrd { memtot() / (maxgeo * sizeof (Element) * 2) } ;
+	if (nthread > maxthrd || !nthread)	nthread = maxthrd ;
+	if (nthread > numcores())		nthread = 0 ;
+	}
+
+    TASK_ARENA (nthread, bckt,
 	FOR_EACH (bckt.begin(), bckt.end(), do_dvev_bckt)) ;
 
     if (blab > 2)

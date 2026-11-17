@@ -13,7 +13,6 @@
 using  std::ios_base ;
 static Save::FileHdr	filehdr ;
 static constexpr int	elemsiz { sizeof (Element) } ;
-static ulong		maxrec ;
 static union Buffer					// Alignment buffer
     {
     Buffer() {} ;
@@ -828,8 +827,8 @@ void Save::read_geos ()				// Read Geo records
 	    [&geos](const numb3& a, const numb3& b)
 		{ return geos[a[0]].filepos() < geos[b[0]].filepos() ; }) ;
 	for (const auto& record : geos)
-	    if (maxrec < record.entry().reclen)
-		maxrec = record.entry().reclen ;
+	    if (maxgeorec < record.entry().reclen)
+		maxgeorec = record.entry().reclen ;
 
 	if (!maxthrd)
 	    {
@@ -868,6 +867,9 @@ void Save::write_geo_bckt (uint bcktnum)		// Write single Geo bucket
     if (global.interrupt) return ;
     if (record.entry().id != RecordID::Geos)
 	fatal (format("write_geos [{}]: bad record ID!",bcktnum)) ;
+
+    if (maxgeorec < record.entry().reclen)
+	maxgeorec = record.entry().reclen ;
 
     std::lock_guard<std::mutex> lock (savemutex) ;
     stream.seekg (-sizeof (SysIndex), ios_base::end) ;
@@ -917,7 +919,7 @@ void Save::read_geo_bckt (uint stage, int bcktnum)	// Read Geo bucket
 	if (!checkout)
 	    {
 	    if (myvec.capacity() < record.entry().reclen)
-		myvec.reserve (maxrec) ;
+		myvec.reserve (maxgeorec) ;
 	    record.swap (myvec) ;
 	    checkout = true ;
 	    }

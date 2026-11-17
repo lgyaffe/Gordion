@@ -85,6 +85,7 @@ namespace Save
 	} ;
 
     inline bool	autosave { false } ;	// Auto save flag
+    inline static ulong	maxgeorec ;	// Max geo rec size
     } ;
 
 #endif

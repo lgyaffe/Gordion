@@ -4,9 +4,15 @@
 #if defined(__APPLE__) || defined(__MACH__)
 #include <sys/sysctl.h>
 #define PAGESIZE 16 * 1024
+inline int numcores()
+    {
+    int    cnt (0) ;
+    size_t len { sizeof (cnt) } ;
+    return sysctlbyname ("hw.logicalcpu", &cnt, &len, NULL, 0) ? 0 : cnt ;
+    }
 inline size_t memtot()
     {
-    uint64_t mem { 0 } ;
+    uint64_t mem (0) ;
     size_t   len { sizeof(mem) } ;
     return sysctlbyname ("hw.memsize", &mem, &len, NULL, 0) ? 0 : mem ;
     }
@@ -23,10 +29,17 @@ inline double cpumsec()
     return usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.e-3 ;
     }
 
+
 #elif defined (__linux__)
 #include <unistd.h>
 #include <sys/resource.h>
+#include <thread>
 #define PAGESIZE 4096
+inline int numcores()
+    {
+    int count { std::thread::hardware_concurrency() } ;
+    return count ? count : 1 ;
+    }
 inline size_t memtot()
     {
     long pages	   { sysconf (_SC_PHYS_PAGES) } ;
@@ -50,6 +63,11 @@ inline double cpumsec()
 #include <windows.h>
 #include <psapi.h>
 #define PAGESIZE 4096
+inline int numcores()
+    {
+    int count { GetActiveProcessorCount (ALL_PROCESSOR_GROUPS) } ;
+    return count ? count : 1 ;
+    }
 inline size_t memtot()
     {
     ULONGLONG mem_siz { 0 } ;
