@@ -239,3 +239,12 @@ November 4, 20206:
 	mk_ham, eval_ham, write_ham, read_ham, print_ham_or_free.
     Save.h: fixed screw-up with namespace inline static variables.
 
+November 16, 2026:
+    Numerics.cpp: limit threads for do_dvev_bckt based on number of cores
+	and memory size needed for geo bucket records.
+    Save.{h,cpp}: record max size of geo records in maxgeorec.
+    Counter.h removed Counters::stored as redundant.  Corresponding lines
+	dropped in {Canon,Print,Assess}.cpp.
+    OS.h: added numcores.
+    Parallel.h: added "n > 1" to test for parallel code.
+    Types.h: changed cmplx to complex<real>, from complex<float>.
