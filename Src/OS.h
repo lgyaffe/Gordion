@@ -29,7 +29,6 @@ inline double cpumsec()
     return usage.ru_utime.tv_sec + usage.ru_utime.tv_usec * 1.e-3 ;
     }
 
-
 #elif defined (__linux__)
 #include <unistd.h>
 #include <sys/resource.h>
