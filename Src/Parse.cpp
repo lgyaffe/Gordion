@@ -230,6 +230,20 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    global.approx = global.obs.approx = i ;
 	    }
+	else if (isword(word,"arithmatic") && parse_args (line,i))
+	    {
+	    if (i != 8 * sizeof (numb))
+		{
+		string s {} ;
+		switch (i)
+		    {
+		    case 32: s = "w/o NUM64 set"  ; break ;
+		    case 64: s = "with NUM64 set" ; break ;
+		    default: abort ("Invalid number size") ;
+		    }
+		abort ("Wrong number size, recompile " + s) ;
+		}
+	    }
 	else if (isword(word,"autoEgens") && parse_args (line,flag))
 	    {
 	    Gen::autoEgens = flag ;
@@ -1056,32 +1070,33 @@ save		sys		[<filename>]
 		vev		[<filename>]
 
 set		stage		gauge | fermi
-		approx		false | true
-		autosave	false | true |
+		arithmatic	32 | 64
 		autoEgens	true | false
-		blab		<source_file> <value>
+		symcurv		true | false
+		timing		true | false
+		MMAappend	true | false
+		approx		false | true
+		autosave	false | true
 		checkobs	false | true
 		dots		false | true
 		echo		false | true
 		gennorm		false | true
 		geoswap		false | true
-		inputdir	<directory>
 		oknegeig	false | true
+		xtraobs		false | true
 		maxnewt		<integer>
 		maxode		<integer>
 		maxthread	<integer>
-		mintol		<value>
-		odetol		<value>
 		representation  <repname>
-		rkmethod	<rkname>
+		rkmethod	<method>
+		inputdir	<directory>
 		savedir		<directory>
-		svdcutoff	<value>
-		symcurv		true | false
-		timing		true | false
-		xtraobs		false | true
-		MMAappend	true | false
 		MMAdir		<directory>
 		MMAobs		<obs> [<obs> [...]]
+		blab		<source_file> <value>
+		mintol		<value>
+		odetol		<value>
+		svdcutoff	<value>
 		<coupling>	<value>
 
 test		irreps
