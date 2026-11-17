@@ -846,7 +846,6 @@ void Print::print_stats ()			// Print global statistics
     cout << "      classified:       " << global.count().classified << "\n" ;
     cout << "      factored:         " << global.count().factored   << "\n" ;
     cout << "      reduced:          " << global.count().reduced    << "\n" ;
-    cout << "      stored:           " << global.count().stored     << "\n" ;
     cout << "      approximated:     " << global.count().approxed   << "\n" ;
     cout << "      cannot approx:    " << global.count().noapprox   << "\n" ;
     cout << "      no intersect:     " << global.count().nointersect<< "\n" ;
