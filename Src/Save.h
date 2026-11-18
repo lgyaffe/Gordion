@@ -48,24 +48,25 @@ namespace Save
     void read_stat	() ;		// Load Statistics
     void write_stat	() ;		// Save Statistics
 
-    long coupsize	() ;		// Coupling record size
-    long datasetsize	() ;		// Total dataset size
-
     void save_vev	() ;		// Save vev data
     void load_vev	(int) ;		// Load vev set
 
     void write_vevhead	(fstream&) ;	// Write vev file header
     void write_vev	() ;		// Save Vev's
     void read_vev	(int) ;		// Load Vev's
-    long vevsize	() ;		// Vev record size
-
-    string stageabbrev	(uint, const string&) ; // File name info
 
     void reload_obs	() ;		// Reload Obs
     void rewrite_stat	() ;		// Save Statistics
 
     void write_geo_bckt	(uint) ;	// Save geo bucket
     void read_geo_bckt	(uint,int) ;	// Load geo bucket
+
+    long vevsize	() ;		// Vev record size
+    long coupsize	() ;		// Coupling record size
+    long datasetsize	() ;		// Total dataset size
+    uint maxgeothread	() ;		// Max # geo read threads
+
+    string stageabbrev	(uint, const string&) ; // File name info
 
     struct FileHdr			// Save file header
 	{

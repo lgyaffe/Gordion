@@ -829,12 +829,6 @@ void Save::read_geos ()				// Read Geo records
 	for (const auto& record : geos)
 	    if (maxgeorec < record.entry().reclen)
 		maxgeorec = record.entry().reclen ;
-
-	if (!maxthrd)
-	    {
-	    maxthrd = 4 ;
-	    cout << "Setting maxthread to " << maxthrd << "\n" ;
-	    }
 	return ;
 	}
     if (blab > 1) cout << "Loading Geos: " ;
@@ -1081,6 +1075,18 @@ void Save::read_stat ()				// Read Stat record
     stream.read (cast_to<char*>(ptr), nelem * sizeof (Counter)) ;
     if (stream.fail()) ioerror ("read_stat: I/O error!") ;
     if (blab > 1) cout << "Loaded Stat\n" << flush ;
+    }
+
+uint Save::maxgeothread ()			// Max # geo read threads
+    {
+    auto nthread { global.maxthread } ;
+    if (global.geoswap && maxgeorec)
+	{
+	auto maxthrd { memtot() / (maxgeorec * sizeof (Element) * 2) } ;
+	if (nthread > maxthrd || !nthread)	nthread = maxthrd ;
+	if (nthread > numcores())		nthread = 0 ;
+	}
+    return nthread ;
     }
 
 long Save::coupsize ()				// Coupling record size
