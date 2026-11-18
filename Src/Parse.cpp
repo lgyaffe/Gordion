@@ -516,9 +516,9 @@ bool Parse::parse_eval (istringstream& line)		// Parse "evaluate" commands
 		else if (parse_args (line,i))	numerics.eval_geos (i) ;
 		else valid = false ;
 		}
-	    else if (isword(word,"geostats") && eos(line))
+	    else if (isword(word,"polystats") && eos(line))
 		{
-		Build::do_geostats() ;
+		Build::do_polystats() ;
 		Print::print_polystats() ;
 		}
 	    else valid = false ;
@@ -1010,7 +1010,7 @@ evaluate	hamiltonian (+)
 		delta
 		spectrum (+)	[all | <repname>]
 		geodesics	* | <print_limit>
-		geostats
+		polystats
 
 generator	add		[(<order>)] [<coeff>] <op> [...]
 		suspend		(<order>)
