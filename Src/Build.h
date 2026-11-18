@@ -31,7 +31,7 @@ namespace Build
     void do_efermion_bckt (const numb3&) ;
     void do_geo_bckt	  (const numb3&) ;
     void do_geostat_bckt  (const numb3&) ;
-    void do_geostats	  () ;
+    void do_polystats	  () ;
 
     void check_xorder	(numb, const Gen&, const PolyMap&) ;
     void clear_obs	(uint) ;

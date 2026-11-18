@@ -96,7 +96,6 @@ void Build::mk_grad()				// Build gradient
 
     global.obs.freeze = !global.xtraobs ;
     grad.clear() ;
-    stats.clear() ;
     if (blab) cout << "Gradient:    " << flush ;
     for (int i(0) ; i < nterms ; ++i)
 	{
@@ -155,7 +154,6 @@ void Build::mk_curv (uint repnum)			// Build curvature
 
     global.obs.freeze = !global.xtraobs ;
     curv.clear() ;
-    stats.clear() ;
     if (blab && ngens && nterms) cout << repnam << " curvature:    " << flush ;
     for (int i(0) ; i < nterms ; ++i)
 	{
@@ -227,7 +225,6 @@ void Build::mk_lagr (uint repnum)			// Build Lagrange bracket
     auto ngens { gens.size() } ;
     global.obs.freeze = !global.xtraobs ;
     lagr.clear();
-    stats.clear() ;
     if (ngens && blab) cout << repnam << " Lagrange brkt: " << flush ;
     for (int j(0) ; j < neven ; ++j)
 	{
@@ -273,7 +270,6 @@ void Build::mk_geos()				// Build geodesic equations
 
     global.obs.freeze   = true ;
     Canon::cache.freeze = true ;
-    stats.clear() ;
     if (Save::autosave) Save::save_sys() ;
     TASK_ARENA (global.maxthread, bckt,
 	FOR_EACH (bckt.begin(), bckt.end(), do_geo_bckt)) ;
@@ -963,22 +959,29 @@ void Build::do_geo_bckt (const numb3& bckt)		// Do bucket of geodesic eqns
     if (Save::autosave) Save::write_geo_bckt (bcktnum) ;
     }
 
-void Build::do_geostats()			// Reevaluate geodesic stats
+void Build::do_polystats()			// Reevaluate polynomial stats
     {
-    auto oldstage { global.stage } ;
+    const auto&	grad		{ global.data().grad } ;
+    const auto&	curv		{ global.data().curv } ;
+    const auto&	lagr		{ global.data().lagr } ;
+    const auto&	geos		{ global.data().geos } ;
+    const auto&	bckt		{ global.info().bckt } ;
+    auto& 	gradstats	{ global.info().count.gradstats } ;
+    auto& 	curvstats	{ global.info().count.curvstats } ;
+    auto& 	lagrstats	{ global.info().count.lagrstats } ;
+    auto& 	geostats	{ global.info().count.gradstats } ;
 
-    for (uint stage(0) ; stage < 2 - !theory.nf ; ++stage)
-	{
-	global.stage = stage ? Global::Fermi : Global::Gauge ;
-	const auto&	geos  { global.data().geos } ;
-	const auto&	bckt  { global.info(stage).bckt } ;
-	auto&		stats { global.info(stage).count.geostats } ;
+    gradstats.clear() ;
+    curvstats.clear() ;
+    lagrstats.clear() ;
+    geostats.clear()  ;
 
-	stats.clear() ;
-	TASK_ARENA (global.maxthread, bckt,
-	    FOR_EACH (bckt.begin(), bckt.end(), Build::do_geostat_bckt)) ;
-	}
-    global.stage = oldstage ;
+    gradstats.add (grad) ;
+    for (const auto& rec : curv) curvstats.add (rec) ;
+    for (const auto& rec : lagr) lagrstats.add (rec) ;
+
+    TASK_ARENA (Save::maxgeothread(), bckt,
+	FOR_EACH (bckt.begin(), bckt.end(), Build::do_geostat_bckt)) ;
     }
 
 void Build::do_geostat_bckt (const numb3& bckt) // Reevaluate geo bucket stats
@@ -986,13 +989,12 @@ void Build::do_geostat_bckt (const numb3& bckt) // Reevaluate geo bucket stats
     if (global.interrupt) return ;
 
     const auto&	bcktnum { bckt[0] } ;
-    const auto&	stage	{ global.stage } ;
     const auto&	geos	{ global.data().geos[bcktnum] } ;
     auto&	stats	{ global.info().count.geostats } ;
 
-    if (global.geoswap) Save::read_geo_bckt (stage, bcktnum) ;
+    if (global.geoswap) Save::read_geo_bckt (global.stage, bcktnum) ;
     stats.add (geos) ;
-    if (global.geoswap) Save::read_geo_bckt (stage, -bcktnum-1) ;
+    if (global.geoswap) Save::read_geo_bckt (global.stage, -bcktnum-1) ;
     }
 
 void Build::check_xorder (numb i, const Gen& g, const PolyMap& ans) // Check xorders
