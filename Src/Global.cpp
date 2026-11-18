@@ -23,6 +23,10 @@ void Global::clearpolys (uint stage)		// Clear polynomial scripts
     for (auto& rec : data(stage).geos) rec.clear() ;
     for (auto& rec : data(stage).lagr) rec.clear() ;
     for (auto& rec : data(stage).curv) rec.clear() ;
+    info(stage).count.gradstats.clear() ;
+    info(stage).count.curvstats.clear() ;
+    info(stage).count.lagrstats.clear() ;
+    info(stage).count.geostats.clear()  ;
     }
 
 void Global::mk_bcktlist ()			// Make Obs bucket list
