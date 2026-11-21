@@ -342,7 +342,7 @@ void Save::write_op ()				// Write Op record
     for (int indx(0) ; indx < nop ; ++indx)
 	{
 	const Op& op	{ oplist[indx] } ;
-	Element	  e	{ OpHdr ( op.order, (char) op.type, op.primary ) } ;
+	Element	  e	{ OpHdr (op) } ;
 
 	record.push_back (e) ;
 	auto	symbptr { op.data() } ;
@@ -355,9 +355,7 @@ void Save::write_op ()				// Write Op record
 	    buffer.byte.fill (X) ;
 	    std::memcpy (buffer.byte.data(), symbptr + n * elemsiz, rem) ;
 	    record.push_back (buffer.elem) ;
-	    ++n ;
 	    }
-	(&record.back() - n)->hdr.op.len = n ;
 	}
     record.entry().nelem = nop ;
     record.writerec (stream) ;
@@ -420,7 +418,7 @@ void Save::write_obs ()				// Write Obs record
     for (long indx(start) ; indx < start + nobs ; ++indx)
 	{
 	const Obs& obs	{ global.obs(indx) } ;
-	Element	   e	{ ObsHdr ( obs.corder, obs.xorder, (char) obs.type ) } ;
+	Element	   e	{ ObsHdr (obs) } ;
 
 	record.push_back (e) ;
 	auto	symbptr	{ obs.data() } ;
@@ -433,9 +431,7 @@ void Save::write_obs ()				// Write Obs record
 	    buffer.byte.fill (X) ;
 	    std::memcpy (buffer.byte.data(), symbptr + n * elemsiz, rem) ;
 	    record.push_back (buffer.elem) ;
-	    ++n ;
 	    }
-	(&record.back() - n)->hdr.obs.len = n ;
 	}
     record.entry().nelem = nobs ;
     record.writerec (stream) ;
@@ -567,14 +563,13 @@ void Save::write_gen ()					// Write Gen record
 	{
 	for (const auto& gen : global.info().gens[rep])
 	    {
-	    Element	e { GenHdr ( rep, gen.order, (char) gen.type, gen.T_odd ) } ;
+	    Element	e { GenHdr (gen, rep) } ;
 	    auto	n { 1 + gen.size() * optsiz } ;
 	    record.push_back (e) ;
 	    e.coeff = gen.coeff ;
 	    record.push_back (e) ;
 	    auto elemptr { cast_to<const Element*> (gen.data()) } ;
 	    record.insert (record.end(), elemptr, elemptr + n - 1) ;
-	    (&record.back() - n)->hdr.gen.len = n ;
 	    ++ngen ;
 	    }
 	}

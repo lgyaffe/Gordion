@@ -4,74 +4,73 @@
 #include "Gripe.h"
 #include <functional>
 
+#ifdef NUM64
+using usmall = uint ;
+using unumb  = ulong ;
+#define LENBITS	29
+#define ORDBITS 16
+#else
+using usmall = ushort ;
+using unumb  = uint ;
+#define LENBITS	13
+#define ORDBITS  8
+#endif
+
+class Op ;
+class Obs ;
+class Gen ;
+
 #ifdef DELPHI
     struct OpHdr			// Op record item header
 	{
 	usmall	len ;
 	usmall	type ;
+	OpHdr (const Op&) ;
 	} ;
     struct ObsHdr			// Obs record item header
 	{
 	usmall	len ;
 	usmall	type ;
+	ObsHdr (const Obs&) ;
 	} ;
     struct GenHdr			// Gen record item header
 	{
-	usmall 	len ;
-	usmall	rep   : 6 ;
-	usmall	group : 6 ;
-	usmall	type  : 2 ;
-	usmall	T_odd : 1 ;
-	} ;
-#elif NUM64
-    struct OpHdr			// Op record item header
-	{
-	uint	len ;
-	uint	order : 10 ;
-	uint	type  : 2  ;
-	uint	prim  : 1  ;
-	} ;
-    struct ObsHdr			// Obs record item header
-	{
-	uint	len ;
-	uint	corder : 10 ;
-	uint	xorder : 10 ;
-	uint	type   : 4  ;
-	} ;
-    struct GenHdr			// Gen record item header
-	{
-	uint	len ;
-	uint	rep   : 8 ;
-	uint	order : 10 ;
-	uint	type  : 2 ;
-	uint	T_odd : 1 ;
+	unumb 	len   : LENBITS ;
+	unumb	type  : 2 ;
+	unumb	T_odd : 1 ;
+	unumb	group : ORDBITS ;
+	unumb	rep   : 6 ;
+	GenHdr (const Gen&, int) ;
 	} ;
 #else
     struct OpHdr			// Op record item header
 	{
-	ushort	len ;
-	ushort	order : 6 ;
-	ushort	type  : 2 ;
-	ushort	prim  : 1 ;
+	unumb	len   : LENBITS ;
+	unumb	type  : 2  ;
+	unumb	prim  : 1  ;
+	unumb	order : ORDBITS ;
+	OpHdr (const Op&) ;
 	} ;
     struct ObsHdr			// Obs record item header
 	{
-	ushort	len ;
-	ushort	corder : 6 ;
-	ushort	xorder : 6 ;
-	ushort	type   : 3 ;
+	unumb	len    : LENBITS ;
+	unumb	type   : 3 ;
+	unumb	corder : ORDBITS ;
+	unumb	xorder : ORDBITS ;
+	ObsHdr (const Obs&) ;
 	} ;
     struct GenHdr			// Gen record item header
 	{
-	ushort	len ;
-	ushort	rep   : 6 ;
-	ushort	order : 6 ;
-	ushort	type  : 2 ;
-	ushort	T_odd : 1 ;
-	} ;
+	unumb	len   : LENBITS ;
+	unumb	type  : 2  ;
+	unumb	T_odd : 1 ;
+	unumb	order : ORDBITS ;
+	unumb	rep   : 6 ;
+	GenHdr (const Gen&, int) ;
+	} ;				
 #endif
 
-struct PolyHdr { ubig len ; } ;		// Poly record header
+struct PolyHdr { unumb len ; } ;	// Poly record header
 
 struct RecHdr				// Data record header
     {
@@ -80,7 +79,7 @@ struct RecHdr				// Data record header
 	OpHdr	op   ;
 	ObsHdr	obs  ;
 	GenHdr	gen  ;
-	PolyHdr	poly ;			// Record length (w/o header)
+	PolyHdr	poly ;
 	} ;
     } ;
 
