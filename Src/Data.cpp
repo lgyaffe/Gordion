@@ -1,6 +1,7 @@
 #include "Data.h"
 #include "Gen.h"
 
+
 OpHdr::OpHdr (const Op& op)			// OpHdr constructor
     {
     type = (int) op.type ;
@@ -9,8 +10,8 @@ OpHdr::OpHdr (const Op& op)			// OpHdr constructor
 #ifndef DELPHI
     prim = op.primary ;
     order = op.order ;
-    if (order != op.order)   abort ("Op order exceeds OpHdr capacity") ;
-    if (len >= 1 << LENBITS) abort ("Op length exceeds OpHdr capacity") ;
+    if (order >= (1 << ordbits)) abort ("Op order exceeds OpHdr capacity") ;
+    if (len   >= (1 << lenbits)) abort ("Op length exceeds OpHdr capacity") ;
 #endif
     }
 
@@ -22,9 +23,9 @@ ObsHdr::ObsHdr (const Obs& obs)			// ObsHdr constructor
 #ifndef DELPHI
     corder = obs.corder ;
     xorder = obs.xorder ;
-    if (corder != obs.corder) abort ("Obs corder exceeds ObsHdr capacity") ;
-    if (xorder != obs.xorder) abort ("Obs xorder exceeds ObsHdr capacity") ;
-    if (len >= 1 << LENBITS)  abort ("Obs length exceeds ObsHdr capacity") ;
+    if (corder >= (1 << ordbits)) abort ("Obs corder exceeds ObsHdr capacity") ;
+    if (xorder >= (1 << ordbits)) abort ("Obs xorder exceeds ObsHdr capacity") ;
+    if (len    >= (1 << lenbits)) abort ("Obs length exceeds ObsHdr capacity") ;
 #endif
     }
 
@@ -36,11 +37,11 @@ GenHdr::GenHdr (const Gen& gen, int repnum)	// GenHdr constructor
     rep   = repnum ;
 #ifndef DELPHI
     order = gen.order ;
-    if (order != gen.order)  abort ("Gen order exceeds GenHdr capacity") ;
-    if (len >= 1 << LENBITS) abort ("Gen length exceeds GenHdr capacity") ;
+    if (order >= (1 << ordbits)) abort ("Gen order exceeds GenHdr capacity") ;
 #else
     group = gen.group ;
-    if (group != gen.group) abort ("Gen group exceeds GenHdr capacity") ;
+    if (group >= (1 << ordbits)) abort ("Gen group exceeds GenHdr capacity") ;
 #endif
+    if (len   >= (1 << lenbits)) abort ("Gen length exceeds GenHdr capacity") ;
     }
 

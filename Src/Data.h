@@ -5,66 +5,67 @@
 #include <functional>
 
 #ifdef NUM64
-using usmall = uint ;
-using unumb  = ulong ;
-#define LENBITS	29
-#define ORDBITS 16
+using uqutr = ushort ;		// quarter size unsigned int
+using uhalf = uint ;		// half size unsigned int
+using unumb = ulong ;		// full size unsigned int
 #else
-using usmall = ushort ;
-using unumb  = uint ;
-#define LENBITS	13
-#define ORDBITS  8
+using uqutr = uchar ;		// quarter size unsigned int
+using uhalf = ushort ;		// half size unsigned int
+using unumb = uint ;		// full size unsigned int
 #endif
 
 class Op ;
 class Obs ;
 class Gen ;
 
+inline constexpr int lenbits { 8 * sizeof (uhalf) - 3 } ;
+inline constexpr int ordbits { 8 * sizeof (uqutr) } ;
+
 #ifdef DELPHI
     struct OpHdr			// Op record item header
 	{
-	usmall	len ;
-	usmall	type ;
+	uhalf	len ;
+	uhalf	type ;
 	OpHdr (const Op&) ;
 	} ;
     struct ObsHdr			// Obs record item header
 	{
-	usmall	len ;
-	usmall	type ;
+	uhalf	len ;
+	uhalf	type ;
 	ObsHdr (const Obs&) ;
 	} ;
     struct GenHdr			// Gen record item header
 	{
-	unumb 	len   : LENBITS ;
+	unumb 	len   : lenbits ;
 	unumb	type  : 2 ;
 	unumb	T_odd : 1 ;
-	unumb	group : ORDBITS ;
+	unumb	group : ordbits ;
 	unumb	rep   : 6 ;
 	GenHdr (const Gen&, int) ;
 	} ;
 #else
     struct OpHdr			// Op record item header
 	{
-	unumb	len   : LENBITS ;
+	unumb	len   : lenbits ;
 	unumb	type  : 2  ;
 	unumb	prim  : 1  ;
-	unumb	order : ORDBITS ;
+	unumb	order : ordbits ;
 	OpHdr (const Op&) ;
 	} ;
     struct ObsHdr			// Obs record item header
 	{
-	unumb	len    : LENBITS ;
+	unumb	len    : lenbits ;
 	unumb	type   : 3 ;
-	unumb	corder : ORDBITS ;
-	unumb	xorder : ORDBITS ;
+	unumb	corder : ordbits ;
+	unumb	xorder : ordbits ;
 	ObsHdr (const Obs&) ;
 	} ;
     struct GenHdr			// Gen record item header
 	{
-	unumb	len   : LENBITS ;
+	unumb	len   : lenbits ;
 	unumb	type  : 2  ;
 	unumb	T_odd : 1 ;
-	unumb	order : ORDBITS ;
+	unumb	order : ordbits ;
 	unumb	rep   : 6 ;
 	GenHdr (const Gen&, int) ;
 	} ;				
