@@ -16,15 +16,15 @@ Gen::Gen (const Op& op)				// Construct w/o projection
     inner_commute () ;
     }
 
-Gen::Gen (const OpSum& s, Element& e, real coeff)	// Constructor
+Gen::Gen (const OpSum& s, const GenHdr& hdr, real coeff)  // Constructor
     :
     OpSum (s),
     coeff (coeff),
-    type  ((OpType) e.hdr.gen.type),
-    order (e.hdr.gen.order),
-    T_odd (e.hdr.gen.T_odd),
-    imag  ((theory.euclid ? e.hdr.len % 2
-			  : e.hdr.gen.T_odd) ^ !Rep::list[e.hdr.gen.rep].C_even)
+    type  ((OpType) hdr.type),
+    order (hdr.order),
+    T_odd (hdr.T_odd),
+    imag  ((theory.euclid ? hdr.len % 2
+			  : hdr.T_odd) ^ !Rep::list[hdr.rep].C_even)
     { inner_commute() ; }
 
 Gen::Gen (const Op& op, const Proj& proj)		// Construct with given projector

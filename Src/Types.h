@@ -60,14 +60,16 @@ using sv     = string_view ;		// Constexpr strings
 
 #ifdef NUM64
 using numb   = long ;			// ObsList index
-using real   = doub ;			// Poly coeffs & vev's
 using usmall = uint ;			// Half size integer
+using ubig   = ulong ;			// Full size integer
+using real   = doub ;			// Poly coeffs & vev's
 inline constexpr int  MAXORD = 1023 ;	// Max Op/Obs order
 inline constexpr long MAXNUM = LONG_MAX; // Max Obs index
 #else
 using numb   = int ;			// Observable indices
-using real   = float ;			// Poly coeffs & matrix elements
 using usmall = ushort ;			// Half size integer
+using ubig   = uint ;			// Full size integer
+using real   = float ;			// Poly coeffs & matrix elements
 inline constexpr int  MAXGRP = 63 ;	// Mas Op group
 inline constexpr int  MAXORD = 63 ;	// Max Op/Obs order
 inline constexpr long MAXNUM = INT_MAX; // Max Obs index

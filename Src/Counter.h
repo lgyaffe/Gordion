@@ -61,6 +61,7 @@ class PolyStats : public CountArr		// Polynomial statistics
 		PolyTerm t { PolyElem::nextterm (ptr) } ;
 		++count[t.order()] ;
 		++count[PSIZ+1] ;
+		if (std::isnan (t.coeff)) abort ("PolyStats: NaN coeff") ;
 		}
 	    }
 	count[PSIZ+2] += items ;

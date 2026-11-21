@@ -288,7 +288,7 @@ void Print::print_ham_or_free (int i)		// Print H/F element
     if (end > nterms) gripe (format("Invalid term number {}", i)) ;
     for (; indx < end ; ++indx)
 	{
-	if (ham(indx).len())
+	if (ham(indx).hdr.poly.len)
 	    {
 	    cout << name << global.fg() << " (" << indx << ") ="
 		 << ham(indx) << "\n" ;
@@ -330,7 +330,7 @@ void Print::print_grad (uint i, uint j)		// Print gradient element
 	{
 	if (j < neven)
 	    {
-	    if (grad(j,i).len())
+	    if (grad(j,i).hdr.poly.len)
 		{
 		cout << "grad (" << i << "," << j << ") ="
 		     << " d(" << ham(i) << ")"
@@ -369,7 +369,7 @@ void Print::print_grad ()			// Print gradient
 	for (int j(0) ; j < neven ; ++j, ++recptr)
 	    {
 	    const PolyElem* ptr { &(*recptr) } ;
-	    if (ptr->len())
+	    if (ptr->hdr.poly.len)
 		{
 		cout << "grad (" << i << "," << j << ") ="
 		     << " d(" << ham(i) << ")/d(" << global.fg() << j << ") = "
@@ -384,15 +384,15 @@ void Print::print_curv (uint i, uint j, uint k)	// Print curvature element
     const auto&	ham	{ global.data().ham } ;
     const auto& curv	{ global.data().curv[global.repnum] } ;
     auto	nterms	{ curv.entry().nslice } ;
-    auto	neven	{ curv.entry().ncol } ;
+    auto	ngen	{ curv.entry().ncol } ;
 
-    if (curv.entry().nrow != neven) fatal ("Corrupted curv record!") ;
+    if (curv.entry().nrow != ngen) fatal ("Corrupted curv record!") ;
 
     if (i < nterms)
 	{
-	if (j < neven && k < neven)
+	if (j < ngen && k < ngen)
 	    {
-	    if (curv(k,j,i).len())
+	    if (curv(k,j,i).hdr.poly.len)
 		{
 		cout << Rep::list[global.repnum].name
 		     << " curv (" << i << "," << j << "," << k << ") ="
@@ -411,13 +411,13 @@ void Print::print_curv (uint i, uint j)		// Print curvature matrix row
     {
     const auto& curv	{ global.data().curv[global.repnum] } ;
     auto	nterms	{ curv.entry().nslice } ;
-    auto	neven	{ curv.entry().ncol } ;
+    auto	ngen	{ curv.entry().ncol } ;
 
     if (i < nterms)
 	{
-	if (j < neven)
+	if (j < ngen)
 	    {
-	    for (int k(0) ; k < neven ; ++k) print_curv (i,j,k) ;
+	    for (int k(0) ; k < ngen ; ++k) print_curv (i,j,k) ;
 	    }
 	else gripe (format("Invalid generator number {}", j)) ;
 	}
@@ -428,11 +428,11 @@ void Print::print_curv (uint i)			// Print curvature slice
     {
     const auto& curv	{ global.data().curv[global.repnum] } ;
     auto	nterms	{ curv.entry().nslice } ;
-    auto	neven	{ curv.entry().ncol } ;
+    auto	ngen	{ curv.entry().ncol } ;
 
     if (i < nterms)
 	{
-	for (int j(0) ; j < neven ; ++j) print_curv (i,j) ;
+	for (int j(0) ; j < ngen ; ++j) print_curv (i,j) ;
 	}
     else gripe (format("Invalid term number {}", i)) ;
     }
@@ -442,19 +442,19 @@ void Print::print_curv ()			// Print curvature
     const auto&	ham	{ global.data().ham } ;
     const auto&	curv	{ global.data().curv[global.repnum] } ;
     auto	nterms	{ curv.entry().nslice } ;
-    auto	neven	{ curv.entry().ncol } ;
+    auto	ngen	{ curv.entry().ncol } ;
     auto	recptr	{ curv.begin() } ;
 
-    if (curv.entry().nrow != neven) fatal ("Corrupted curv record!") ;
+    if (curv.entry().nrow != ngen) fatal ("Corrupted curv record!") ;
 
     for (int i(0) ; i < nterms ; ++i)
 	{
-	for (int j(0) ; j < neven ; ++j)
+	for (int j(0) ; j < ngen ; ++j)
 	    {
-	    for (int k(0) ; k < neven ; ++k, ++recptr)
+	    for (int k(0) ; k < ngen ; ++k, ++recptr)
 		{
 		const PolyElem* ptr { &(*recptr) } ;
-		if (ptr->len())
+		if (ptr->hdr.poly.len)
 		    {
 		    cout << Rep::list[global.repnum].name
 			 << " curv (" << i << "," << j << "," << k << ") ="
@@ -474,7 +474,7 @@ void Print::print_lagrange (uint j, uint k)	// Print Lagrange mtx element
 
     if (j < neven && k-neven >= 0 && k-neven < nodd)
 	{
-	if (lagr(k-neven,j).len())
+	if (lagr(k-neven,j).hdr.poly.len)
 	    {
 	    cout << Rep::list[global.repnum].name << " lagrange (" 
 		 << global.fg() << j << ","
@@ -510,7 +510,7 @@ void Print::print_lagrange ()			// Print Lagrange bracket
 	for (int k(0) ; k < nodd ; ++k, ++recptr)
 	    {
 	    const PolyElem* ptr { &(*recptr) } ;
-	    if (ptr->len())
+	    if (ptr->hdr.poly.len)
 		{
 		cout << Rep::list[global.repnum].name << " lagrange ("
 		     << global.fg() << j << ","
@@ -557,7 +557,7 @@ void Print::print_geodesic (numb i, uint j)	// Print specified geodesics
 	if (j < geos.entry().nrow)
 	    {
 	    if (global.geoswap) Save::read_geo_bckt (stage, bckt) ;
-	    if (geos(j,pos).len())
+	    if (geos(j,pos).hdr.poly.len)
 		{
 		cout << " geo (" << i << "," << j << ") = d<"
 		     << list(i) << ">/d("
@@ -607,7 +607,7 @@ void Print::print_geodesic ()			// Print all geodesic equations
 	    for (int j(0) ; j < neven ; ++j, ++recptr)
 		{
 		const PolyElem* ptr { &(*recptr) } ;
-		if (ptr->len())
+		if (ptr->hdr.poly.len)
 		    {
 		    cout << " geo (" << i << "," << j << ") = " << "d<" << list(i)
 			 << ">/d(" << global.fg() << j << ") = " << *ptr << "\n" ;

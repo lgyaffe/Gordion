@@ -90,6 +90,7 @@ void PolyRec::add (const ObsPoly& obspoly)		// Add ObsPoly to PolyRec
 	{
 	auto indx { term.item[0] } ;
 	push_back (term.coeff) ; ++n ;
+	if (std::isnan (term.coeff)) abort ("PolyRec:: NaN coeff") ;
 	for (int i(0) ; indx && i < PSIZ-1 ; ++i)
 	    {
 	    auto next { term.item[i+1] } ;
@@ -98,7 +99,7 @@ void PolyRec::add (const ObsPoly& obspoly)		// Add ObsPoly to PolyRec
 	    }
 	push_back (indx) ; ++n ;
 	}
-    (&back() - n)->hdr.len = n ;
+    (&back() - n)->hdr.poly.len = n ;
     }
 
 void PolyRec::add (PolyMap& map)			// Add PolyMap to PolyRec
@@ -168,12 +169,12 @@ ostream& operator<< (ostream& stream, const PolyMap& map)	// Print PolyMap
     return stream << (count ? "" : " 0") ;
     }
 
-ostream& operator<< (ostream& stream, const PolyElem& poly)	// Print packed Poly
+ostream& operator<< (ostream& stream, const PolyElem& record)	// Print packed Poly
     {
-    string	sep	{ poly.len() > 6 ? "\n\t" : " " } ;
+    string	sep	{ record.hdr.poly.len > 6 ? "\n\t" : " " } ;
     int		count	(0) ;
 
-    for (auto pptr { poly.begin() } ; pptr < poly.end() ; ++count)
+    for (auto pptr { record.begin() } ; pptr < record.end() ; ++count)
 	{
 	stream << sep ;
 	PolyTerm t { PolyElem::nextterm (pptr) } ;

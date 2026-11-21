@@ -357,7 +357,7 @@ void Save::write_op ()				// Write Op record
 	    record.push_back (buffer.elem) ;
 	    ++n ;
 	    }
-	(&record.back() - n)->hdr.len = n ;
+	(&record.back() - n)->hdr.op.len = n ;
 	}
     record.entry().nelem = nop ;
     record.writerec (stream) ;
@@ -388,17 +388,16 @@ void Save::read_op ()				// Read Op record
     oplist.reserve (nop) ;
     while (elemptr < recend)
 	{
-	auto	len	{ elemptr->len() } ;
 	OpHdr	hdr	{ elemptr++->hdr.op } ;
 	symb*	ptr	{ cast_to<symb*> (elemptr) } ;
-	symb*	end	{ ptr + len * elemsiz } ; while (*--end == X) ;
+	symb*	end	{ ptr + hdr.len * elemsiz } ; while (*--end == X) ;
 	Str	s	{ ptr, end + 1 } ;
 	Op	o	{ s, hdr } ;
 
 	if (oplist.store(o) != indx++)
 	    abort ("read_op: Inconsistent OpList") ;
 
-	elemptr += len ;
+	elemptr += hdr.len ;
 	}
     record.free() ;
     if (indx != nop)
@@ -436,7 +435,7 @@ void Save::write_obs ()				// Write Obs record
 	    record.push_back (buffer.elem) ;
 	    ++n ;
 	    }
-	(&record.back() - n)->hdr.len = n ;
+	(&record.back() - n)->hdr.obs.len = n ;
 	}
     record.entry().nelem = nobs ;
     record.writerec (stream) ;
@@ -471,17 +470,16 @@ void Save::read_obs ()				// Read Obs record
     obslist.reserve (start + nobs) ;
     while (elemptr < recend)
 	{
-	auto	len	{ elemptr->len() } ;
 	ObsHdr	hdr	{ elemptr++->hdr.obs } ;
 	symb*	ptr	{ cast_to<symb*> (elemptr) } ;
-	symb*	end	{ ptr + len * elemsiz } ; while (*--end == X) ;
+	symb*	end	{ ptr + hdr.len * elemsiz } ; while (*--end == X) ;
 	Str	s	{ ptr, end + 1 } ;
 	Obs	o	{ s, hdr } ;
 
 	if (obslist.store (o) != indx++)
 	    abort ("read_obs: Inconsistent global.obs") ;
 
-	elemptr += len ;
+	elemptr += hdr.len ;
 	}
     global.obs.nobsG = obslist.nobsG ;
     global.obs.nobsF = obslist.nobsF ;
@@ -532,17 +530,16 @@ void Save::reload_obs ()			// Reload Obs record
 	obslist.reserve (start + nobs) ;
 	while (elemptr < recend)
 	    {
-	    auto	len	{ elemptr->len() } ;
 	    ObsHdr	hdr	{ elemptr++->hdr.obs } ;
 	    symb*	ptr	{ cast_to<symb*> (elemptr) } ;
-	    symb*	end	{ ptr + len * elemsiz  } ; while (*--end == X) ;
+	    symb*	end	{ ptr + hdr.len * elemsiz  } ; while (*--end == X) ;
 	    Str	s	{ ptr, end + 1 } ;
 	    Obs	o	{ s, hdr } ;
 
 	    if (obslist.store (o) != indx++)
 		abort ("reload_obs: Inconsistent global.obs") ;
 
-	    elemptr += len ;
+	    elemptr += hdr.len ;
 	    }
 	record.free() ;
 	if (indx - start != nobs)
@@ -577,7 +574,7 @@ void Save::write_gen ()					// Write Gen record
 	    record.push_back (e) ;
 	    auto elemptr { cast_to<const Element*> (gen.data()) } ;
 	    record.insert (record.end(), elemptr, elemptr + n - 1) ;
-	    (&record.back() - n)->hdr.len = n ;
+	    (&record.back() - n)->hdr.gen.len = n ;
 	    ++ngen ;
 	    }
 	}
@@ -612,14 +609,13 @@ void Save::read_gen ()				// Read Gen record
 
     while (elemptr < recend)
 	{
-	Element	e	{ *elemptr++ } ;
+	GenHdr	hdr	{ elemptr++->hdr.gen } ;
 	real	coeff	{ elemptr++->coeff } ;
-	auto	len	{ e.len() } ;
-	auto	rep	{ e.hdr.gen.rep } ;
-	auto	nterm	{ (len - 1) / optsiz } ;
+	auto	rep	{ hdr.rep } ;
+	auto	nterm	{ (hdr.len - 1) / optsiz } ;
 	OpTerm*	ptr	{ cast_to<OpTerm*> (elemptr) } ;
 	OpSum	s	( ptr, ptr + nterm, global.info().ops ) ;
-	Gen	gen	{ s, e, coeff } ;
+	Gen	gen	{ s, hdr, coeff } ;
 
 	global.info().gens[rep].push_back (gen) ;
 
@@ -627,7 +623,7 @@ void Save::read_gen ()				// Read Gen record
 	if (global.info().maxgen < gen.order)
 	    global.info().maxgen = gen.order ;
 
-	elemptr += len - 1 ;
+	elemptr += hdr.len - 1 ;
 	++nelem ;
 	}
     record.free() ;

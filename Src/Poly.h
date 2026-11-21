@@ -114,7 +114,7 @@ class PolyElem : public Element			// Packed ObsPoly element
     {
     public:
     const PolyElem* begin() const { return this + 1 ; }
-    const PolyElem* end()   const { return this + this->hdr.len + 1 ; }
+    const PolyElem* end()   const { return this + this->hdr.poly.len + 1 ; }
 
     static PolyTerm nextterm (const PolyElem*& ptr)
 	{
@@ -158,11 +158,17 @@ class PolyRec : public DataRec				// Polynomial data record
     void slice_n_dice () const				// Initialize offset array
 	{
 	auto n { entry().items() } ;
-	auto m { n } ;
+	long m ( n ) ;
+if (entry().reclen != size())
+    {
+    gripe (format("Corrupted data block: reclen {}, size {}", entry().reclen, size())) ;
+    }
 
 	offset.reserve (n) ;
 	for (const auto& poly : *this)
 	    {
+	    if (m <= 0)
+		gripe (format("Corrupted data block: expected {}, got more",n)) ;
 	    offset.push_back (&poly - begin().ptr) ; --m ;
 	    }
 	if (m) gripe (format("Corrupted data block: expected {}, got {}",n,n-m)) ;
@@ -172,7 +178,7 @@ class PolyRec : public DataRec				// Polynomial data record
 	{
 	const PolyElem*	ptr ;
 	const PolyElem&	operator*()  { return *ptr ; }
-	PolyIter& 	operator++() { ptr += ptr->hdr.len + 1 ; return *this ; }
+	PolyIter& 	operator++() { ptr += ptr->hdr.poly.len + 1 ; return *this ; }
 	bool		operator!= (const PolyIter& a) { return ptr != a.ptr ; }
 
 	PolyIter (const PolyElem* p) : ptr(p) {}

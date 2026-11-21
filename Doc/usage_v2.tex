@@ -28,7 +28,6 @@
 \newcommand{\ttsubsec}[1]{\subsection {\texorpdfstring{\tt{#1}}{#1}}}
 \newcommand{\tr}{\mathop{\mathrm{tr}}}
 \makeatother
-
 \title
     {
     Gordion: Usage Notes
@@ -53,7 +52,7 @@
 
 \tt{Gordian} is a program for solving, numerically,
 for low energy properties of
-a variety lattice gauge theories in the large $N$ limit using the
+a variety U($N$) lattice gauge theories in the large $N$ limit using the
 coherent state variational method.%
 \footnote
     {%
@@ -75,7 +74,7 @@ It is hoped that this program helps cut through
 the complexity of large $N$ gauge theories
 {\large\smiley{}}.
 
-Applicable theories are $U(N)$ lattice gauge theories,
+Applicable theories are U($N$) lattice gauge theories,
 in either Euclidean or Hamiltonian formulations,
 on regular cubic lattices of dimension 1, 2, 3 or 4, with each
 dimension either infinite or periodically compactified.
@@ -83,10 +82,10 @@ A fixed number of fundamental representation fermions
 may also be present.%
 \footnote
     {%
-    A ``staggered'' fermion lattice discretization
+    A minimal staggered fermion lattice discretization
     is used with each fermion flavor having
     just $2N$ fermionic operators per lattice site,
-    comprising one $U(N)$ fundamental representation
+    comprising one U($N$) fundamental representation
     plus its conjugate.
     }
 All theories under consideration are invariant under cubic
@@ -95,13 +94,55 @@ together with charge conjugation (C) and time reversal,%
 \footnote
     {%
     The Yang-Mills $\theta$ angle is zero.
-    For Hamiltonian theories,
-    only translations by an even number of lattice sites are 
+    For Hamiltonian theories with fermions,
+    only translations by an even number of lattice sites are
     required to be symmetries of the theory.
     }
 and none of these symmetries are spontaneously broken.
 
 \setlength{\parskip}{3pt}
+
+Lattice Yang-Mills theories are defined by the following Hamiltonian
+or Euclidean free energy:
+\begin{subequations}
+\begin{align}
+	H_{\rm gauge}/N &= \tfrac 14 \lambda \sum_\ell \> \tr (E[\ell]^2)
+	    + \lambda^{-1} \sum_p \> \tr (2 - U[\partial p] - U[\partial p]^\dagger) \,,
+    \\
+	F_{\rm gauge}/N &= \lambda^{-1} \sum_p \> \tr (2 - U[\partial p] - U[\partial p]^\dagger)
+	    - S \,,
+\end{align}
+\end{subequations}
+where $\ell$ labels positively oriented lattice links,
+$p$ denotes positively oriented plaquettes,
+$E[\ell]$ is the U($N$) electric field operator on link $\ell$, and
+$U[\partial p]$ denotes the U($N$) gauge connection around plaquette $p$.
+The relation between the dimensionless `t Hooft coupling $\lambda$ and a
+conventionally defined continuum gauge coupling $g^2$ is
+$\lambda \equiv g^2 N a^{4-d}$, with $a$ the lattice spacing and $d$ the spacetime dimension.
+
+For QCD-like theories, the additional
+fermion contributions to the Hamiltonian or free energy are:
+\begin{subequations}\label{eq:fermidef}
+\begin{align}
+    H_{\rm fermi} &= \tfrac 12 \sum_{\langle xy \rangle} \>
+	\psi^\dagger_x \, \eta_{\langle xy \rangle} \, U_{\langle xy \rangle} \, \psi_y
+	+ m \, \lambda^p \sum_x \> \psi^\dagger_x \, \sigma_x \, \psi_x \,,
+    \\
+    F_{\rm fermi} &= \tfrac 12 \sum_{\langle xy \rangle} \>
+	\psi^\dagger_x \, \eta_{\langle xy \rangle} \, U_{\langle xy \rangle} \, \psi_y
+	+ m \, \lambda^p \sum_x \> \psi^\dagger_x \, \psi_x \,,
+\end{align}
+\end{subequations}
+where $x$ labels lattice sites,
+$\langle xy \rangle$ denotes the link connecting nearest-neighbor sites $x$ and $y$,
+$U_{\langle xy \rangle}$ is the U($N$) gauge connection on link $\langle xy \rangle$,
+and
+$\eta_{\langle xy \rangle}$ is a non-dynamical $U(1)$ fermion flavor connection
+satisfying $\eta[\partial p] = -1$ on every plaquette.
+The lattice staggering factor
+$\sigma_x$ equals $+1$ on the even sublattice and $-1$ on the odd sublattice.
+For further details see Ref.~\cite{CSVAII}.
 
 \section {Overall structure}
 
@@ -111,12 +152,12 @@ The key steps comprising the coherent state variation algorithm
 \item
     Construction of a truncated finite set of observables 
     which will be retained and whose expectation values will be computed.
-    Here ``observables'' mean Wilson loops, possibly containing one or
-    two electric field insertion (in Hamiltonian theories),
-    or fermion bilinears, possibly including one electric field insertion.
+    Here ``observables'' mean Wilson loops possibly containing
+    (in Hamiltonian theories) one or two electric field insertions,
+    or fermion bilinears possibly including one electric field insertion.
 \item
-    Selection of the finite set of coherence algebra generators
-    which generate deformations of a coherent state.
+    Selection of a finite set of coherence algebra generators
+    which will be used to generate deformations of coherent states.
     These are anti-Hermitian combinations of Wilson loops,
     possibly with one electric field insertion, or fermion bilinears.
     Coefficients of these generators serve as Riemann normal coordinates
@@ -139,7 +180,7 @@ The key steps comprising the coherent state variation algorithm
     Numerical minimization of the Hamiltonian (or Euclidean
     free energy), with each iterative step
     involving numerical evaluation of the symbolic expressions
-    for the gradient and curvature of the Hamiltonian (or free energy),
+    for the gradient and curvature of the Hamiltonian or free energy,
     solution of the linear equations predicting the location of the minimum,
     and numerical integration of the geodesic equations describing
     the change in expectation values of all observables as one moves
@@ -157,31 +198,192 @@ The key steps comprising the coherent state variation algorithm
 Each of these steps is carried out first for the $O(N^2)$ pure gauge dynamics,
 for some sequence of gauge coupling values,
 and then again for the sub-leading $O(N)$ fundamental representation
-fermion dynamics,
-for some sequence of fermion mass values.
+fermion dynamics, for some sequence of fermion mass values.
+
+Observable selection uses a classification based on the order in
+a strong-coupling expansion at which an error is first introduced if
+a given observable is omitted from an otherwise
+correct strong-coupling expansion.%
+\footnote
+    {%
+    For fermion bilinears, this is a combined strong-coupling
+    and large mass expansion.
+    For details, see Ref.~[[X]].
+    }
+For generators, the analogous classification is the order in a
+strong-coupling expansion at which the generator is first needed.
 
 \section {Typical usage}\label{sec:usage}
 
 The program \tt{gordion} has a common code base covering all 
-applicable theories, but differing executables are used for different theories.
-So generating the correct executable necessarily proceeds actual calculations.
+applicable theories, but differing executables are created for different theories.
+So generating the correct executable proceeds actual calculations.
 Using the standard \tt{Makefile},
 with program source files residing in a \tt{Src} subdirectory, 
 the command \tt{make THY=}\textit{theory}
 will generate an executable named
 \tt{gordion-}\textit{theory},
-together with a symlink \tt{gordion} pointing to this executable.
+together with a \tt{gordion} symlink pointing to this executable.
 Here \textit{theory} is one of the following designators
-of a target theory:
-\begin{description}
+of a pre-defined target theory:%
+\footnote
+    {%
+    Additional target theories with other lattice periodicities and/or fermion
+    multiplicies may be easily defined by adding further cases in the source file
+    \tt{Theory.h}.
+    }
+\begin{description}\advance\itemsep -3pt
 \item [\tt {YM1e}]
-    Euclidean Yang-Mills theory on a one-dimensional,
-    period-one lattice; equivalent to the Euclidean one-plaquette model [[ref]];
+    Euclidean Yang-Mills theory on a one-dimensional, period-one lattice,
+    equivalent to the Euclidean one-plaquette model [[ref]];
 \item [\tt {YM1h}]
-    Hamiltonian Yang-Mills theory on a one-dimensional,
-    period-one lattice; equivalent to the Hamiltonian one-plaquette model [[ref]];
+    Hamiltonian Yang-Mills theory on a one-dimensional, period-one spatial lattice,
+    equivalent to the Hamiltonian one-plaquette model [[ref]];
+\item [\tt {YM2e}]
+    Euclidean Yang-Mills theory on an infinite two-dimensional, lattice;
+\item [\tt {YM2h}]
+    Hamiltonian Yang-Mills theory on an infinite two-dimensional spatial lattice;
+\item [\tt {YM3e}]
+    Euclidean Yang-Mills theory on an infinite three-dimensional lattice;
+\item [\tt {YM3h}]
+    Hamiltonian Yang-Mills theory on an infinite three-dimensional spatial lattice;
+\item [\tt {YM4e}]
+    Euclidean Yang-Mills theory on an infinite four-dimensional lattice;
+\item [\tt {QCD1e}]
+    Euclidean QCD with one species of fermion on an infinite one-dimensional lattice
+    (a free theory, included just for testing);
+\item [\tt {QCD1h}]
+    Hamiltonian QCD with one species of fermion on an infinite one-dimensional
+    spatial lattice
+    (a lattice formulation of the 1+1 dimensional `t Hooft model);
+\item [\tt {QCD2e}]
+    Euclidean QCD with one species of fermion on an infinite two-dimesional lattice;
+\item [\tt {QCD2h}]
+    Hamiltonian QCD with one species of fermion on an infinite two-dimesional 
+    spatial lattice;
+\item [\tt {QCD3e}]
+    Euclidean QCD with one species of fermion on an infinite three-dimesional lattice;
+\item [\tt {QCD3h}]
+    Hamiltonian QCD with one species of fermion on an infinite three-dimesional 
+    spatial lattice;
+\item [\tt {QCD4e}]
+    Euclidean QCD with one species of fermion on an infinite four-dimesional lattice;
+\item [\tt {YM3ep}]
+    Euclidean Yang-Mills theory on a three-dimensional lattice
+    which is infinite in two dimensions and period one in the third dimension;
+\item [\tt {YM3hp}]
+    Hamiltonian Yang-Mills theory on a three-dimensional spatial lattice
+    which is infinite in two dimensions and period one in the third dimension.
 \end{description}
 
+When the resulting executable \tt{gordion}-\textit{theory} is run, it first:
+\begin{enumerate}
+\item
+    Loads any previously saved system information
+    (\textit{sys-info} or \tt{.sys}) files or 
+    vacuum expectation value (\textit{vev-data} or \tt{.vev}) files
+    which are provided as command line arguments.
+    These \textit{sys-info} or \textit{vev-data} files must
+    be files previously created for the selected target theory
+    (or for QCD theories, \textit{sys-info} or \textit{vev-data} files
+    created for the corresponding Yang-Mills theory);
+\item
+    Reads and executes commands from a command input file 
+    specified with a ``\tt{-f }\textit{command-file}'' command line flag.
+    If no such command file is specified, but a \tt{.gordion}
+    file exists, this is assumed to be a default startup command file
+    which is read and processed.
+    (A ``\tt{-f -}'' command line flag suppresses reading of this
+    default startup file.)
+\item
+    Reads and executes commands from standard input.
+\end{enumerate}
+
+The program implements a simple keyword-driven command line interpreter.
+Commands may be terminated by either a semicolon (\tt{;}) or end of line.
+The full set of reconized commands is listed in the following section.
+
+As a concrete example, for a Hamiltonian Yang-Mills theory
+the following commands
+illustrate the essential steps of a calculation:
+\begin{quote}
+  \tt{set autosave true}
+\\\tt{build all 20}
+\\\tt{do lambda 10 1 1}
+\\\tt{quit}
+\end{quote}
+%
+The \tt{build all 20} command tells the program to construct all observables
+for the given target theory whose strong-coupling orders are less than or equal to 20.
+For gauge observables on an infinite lattice, these are essentially all
+Wilson loops constructed from up to five plaquettes, possibly
+decorated (for Hamiltonian theories) by one or two electric field insertions.
+Since no generators were explicitly defined,
+following observable generation
+the \tt{build all} command will install a minimal default
+set of generators consisting, for Yang-Mills theory,
+of one and two plaquette generators and, for QCD theories, also
+one link fermion hopping terms.
+Using these generators, the \tt{build} command then
+performs the symbolic calculations needed to define the
+gradient and curvature of the Hamiltonian, Lagrange bracket,
+and geodesic equations for all observables in the selected set.
+Expressions for the curvature and Lagrange bracket are constructed
+in all irreducible representations of the lattice cubic symmetry group (times C).
+
+Given this information, the \tt{do lambda 10 1 1} command instructs
+the program to minimize the Hamiltonian with the lattice
+coupling $\lambda$ first set to 10, and then successively repeat
+this minimization as $\lambda$ is decreased in steps of 1 down to 1.
+After each minimization, the program writes a
+human and Mathematica-readable results file
+containing the minimized energy, small oscillation frequencies, and selected
+expectation values.
+
+The initial \tt{set autosave true} command instructs the program to
+save the symbolic information produced during the build phase in
+a \textit{sys-info} file, save the numerical observable expectation
+values produced by the minimization phase (for each value of $\lambda$)
+in a \textit{vev-data} file.
+See below (under \tt{save sys} and \tt{save vev}) for details on the
+naming and placement of these output files.
+
+Prior to the generation of symbolic expressions for the gradient, curvature,
+Lagrange bracket and geodesic equations, one may define additional
+generators (and their specified creation orders) with commands such as:
+\begin{quote}
+\tt{generator add (2) xyXY}
+\\\tt{generator add (4) xxyXXY}
+\\\tt{generator add (4) xyxYXyXY}
+\\\tt{generator add (4) xyXYxyXY}
+\\\tt{generator add (6) xyxYXyxYXyXY}
+\\\tt{generator add (6) xyXYxyXYxyXY}
+\\\tt{generator add (6) xxyXXYxyXY}
+\\\tt{generator add (6) xxyyXYXY}
+\\\tt{generator add (6) xxxyXXXY}
+\\\tt{generator add (6) xxyXyxYXXY}
+\\\tt{generator add (6) xxyxYXyXXY}
+\\\tt{generator add (6) xyxyXYxYXyXY}
+\\\tt{generator add (6) xyxYxyXYXyXY}
+\end{quote}
+Here, \tt{x} and \tt{y} denote link variables in the $+x$ and $+y$
+lattice directions, while \tt{X} and \tt{Y} denote the corresponding
+inverse links.
+On a two dimensional lattice, the above commands define
+the basic order 2 (one plaquette), 4 (two plaquette) and 6 (three plaquette)
+Wilson loop generators.
+With default settings, the program also installs corresponding generators 
+containing one electric field insertion, produced by commuting the Wilson loop
+generator with the gauge kinetic energy operator.
+Every generator is automatically projected onto all possible
+irreducible representations of the lattice cubic symmetry group (times C).
+
+Command words, as well as subsequent argument words
+other than explicit file, representation, or symmetry names,
+may be highly abbreviated;
+any initial matching sequence of one or more characters is sufficient
+to match the first consistent target word.
+For example, the above build command could be entered as just \tt{b all 20}.
 
 \section {Command summary}\label{sec:commands}
 
@@ -194,13 +396,6 @@ and a vertical bar (\tt{|}) separates alternative arguments.
 A plus mark$^+$ after the command indicates the command is only
 applicable in Hamiltonian theories, while a double plus$^{++}$
 indicates applicability only for Euclidean theories.
-Command words as well as subsequent argument words
-(other than explicit file, representation, or symmetry names)
-may be highly abbreviated;
-any initial matching sequence of one or more characters is sufficient
-to match the first consistent target word.
-(For example, a single \tt{b} will match ``build'',
-while \tt{p obs *} will print all observables.)
 
 \begin{description}\advance\itemsep -1pt
 \item [\tt \# {\it anything}]~\\

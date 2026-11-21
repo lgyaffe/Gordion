@@ -9,6 +9,8 @@
 #include "Gripe.h"
 #include <mutex>
 
+#include "Print.h"
+
 static uint		cord ;			// Current creation order
 static ObsBag	 	newobs ;		// Newly generated Obs
 static vector<Op>	primepOps ;		// primary conj mom Ops
@@ -976,10 +978,13 @@ void Build::do_polystats()			// Reevaluate polynomial stats
     lagrstats.clear() ;
     geostats.clear()  ;
 
+cout << "Doing grad stats\n" << flush ;
     gradstats.add (grad) ;
+cout << "Doing curv stats\n" << flush ;
     for (const auto& rec : curv) curvstats.add (rec) ;
+cout << "Doing lagr stats\n" << flush ;
     for (const auto& rec : lagr) lagrstats.add (rec) ;
-
+cout << "Doing geo stats\n" << flush ;
     TASK_ARENA (Save::maxgeothread(), bckt,
 	FOR_EACH (bckt.begin(), bckt.end(), Build::do_geostat_bckt)) ;
     }

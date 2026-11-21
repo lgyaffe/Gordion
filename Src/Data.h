@@ -5,71 +5,82 @@
 #include <functional>
 
 #ifdef DELPHI
-
-struct OpHdr  { ushort type ; } ;	// Op record item header
-struct ObsHdr { ushort type ; } ;	// Obs record item header
-struct GenHdr				// Gen record item header
-    {
-    ushort	rep   : 6 ;
-    ushort	group : 6 ;
-    ushort	type  : 2 ;
-    ushort	T_odd : 1 ;
-    } ;
-
+    struct OpHdr			// Op record item header
+	{
+	usmall	len ;
+	usmall	type ;
+	} ;
+    struct ObsHdr			// Obs record item header
+	{
+	usmall	len ;
+	usmall	type ;
+	} ;
+    struct GenHdr			// Gen record item header
+	{
+	usmall 	len ;
+	usmall	rep   : 6 ;
+	usmall	group : 6 ;
+	usmall	type  : 2 ;
+	usmall	T_odd : 1 ;
+	} ;
 #elif NUM64
-
-struct OpHdr				// Op record item header
-    {
-    uint	order : 10 ;
-    uint	type  : 2  ;
-    uint	prim  : 1  ;
-    } ;
-struct ObsHdr				// Obs record item header
-    {
-    uint	corder : 10 ;
-    uint	xorder : 10 ;
-    uint	type   : 4  ;
-    } ;
-struct GenHdr				// Gen record item header
-    {
-    uint	rep   : 8 ;
-    uint	order : 10 ;
-    uint	type  : 2 ;
-    uint	T_odd : 1 ;
-    } ;
-
+    struct OpHdr			// Op record item header
+	{
+	uint	len ;
+	uint	order : 10 ;
+	uint	type  : 2  ;
+	uint	prim  : 1  ;
+	} ;
+    struct ObsHdr			// Obs record item header
+	{
+	uint	len ;
+	uint	corder : 10 ;
+	uint	xorder : 10 ;
+	uint	type   : 4  ;
+	} ;
+    struct GenHdr			// Gen record item header
+	{
+	uint	len ;
+	uint	rep   : 8 ;
+	uint	order : 10 ;
+	uint	type  : 2 ;
+	uint	T_odd : 1 ;
+	} ;
 #else
-
-struct OpHdr				// Op record item header
-    {
-    ushort	order : 6 ;
-    ushort	type  : 2 ;
-    ushort	prim  : 1 ;
-    } ;
-struct ObsHdr				// Obs record item header
-    {
-    ushort	corder : 6 ;
-    ushort	xorder : 6 ;
-    ushort	type   : 3 ;
-    } ;
-struct GenHdr				// Gen record item header
-    {
-    ushort	rep   : 6 ;
-    ushort	order : 6 ;
-    ushort	type  : 2 ;
-    ushort	T_odd : 1 ;
-    } ;
-
+    struct OpHdr			// Op record item header
+	{
+	ushort	len ;
+	ushort	order : 6 ;
+	ushort	type  : 2 ;
+	ushort	prim  : 1 ;
+	} ;
+    struct ObsHdr			// Obs record item header
+	{
+	ushort	len ;
+	ushort	corder : 6 ;
+	ushort	xorder : 6 ;
+	ushort	type   : 3 ;
+	} ;
+    struct GenHdr			// Gen record item header
+	{
+	ushort	len ;
+	ushort	rep   : 6 ;
+	ushort	order : 6 ;
+	ushort	type  : 2 ;
+	ushort	T_odd : 1 ;
+	} ;
 #endif
+
+struct PolyHdr { ubig len ; } ;		// Poly record header
 
 struct RecHdr				// Data record header
     {
-    usmall	len ;			// Record length (w/o header)
     union
 	{
-	OpHdr	op  ;
-	ObsHdr	obs ;
-	GenHdr	gen ;
+	OpHdr	op   ;
+	ObsHdr	obs  ;
+	GenHdr	gen  ;
+	PolyHdr	poly ;			// Record length (w/o header)
 	} ;
     } ;
 
@@ -88,8 +99,6 @@ struct Element				// Data record element
     Element (GenHdr h) { hdr.gen = h ; }
     Element (real   c) { coeff   = c ; }
     Element (numb   n) { index   = n ; }
-
-    const auto& len() const { return hdr.len ; }
     } ;
 
 static_assert (sizeof (Element) == sizeof (real)) ;

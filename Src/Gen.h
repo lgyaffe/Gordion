@@ -21,7 +21,7 @@ class Gen : public OpSum		// Coherence algebra generator
     Gen (const Op&) ;				// Constructor
     Gen (const Op&,    const Proj&) ;		// Constructor
     Gen (const OpSum&, const Proj&) ;		// Constructor
-    Gen (const OpSum&, Element&, real) ;	// Constructor
+    Gen (const OpSum&, const GenHdr&, real) ;	// Constructor
 
     void 	inner_commute	() ;		// Evaluate reduction
     void 	settype		(Op&) ;		// Set type
