@@ -170,7 +170,7 @@ int Obs::canon()				// Canonicalize observable
 			    cout << "loop try " << symm.name
 				 << " at " << beg << " -> " << obs << "\n" ;
 			    }
-			if (bestsymm < 0 || memcmp (best.data(), obs.data(), size()) > 0)
+			if (bestsymm < 0 || std::memcmp (best.data(), obs.data(), size()) > 0)
 			    {
 			    bestsymm  = symmidx ;
 			    beststart = beg ;
@@ -382,7 +382,7 @@ int Obs::canon()				// Canonicalize observable
 				 << " at " << start << " -> " << sgn0 * sgn2
 				 << " * " << obs << "\n" << flush ;
 			    }
-			if (bestsymm < 0 || memcmp (best.data(), obs.data(), size()) > 0)
+			if (bestsymm < 0 || std::memcmp (best.data(), obs.data(), size()) > 0)
 			    {
 			    bestsymm  = symmidx ;
 			    beststart = start ;

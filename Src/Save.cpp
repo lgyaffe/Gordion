@@ -6,9 +6,9 @@
 #include "Rep.h"
 #include "Blab.h"
 #include "Gripe.h"
+#include <cstring>
 #include <filesystem>
 #include <mutex>
-#include "OS.h"
 
 using  std::ios_base ;
 static Save::FileHdr	filehdr ;
