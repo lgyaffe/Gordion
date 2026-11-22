@@ -14,3 +14,8 @@ bool Symm_eq::operator()(const Symm& s, const Symm& t) const	// Equality?
     return s.map == t.map && s.sgn == t.sgn ;
     }
 
+std::size_t Strhash::operator()(const Str& s) const		// Str hash function
+    {
+    return std::hash<string>{}(static_cast<const string&>(s)) ;
+    }
+

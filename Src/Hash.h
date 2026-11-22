@@ -3,6 +3,7 @@
 #include "Types.h"
 
 class Symm ;
+class Str ;
 
 template <typename Key, typename... Value>
 using hash = unordered_map<Key, Value...> ;	// unordered_map alias
@@ -23,12 +24,9 @@ struct Indxhash					// index array hash function
     using is_transparent = void ;
     } ;
 
-struct Strhash					// string hash function 
+struct Strhash					// Str hash function 
     {
-    std::size_t operator()(const string& s) const
-	{
-	return std::hash<string>{}(s) ;
-	}
+    std::size_t operator()(const Str& s) const ;
     using is_transparent = void ;
     } ;
 
