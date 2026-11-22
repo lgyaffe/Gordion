@@ -15,7 +15,7 @@ struct SerialData				// Serialised stage data
 
     DataRec		op   ;		// Operators
     DataRec		obs  ;		// Observables
-    DataRec		gen  ;		// Generators
+    DataArr<NREP>	gens ;		// Generators
     PolyRec		ham  ;		// Hamiltonian
     PolyRec		grad ;		// Gradient
     PolyArr<NREP>	curv ;		// Curvature
@@ -32,7 +32,7 @@ inline SerialData::SerialData (SysIndex& indx)	// SerialData constructor
     :
     op   { indx, RecordID::Op   },
     obs  { indx, RecordID::Obs  },
-    gen  { indx, RecordID::Gen  },
+    gens { indx, RecordID::Gen  },
     ham  { indx, RecordID::Ham  },
     grad { indx, RecordID::Grad },
     curv { indx, RecordID::Curv },
@@ -138,6 +138,12 @@ inline Global global ;					// Global information
 inline DataRec::DataRec (SysIndex& indx, RecordID id)	// DataRec constructor
     : indexref { indx.next() }
     { entry().id = id ; }
+
+template <size_t N>					// DataArr constructor
+template <size_t... Is> constexpr
+inline DataArr<N>::DataArr (std::index_sequence<Is...>, SysIndex& indx, RecordID id)
+    : array<DataRec,N> { DataRec ( (static_cast<void>(Is), indx), id )... }
+    {}
 
 template <size_t N>					// PolyArr constructor
 template <size_t... Is> constexpr

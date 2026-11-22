@@ -18,8 +18,9 @@ class Op ;
 class Obs ;
 class Gen ;
 
-inline constexpr int lenbits { 8 * sizeof (uhalf) - 3 } ;
 inline constexpr int ordbits { 8 * sizeof (uqutr) } ;
+inline constexpr int lenbits { 8 * sizeof (uhalf) - 3 } ;
+inline constexpr int genbits { 8 * sizeof (unumb) - 3 - ordbits } ;
 
 #ifdef DELPHI
     struct OpHdr			// Op record item header
@@ -36,12 +37,11 @@ inline constexpr int ordbits { 8 * sizeof (uqutr) } ;
 	} ;
     struct GenHdr			// Gen record item header
 	{
-	unumb 	len   : lenbits ;
+	unumb 	len   : genbits ;
 	unumb	type  : 2 ;
 	unumb	T_odd : 1 ;
 	unumb	group : ordbits ;
-	unumb	rep   : 6 ;
-	GenHdr (const Gen&, int) ;
+	GenHdr (const Gen&) ;
 	} ;
 #else
     struct OpHdr			// Op record item header
@@ -62,12 +62,11 @@ inline constexpr int ordbits { 8 * sizeof (uqutr) } ;
 	} ;
     struct GenHdr			// Gen record item header
 	{
-	unumb	len   : lenbits ;
+	unumb	len   : genbits ;
 	unumb	type  : 2  ;
 	unumb	T_odd : 1 ;
 	unumb	order : ordbits ;
-	unumb	rep   : 6 ;
-	GenHdr (const Gen&, int) ;
+	GenHdr (const Gen&) ;
 	} ;				
 #endif
 
@@ -192,6 +191,18 @@ class DataRec : public vector<Element>		// Data record
 	{
 	return entry().filepos ;
 	}
+    } ;
+
+template <size_t N>
+class DataArr : public array<DataRec,N>			// Array of DataRec's
+    {
+    public:
+    DataArr (SysIndex& indx, RecordID id)		// Public constructor
+	: DataArr (std::make_index_sequence<N>{}, indx, id) {}
+
+    private:
+    template <size_t... Is> constexpr			// Private constructor
+    DataArr (std::index_sequence<Is...>, SysIndex&, RecordID) ;
     } ;
 
 #endif

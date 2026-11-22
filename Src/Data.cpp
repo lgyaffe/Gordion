@@ -29,12 +29,11 @@ ObsHdr::ObsHdr (const Obs& obs)			// ObsHdr constructor
 #endif
     }
 
-GenHdr::GenHdr (const Gen& gen, int repnum)	// GenHdr constructor
+GenHdr::GenHdr (const Gen& gen)			// GenHdr constructor
     {
     len   = 1 + gen.size() * sizeof (OpTerm) / sizeof (Element) ;
     type  = (int) gen.type ;
     T_odd = gen.T_odd ;
-    rep   = repnum ;
 #ifndef DELPHI
     order = gen.order ;
     if (order >= (1 << ordbits)) abort ("Gen order exceeds GenHdr capacity") ;
@@ -42,6 +41,6 @@ GenHdr::GenHdr (const Gen& gen, int repnum)	// GenHdr constructor
     group = gen.group ;
     if (group >= (1 << ordbits)) abort ("Gen group exceeds GenHdr capacity") ;
 #endif
-    if (len   >= (1 << lenbits)) abort ("Gen length exceeds GenHdr capacity") ;
+    if (len   >= (1 << genbits)) abort ("Gen length exceeds GenHdr capacity") ;
     }
 

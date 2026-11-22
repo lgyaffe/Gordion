@@ -552,81 +552,89 @@ void Save::reload_obs ()			// Reload Obs record
 void Save::write_gen ()					// Write Gen record
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
-    auto&	record	{ global.data().gen } ;
+    const auto&	gens	{ global.info().gens } ;
     auto&	stream	{ global.info().sysfile.stream } ;
     int		optsiz	{ sizeof (OpTerm) / sizeof (Element) } ;
-    uint	ngen	( 0 ) ;
     
-    if (record.entry().id == RecordID::Gen) record.clear() ;
-    else fatal ("write_gen: bad record ID!") ;
-    for (short rep(0) ; rep < theory.nrep ; ++rep)
+    for (int rep(0) ; rep < gens.size() ; ++rep)
 	{
-	for (const auto& gen : global.info().gens[rep])
+	auto&	record	{ global.data().gens[rep] } ;
+	auto&	repname	{ Rep::list[rep].name } ;
+
+	if (record.entry().id != RecordID::Gen)
+	    fatal (format("write_gen {}: bad record ID!",repname)) ;
+
+	record.clear() ;
+	for (const auto& gen : gens[rep])
 	    {
-	    Element	e { GenHdr (gen, rep) } ;
+	    Element	e { GenHdr (gen) } ;
 	    auto	n { 1 + gen.size() * optsiz } ;
 	    record.push_back (e) ;
 	    e.coeff = gen.coeff ;
 	    record.push_back (e) ;
 	    auto elemptr { cast_to<const Element*> (gen.data()) } ;
 	    record.insert (record.end(), elemptr, elemptr + n - 1) ;
-	    ++ngen ;
 	    }
+	record.entry().nelem = gens[rep].size() ;
+	record.writerec (stream) ;
+	if (stream.fail())
+	    ioerror (format("write_gen {}: I/O error!", repname)) ;
+	else if (record.size() && blab > 1)
+	    cout << "Saved Gen " << repname << "\n" << flush ;
+	record.free() ;
 	}
-    record.entry().nelem = ngen ;
-    record.writerec (stream) ;
-    record.free() ;
-    if (stream.fail()) ioerror ("write_gen: I/O error!") ;
-    if (blab > 1) cout << "Saved Gen\n" << flush ;
     }
 
 void Save::read_gen ()				// Read Gen record
     {
     const auto&	blab	{ Blab::level(Blab::SAVE) } ;
     auto&	stream	{ global.info().sysfile.stream } ;
-    auto&	record	{ global.data().gen } ;
     int		optsiz	{ sizeof (OpTerm) / sizeof (Element) } ;
 
-    if (record.entry().id != RecordID::Gen)
-	abort ("read_gen: bad record ID!") ;
-    record.reserve (record.entry().reclen) ;
-    record.readrec (stream) ;
-    if (stream.fail())
-	ioerror ("read_gen: I/O error!") ;
-
-    uint	nelem   ( 0 ) ;
-    ulong	ngen	( record.entry().items() ) ;
-    Element*	elemptr	{ record.data() } ;
-    Element*	recend	{ elemptr + record.size() } ;
-
-    for (auto& gens : global.info().gens)  gens.clear() ;
-    for (auto& even : global.info().neven) even = 0 ;
-
-    while (elemptr < recend)
+    for (int rep(0) ; rep < theory.nrep ; ++rep)
 	{
-	GenHdr	hdr	{ elemptr++->hdr.gen } ;
-	real	coeff	{ elemptr++->coeff } ;
-	auto	rep	{ hdr.rep } ;
-	auto	nterm	{ (hdr.len - 1) / optsiz } ;
-	OpTerm*	ptr	{ cast_to<OpTerm*> (elemptr) } ;
-	OpSum	s	( ptr, ptr + nterm, global.info().ops ) ;
-	Gen	gen	{ s, hdr, coeff } ;
+	auto&	repname	{ Rep::list[rep].name } ;
+	auto&	record	{ global.data().gens[rep] } ;
+	auto&	gens	{ global.info().gens[rep] } ;
+	auto&	neven	{ global.info().neven[rep] } ;
 
-	global.info().gens[rep].push_back (gen) ;
+	if (record.entry().id != RecordID::Gen)
+	    abort ("read_gen: bad record ID!") ;
+	record.reserve (record.entry().reclen) ;
+	record.readrec (stream) ;
+	if (stream.fail())
+	    ioerror (format("read_gen {}: I/O error!", repname)) ;
 
-	if (!gen.T_odd) ++global.info().neven[rep] ;
-	if (global.info().maxgen < gen.order)
-	    global.info().maxgen = gen.order ;
+	uint		nelem   ( 0 ) ;
+	ulong		ngen	( record.entry().items() ) ;
+	Element*	elemptr	{ record.data() } ;
+	Element*	recend	{ elemptr + record.size() } ;
 
-	elemptr += hdr.len - 1 ;
-	++nelem ;
+	gens.clear() ;
+	neven = 0 ;
+	while (elemptr < recend)
+	    {
+	    GenHdr	hdr	{ elemptr++->hdr.gen } ;
+	    real	coeff	{ elemptr++->coeff } ;
+	    auto	nterm	{ (hdr.len - 1) / optsiz } ;
+	    OpTerm*	ptr	{ cast_to<OpTerm*> (elemptr) } ;
+	    OpSum	s	( ptr, ptr + nterm, global.info().ops ) ;
+	    Gen	gen	{ s, hdr, rep, coeff } ;
+
+	    gens.push_back (gen) ;
+	    if (!gen.T_odd) ++neven ;
+	    if (global.info().maxgen < gen.order)
+		global.info().maxgen = gen.order ;
+
+	    elemptr += hdr.len - 1 ;
+	    ++nelem ;
+	    }
+	if (nelem != record.entry().nelem)
+	    abort ("read_gen: Inconsistent save record!") ;
+	else if (record.size() && blab > 1)
+	    cout << "Loaded Gen " << repname << "\n" << flush ;
+	record.free() ;
 	}
-    record.free() ;
-
-    if (nelem != record.entry().nelem)
-	abort ("read_gen: Inconsistent save record!") ;
-
-    if (blab > 1) cout << "Loaded Gen\n" << flush ;
     }
 
 void Save::write_ham ()					// Write Ham record
