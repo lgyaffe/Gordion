@@ -34,9 +34,9 @@ inline double cpumsec()
 #include <sys/resource.h>
 #include <thread>
 #define PAGESIZE 4096
-inline int numcores()
+inline uint numcores()
     {
-    int count { std::thread::hardware_concurrency() } ;
+    uint count { std::thread::hardware_concurrency() } ;
     return count ? count : 1 ;
     }
 inline size_t memtot()
