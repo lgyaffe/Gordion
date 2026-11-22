@@ -8,7 +8,7 @@ template <typename T>
 class Index : public vector<T>		// vector<T> plus string keyed index
     {
     public:
-    hash<string,uint>  map ;			// string key -> index map
+    hash<string,uint> map ;			// string key -> index map
 
     numb store (const string& key, const T& t)	// store if new, return indx
 	{
