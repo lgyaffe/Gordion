@@ -24,7 +24,7 @@ struct SerialData				// Serialised stage data
     PolyArr<MAXBCKT>	geos ;		// Geodesic equations
     } ;
 
-inline constexpr int NENTRY = 6 + 2 * NREP + MAXBCKT + 1 ;
+inline constexpr int NENTRY = 5 + 3 * NREP + MAXBCKT + 1 ;
 
 class SysIndex : public RecIndxArr<NENTRY> {} ;	// Sys-info file index
 
