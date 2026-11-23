@@ -578,7 +578,7 @@ bool Numerics::open_MMA ()				// Open MMA output file
     auto&	MMApath		{ global.info().MMAfile.path } ;
     auto&	MMAstream	{ global.info().MMAfile.stream } ;
     string	file		{ Save::mk_filename("m") } ;
-    string	path		{ theory.addsubdir (MMAdir) + file } ;
+    string	path		{ theory.addsubdir (MMAdir,true) + file } ;
     auto	mode		{ std::ios::out } ;
     string	okmsg		{ "Writing results to " } ;
     ofstream	stream ;
