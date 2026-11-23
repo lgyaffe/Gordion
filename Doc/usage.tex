@@ -1,0 +1,1185 @@
+%&pdflatex
+\documentclass [12pt]{article}
+\usepackage{authblk}
+\usepackage{silence}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{wasysym}
+\usepackage{hhline}
+\usepackage{cite}
+\usepackage{tocloft}
+\usepackage[plainpages=false,pdfpagelabels]{hyperref}
+\usepackage[nottoc]{tocbibind}
+
+\WarningFilter{latexfont}{Font shape `U/wasy/b/n'}
+\WarningFilter{latexfont}{Font shape `OMS/cmtt/m/n'}
+\WarningFilter{latexfont}{Font shape `OMS/cmtt/bx/n'}
+
+\setlength{\topmargin}{-2cm}
+\setlength{\oddsidemargin}{0cm}
+\setlength{\textheight}{23cm}
+\setlength{\textwidth}{16cm}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1.2pt}
+
+\makeatletter
+\renewcommand{\tt}{\begingroup\catcode`_=12\def\_{\string_}\tt@}
+\newcommand{\tt@}[1]{\texttt{#1}\endgroup}
+\newcommand{\ttsubsec}[1]{\subsection {\texorpdfstring{\tt{#1}}{#1}}}
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\makeatother
+\title
+    {
+    Gordion: Usage Notes
+    \vspace*{-8pt}
+    }
+\date	{\small\today\vspace*{-30pt}}
+\author	{Laurence G.~Yaffe}
+\affil{%
+    \small
+    Department of Physics, University of Washington, Seattle WA 98195, USA
+    \vspace*{-12pt}
+    }%
+\pagenumbering{roman}
+\begin	{document}
+\maketitle
+\tableofcontents
+%\newpage
+\setlength{\parskip}{5pt plus 2pt minus 1pt}
+\pagenumbering{arabic}
+
+\section {Introduction}
+
+\tt{Gordian} is a program for solving, numerically,
+for low energy properties of
+a variety U($N$) lattice gauge theories in the large $N$ limit using the
+coherent state variational method.%
+\footnote
+    {%
+    For background on this approach for solving large $N$ limits,
+    see Refs.~\cite{YaffeRMP, CSVAI, CSVAII,Yaffe:2026ouz}.
+    For information on the design of Gordion,
+    see the [[design and implementation notes]].
+    }
+The name \tt{Gordian} is an allusion to the Greek legend
+associated with Alexander the Great, who
+is reputed to have sliced through a horrendously complicated
+knot, instead of carefully untying it,
+in Gordion (Latin: Gordium, Phrygian: Gordum),
+the capital city of ancient Phrygia.
+Dealing with arbitrarily complicated loops is at the
+core of the coherent state variational method as
+implemented in \tt{Gordian}.
+It is hoped that this program helps cut through
+the complexity of large $N$ gauge theories
+{\large\smiley{}}.
+
+Applicable theories are U($N$) lattice gauge theories,
+in either Euclidean or Hamiltonian formulations,
+on regular cubic lattices of dimension 1, 2, 3 or 4, with each
+dimension either infinite or periodically compactified.
+A fixed number of fundamental representation fermions
+may also be present.%
+\footnote
+    {%
+    A minimal staggered fermion lattice discretization
+    is used with each fermion flavor having
+    just $2N$ fermionic operators per lattice site,
+    comprising one U($N$) fundamental representation
+    plus its conjugate.
+    }
+All theories under consideration are invariant under cubic
+lattice symmetries (translations, permutations and reflections)
+together with charge conjugation (C) and time reversal,%
+\footnote
+    {%
+    The Yang-Mills $\theta$ angle is zero.
+    For Hamiltonian theories with fermions,
+    only translations by an even number of lattice sites are
+    required to be symmetries of the theory.
+    }
+and none of these symmetries are spontaneously broken.
+
+\setlength{\parskip}{3pt}
+
+Lattice Yang-Mills theories are defined by the following Hamiltonian
+or Euclidean free energy:
+\begin{subequations}
+\begin{align}
+	H_{\rm gauge}/N &= \tfrac 14 \lambda \sum_\ell \> \tr (E[\ell]^2)
+	    + \lambda^{-1} \sum_p \> \tr (2 - U[\partial p] - U[\partial p]^\dagger) \,,
+    \\
+	F_{\rm gauge}/N &= \lambda^{-1} \sum_p \> \tr (2 - U[\partial p] - U[\partial p]^\dagger)
+	    - S \,,
+\end{align}
+\end{subequations}
+where $\ell$ labels positively oriented lattice links,
+$p$ denotes positively oriented plaquettes,
+$E[\ell]$ is the U($N$) electric field operator on link $\ell$, and
+$U[\partial p]$ denotes the U($N$) gauge connection around plaquette $p$.
+The relation between the dimensionless `t Hooft coupling $\lambda$ and a
+conventionally defined continuum gauge coupling $g^2$ is
+$\lambda \equiv g^2 N a^{4-d}$, with $a$ the lattice spacing and $d$ the spacetime dimension.
+
+For QCD-like theories, the additional
+fermion contributions to the Hamiltonian or free energy are:
+\begin{subequations}\label{eq:fermidef}
+\begin{align}
+    H_{\rm fermi} &= \tfrac 12 \sum_{\langle xy \rangle} \>
+	\psi^\dagger_x \, \eta_{\langle xy \rangle} \, U_{\langle xy \rangle} \, \psi_y
+	+ m \, \lambda^p \sum_x \> \psi^\dagger_x \, \sigma_x \, \psi_x \,,
+    \\
+    F_{\rm fermi} &= \tfrac 12 \sum_{\langle xy \rangle} \>
+	\psi^\dagger_x \, \eta_{\langle xy \rangle} \, U_{\langle xy \rangle} \, \psi_y
+	+ m \, \lambda^p \sum_x \> \psi^\dagger_x \, \psi_x \,,
+\end{align}
+\end{subequations}
+where $x$ labels lattice sites,
+$\langle xy \rangle$ denotes the link connecting nearest-neighbor sites $x$ and $y$,
+$U_{\langle xy \rangle}$ is the U($N$) gauge connection on link $\langle xy \rangle$,
+and
+$\eta_{\langle xy \rangle}$ is a non-dynamical $U(1)$ fermion flavor connection
+satisfying $\eta[\partial p] = -1$ on every plaquette.
+The lattice staggering factor
+$\sigma_x$ equals $+1$ on the even sublattice and $-1$ on the odd sublattice.
+For further details see Ref.~\cite{CSVAII}.
+
+\section {Overall structure}
+
+The key steps comprising the coherent state variation algorithm
+\cite {CSVAII} are:
+\begin{enumerate}\advance\itemsep -4pt
+\item
+    Construction of a truncated finite set of observables 
+    which will be retained and whose expectation values will be computed.
+    Here ``observables'' mean Wilson loops possibly containing
+    (in Hamiltonian theories) one or two electric field insertions,
+    or fermion bilinears possibly including one electric field insertion.
+\item
+    Selection of a finite set of coherence algebra generators
+    which will be used to generate deformations of coherent states.
+    These are anti-Hermitian combinations of Wilson loops,
+    possibly with one electric field insertion, or fermion bilinears.
+    Coefficients of these generators serve as Riemann normal coordinates
+    in the neighborhood of any given point
+    in the large $N$ phase space, and are used as variational parameters.
+\item
+    Evaluation, symbolically, of the commutators of all selected observables
+    and generators.  These define geodesic equations
+    on the large $N$ phase space and encode how observable expectation
+    values vary as one deforms the state.
+\item
+    Evaluation, symbolically, of the commutators defining the first and second
+    variations of the Hamiltonian (or Euclidean free energy) with respect
+    to Riemann normal coordinates.
+    Also, for Hamiltonian theories,
+    evaluation of commutators of generators whose expectation values
+    define the Lagrange bracket (the inverse Poisson bracket)
+    of the large $N$ phase space.
+\item
+    Numerical minimization of the Hamiltonian (or Euclidean
+    free energy), with each iterative step
+    involving numerical evaluation of the symbolic expressions
+    for the gradient and curvature of the Hamiltonian or free energy,
+    solution of the linear equations predicting the location of the minimum,
+    and numerical integration of the geodesic equations describing
+    the change in expectation values of all observables as one moves
+    to the predicted minimum.
+\item
+    In Hamiltonian theories,
+    numerical evaluation of the symbolic expressions for the curvature of the
+    Hamiltonian and the Lagrange bracket, in any chosen symmetry channel,
+    and computation of the resulting
+    small oscillation frequencies around the minimum,
+    yielding a determination of the
+    low-lying glueball or meson spectrum.
+\end{enumerate}
+%
+Each of these steps is carried out first for the $O(N^2)$ pure gauge dynamics,
+for some sequence of gauge coupling values,
+and then again for the sub-leading $O(N)$ fundamental representation
+fermion dynamics, for some sequence of fermion mass values.
+
+Observable selection uses a classification based on the order in
+a strong-coupling expansion at which an error is first introduced if
+a given observable is omitted from an otherwise
+correct strong-coupling expansion.%
+\footnote
+    {%
+    For fermion bilinears, this is a combined strong-coupling
+    and large mass expansion.
+    For details, see Ref.~[[X]].
+    }
+For generators, the analogous classification is the order in a
+strong-coupling expansion at which the generator is first needed.
+
+\section {Typical usage}\label{sec:usage}
+
+The program \tt{gordion} has a common code base covering all 
+applicable theories, but differing executables are created for different theories.
+So generating the correct executable proceeds actual calculations.
+Using the standard \tt{Makefile},
+with program source files residing in a \tt{Src} subdirectory, 
+the command \tt{make THY=}\textit{theory}
+will generate an executable named
+\tt{gordion-}\textit{theory},
+together with a \tt{gordion} symlink pointing to this executable.
+Here \textit{theory} is one of the following designators
+of a pre-defined target theory:%
+\footnote
+    {%
+    Additional target theories with other lattice periodicities and/or fermion
+    multiplicies may be easily defined by adding further cases in the source file
+    \tt{Theory.h}.
+    }
+\begin{description}\advance\itemsep -3pt
+\item [\tt {YM1e}]
+    Euclidean Yang-Mills theory on a one-dimensional, period-one lattice,
+    equivalent to the Euclidean one-plaquette model [[ref]];
+\item [\tt {YM1h}]
+    Hamiltonian Yang-Mills theory on a one-dimensional, period-one spatial lattice,
+    equivalent to the Hamiltonian one-plaquette model [[ref]];
+\item [\tt {YM2e}]
+    Euclidean Yang-Mills theory on an infinite two-dimensional, lattice;
+\item [\tt {YM2h}]
+    Hamiltonian Yang-Mills theory on an infinite two-dimensional spatial lattice;
+\item [\tt {YM3e}]
+    Euclidean Yang-Mills theory on an infinite three-dimensional lattice;
+\item [\tt {YM3h}]
+    Hamiltonian Yang-Mills theory on an infinite three-dimensional spatial lattice;
+\item [\tt {YM4e}]
+    Euclidean Yang-Mills theory on an infinite four-dimensional lattice;
+\item [\tt {QCD1e}]
+    Euclidean QCD with one species of fermion on an infinite one-dimensional lattice
+    (a free theory, included just for testing);
+\item [\tt {QCD1h}]
+    Hamiltonian QCD with one species of fermion on an infinite one-dimensional
+    spatial lattice
+    (a lattice formulation of the 1+1 dimensional `t Hooft model);
+\item [\tt {QCD2e}]
+    Euclidean QCD with one species of fermion on an infinite two-dimesional lattice;
+\item [\tt {QCD2h}]
+    Hamiltonian QCD with one species of fermion on an infinite two-dimesional 
+    spatial lattice;
+\item [\tt {QCD3e}]
+    Euclidean QCD with one species of fermion on an infinite three-dimesional lattice;
+\item [\tt {QCD3h}]
+    Hamiltonian QCD with one species of fermion on an infinite three-dimesional 
+    spatial lattice;
+\item [\tt {QCD4e}]
+    Euclidean QCD with one species of fermion on an infinite four-dimesional lattice;
+\item [\tt {YM3ep}]
+    Euclidean Yang-Mills theory on a three-dimensional lattice
+    which is infinite in two dimensions and period one in the third dimension;
+\item [\tt {YM3hp}]
+    Hamiltonian Yang-Mills theory on a three-dimensional spatial lattice
+    which is infinite in two dimensions and period one in the third dimension.
+\end{description}
+
+When the resulting executable \tt{gordion}-\textit{theory} is run, the program:
+\begin{enumerate}
+\item
+    First loads any previously saved system information
+    (\textit{sys-info} or \tt{.sys}) files or 
+    vacuum expectation value (\textit{vev-data} or \tt{.vev}) files
+    which are provided as command line arguments.
+    These \textit{sys-info} or \textit{vev-data} files must
+    be files previously created for the selected target theory
+    (or for QCD theories, \textit{sys-info} or \textit{vev-data} files
+    created for the corresponding Yang-Mills theory);
+\item
+    Then reads and executes commands from a command input file 
+    specified with a ``\tt{-f }\textit{command-file}'' command line flag.
+    If no such command file is specified, but a \tt{.gordion}
+    file exists, this is assumed to be a default startup command file
+    which is read and processed.
+    (A ``\tt{-f -}'' command line flag suppresses reading of this
+    default startup file.)
+\item
+    Subsequently reads and executes commands from standard input.
+\end{enumerate}
+
+The program implements a simple keyword-driven command line interpreter.
+Commands may be terminated by either a semicolon (\tt{;}) or end of line.
+The full set of reconized commands is listed in the following section.
+
+As a concrete example, for a Yang-Mills theory
+the following commands
+illustrate the minimal steps of a calculation:
+\begin{quote}
+  \tt{build all 20}
+\\\tt{do lambda 10 1 1}
+\end{quote}
+%
+The \tt{build all 20} command tells the program to construct all observables
+for the given target theory whose strong-coupling orders are less than or equal to 20.
+For gauge observables on an infinite lattice, these are essentially all
+Wilson loops constructed from up to five plaquettes, possibly
+decorated (for Hamiltonian theories) by one or two electric field insertions.
+Since no generators were explicitly defined,
+following observable generation
+the \tt{build all} command will install a minimal default
+set of generators consisting, for Yang-Mills theory,
+of one and two plaquette generators and, for QCD theories, also
+one link fermion hopping terms.
+Using these generators, the \tt{build} command then
+performs the symbolic calculations needed to define the
+gradient and curvature of the Hamiltonian (or free energy),
+Lagrange bracket (for Hamiltonian theories),
+and geodesic equations for all observables in the selected set.
+Expressions for the curvature and Lagrange bracket are constructed
+in all irreducible representations of the lattice cubic symmetry group (times C).
+
+Given this information, the \tt{do lambda 10 1 1} command instructs
+the program to minimize the Hamiltonian (or free energy) with the lattice
+coupling $\lambda$ first set to 10, and then successively repeat
+this minimization as $\lambda$ is decreased in steps of 1 down to 1.
+After each minimization, the program writes a
+human and Mathematica-readable results file.
+For Hamiltonian theories, the results file contains
+the minimized energy, small oscillation frequencies, and selected
+observable expectation values for each value of $\lambda$. 
+For Euclidean theories, the results file contains
+the minimized free energy and selected observable expectation values.
+
+Prior to the generation of symbolic expressions for the gradient, curvature,
+Lagrange bracket and geodesic equations, one may define additional
+generators (and their specified creation orders) with commands such as:
+\begin{quote}
+\tt{generator add (2) xyXY}
+\\\tt{generator add (4) xxyXXY}
+\\\tt{generator add (4) xyxYXyXY}
+\\\tt{generator add (4) xyXYxyXY}
+\\\tt{generator add (6) xyxYXyxYXyXY}
+\\\tt{generator add (6) xyXYxyXYxyXY}
+\\\tt{generator add (6) xxyXXYxyXY}
+\\\tt{generator add (6) xxyyXYXY}
+\\\tt{generator add (6) xxxyXXXY}
+\\\tt{generator add (6) xxyXyxYXXY}
+\\\tt{generator add (6) xxyxYXyXXY}
+\\\tt{generator add (6) xyxyXYxYXyXY}
+\\\tt{generator add (6) xyxYxyXYXyXY}
+\end{quote}
+Here, \tt{x} and \tt{y} denote link variables in the $+x$ and $+y$
+lattice directions, while \tt{X} and \tt{Y} denote the corresponding
+inverse links.
+On a two dimensional lattice, the above commands define
+the basic order 2 (one plaquette), 4 (two plaquette) and 6 (three plaquette)
+Wilson loop generators.
+With default settings, the program also installs corresponding generators 
+containing one electric field insertion, produced by commuting the Wilson loop
+generator with the gauge kinetic energy operator.
+Every generator is automatically projected onto all possible
+irreducible representations of the lattice cubic symmetry group (times C).
+
+Command words, as well as subsequent argument words
+other than explicit file, representation, or symmetry names,
+may be highly abbreviated;
+any initial matching sequence of one or more characters is sufficient
+to match the first consistent target word.
+For example, the above build command could be entered as just \tt{b all 20}.
+
+The initial \tt{set autosave true} command instructs the program to
+save the symbolic information produced during the build phase in
+a \textit{sys-info} file, save the numerical observable expectation
+values produced by the minimization phase (for each value of $\lambda$)
+in a \textit{vev-data} file.
+See below (under \tt{save sys} and \tt{save vev}) for details on the
+naming and placement of these output files.
+
+[[geoswap \& big calculations]]
+
+[[fermions]]
+
+\section {Command summary}\label{sec:commands}
+
+The keyword-driven command line interpreter recognizes the following commands,
+which may be terminated by either a semicolon (;) or end of line.
+In the following summary,
+\textit{italic} indicates user input,
+brackets (\tt{[]}) indicate optional arguments,
+and a vertical bar (\tt{|}) separates alternative arguments.
+A plus mark$^+$ after the command indicates the command is only
+applicable in Hamiltonian theories, while a double plus$^{++}$
+indicates applicability only for Euclidean theories.
+
+\begin{description}\advance\itemsep -1pt
+\item [\tt \# {\it anything}]~\\
+    A comment, to be ignored.
+
+\item [\tt ?]~\\
+    Print a command summary.
+
+\item [\tt build all {\it max-order}]~\\
+    Build observables (up to the specified maximum order)
+    as well as the polynomial scripts for geodesics,
+    gradient, curvature and (for Hamiltonian theories)
+    the Lagrange bracket.
+
+\item [\tt build curvature \tt{[}{\it repname}\tt{]}] \bgroup\itemsep 0pt \parskip 0pt
+\item [\tt build curvature all]~\\
+    Build the polynomial scripts
+    used for evaluating the curvature of the
+    Hamiltonian or free energy in the current representation.
+    A specified representation becomes the current representation, while
+    the final form builds the curvature scripts
+    for all defined representations.
+\egroup
+
+\item [\tt build equations \tt{[}{\it repname}\tt{]}] \bgroup\itemsep 0pt \parskip 0pt
+\item [\tt build equations all]~\\
+    Build the polynomial scripts needed for evaluating the
+    curvature and Lagrange bracket (for Hamiltonian theories)
+    in the current repersentation and, if the representation is fully symmetric,
+    also the Hamiltonian or free energy, gradient, and geodesic equations.
+    A specified representation becomes the current representation, while
+    the final form builds the curvature and Lagrange bracket scripts
+    for all defined representations.
+\egroup
+
+\item [\tt build freeenergy$^{++}$]~\\
+    Build the canonicalized observable polynomial for evaluating the
+    free energy.
+
+\item [\tt build geodesics]~\\
+    Build the polynomial scripts
+    used for evaluating the geodesic equations.
+
+\item [\tt build gradient]~\\
+    Build the polynomial scripts
+    used for evaluating the gradient
+    of the Hamiltonian or free energy. 
+
+\item [\tt build hamiltonian$^+$]~\\
+    Build the canonicalized observable polynomial for evaluating the
+    hamiltonian.
+
+\item [\tt build lagrange$^+$ \tt{[}{\it repname}\tt{]}] \bgroup\itemsep 0pt \parskip 0pt
+\item [\tt build lagrange$^+$ all]~\\
+    Build the polynomial scripts
+    used for evaluating the 
+    Lagrange bracket (for Hamiltonian theories) in
+    the current representation.
+    A specified representation becomes the current representation, while
+    the final form builds the Lagrange bracket scripts
+    for all representations.
+\egroup
+
+\item [\tt build observables {\it max-order}]~\\
+    Build observables.
+    All observables for the given minimization stage up to (and including)
+    the specified maximum strong-coupling order are constructed.
+
+\item [\tt call canon {\it obs}] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt call classify {\it obs}]
+\item [\tt call commute {\it op} {\it obs}]
+\item [\tt call compose {\it symm$_1$} {\it symm$_2$}]
+\item [\tt call do\_inner {\it Eloop-obs}]
+\item [\tt call noEbound {\it obs}]
+\item [\tt call transform {\it symm} {\it obs}]
+\item [\tt call u1bound {\it obs}]~\\
+    Call the indicated routines with the given arguments.
+    This functionality is present for debugging purposes
+    and is not needed for normal usage.
+\egroup
+
+\item [\tt do {\it coupling-name initial-value final-value increment}]~\\
+    Evolve the specified coupling constant
+    from the given initial value to the final value in steps of the
+    given increment, performing Newton minimization at each step
+    and writing results including the value of the Hamiltonian (or free energy),
+    expectations of a selected subset of obseravbles and,
+    for Hamiltonian theories, the small oscillation spectrum in all defined
+    symmetry channels to an output \tt{.m} results file.
+
+\item [\tt do minimize]~\\
+    Perform a sequence of minimization steps,
+    terminating when the $L_\infty$ norm of the predicted displacement from
+    the minimum falls below the minimization tolerance (or when the
+    limit on the maximum number of minimization steps is reached).
+
+\item [\tt do step]~\\
+    Perform one Newton minimization step,
+    evaluating the gradient and curvature, solving for the
+    predicted minimum, and integrating the geodesic equations
+    to move to the predicted minimum.
+
+\item [\tt evaluate curvature \tt{[}$*$\tt{]}]~\\
+    Numerically evaluate the $T$-even curvature matrix
+    produced by double commutators of $T$-even generators
+    with the Hamiltonian (or free energy),
+    using active generators in the currently selected irreducible representation.
+    Without an optional \tt{*}, only the curvature eigenvalues are printed;
+    with a \tt{*} the full $T$-even curvature matrix is first printed as well.
+
+\item [\tt evaluate delta]~\\
+    Evaluate, and print, the predicted location of the Hamiltonian or
+    free energy minimum, equal to minus the inverse of the
+    (vacuum representation) curvature times the gradient.
+
+\item [\tt evaluate freeenergy$^{++}$]~\\
+    Numerically evaluate the free energy and print the result.
+
+\item [\tt evaluate geodesics {\it print-limit}] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt evaluate geodesics $*$]~\\
+    Compute the variation of all observables
+    of the current minimization stage in the direction defined by \tt{delta}.
+    Because this output vector can be very long, \tt{evaluate}
+    \tt{geodesics} takes an argument specifying a limit on
+    the number of observables whose derivatives will be printed,
+    or else a \tt{*} requesting printing of the entire list.
+\egroup
+
+\item [\tt evaluate gradient]~\\
+    Numerically evaluate, and print, the gradient of the Hamiltonian
+    (or free energy) produced by all defined vacuum representation generators.
+
+\item [\tt evaluate hamiltonian$^+$]~\\
+    Numerically evaluate the Hamiltonian and print the result.
+
+\item [\tt evaluate lagrange$^+$ \tt{[}$*$\tt{]}]~\\
+    Evaluate the Lagrange bracket matrix,
+    produced by expectations of generator commutators,
+    for generators in the
+    currently active irreducible representation.
+    Without an optional \tt{*}, only the singular values of the Lagrange bracket
+    matrix are printed;
+    with a \tt{*} the full matrix is first printed as well.
+
+\item [\tt evaluate metric$^+$ \tt{[}$*$\tt{]}]~\\
+    Numerically evaluate the $T$-odd curvature matrix
+    produced by double commutators of $T$-odd generator with the 
+    Hamiltonian,
+    using active generators in the
+    currently selected irreducible representation.
+    Without an option \tt{*}, the curvature eigenvalues are printed;
+    with a \tt{*} the full $T$-odd curvature matrix is first printed as well.
+
+\item [\tt evaluate polystats]~\\
+    (Re)evaluates and prints polynomial script statistics,
+    including the number of polynomial terms and their breakdown
+    by monomial order for the gradient, curvature, Lagrange bracket
+    (for Hamiltonian theories) and geodesic equations.
+    (Only relevant for debugging or verifying sys-info file integrity.)
+
+\item [\tt evaluate spectrum$^+$ \tt{[}{\it repname}\tt{]}] \bgroup\itemsep 0pt \parskip 0pt
+\item [\tt evaluate spectrum$^+$ all]~\\
+    Evaluate, and print, the
+    small oscillation frequency (or mass) spectrum
+    in the current symmetry representation
+    derived from the eigenvalues of the generalized eigensystem
+    of the curvature and Lagrange bracket.
+    A specified representation becomes the current representation, while
+    the final form evaluates the spectrum for all symmetry channels.
+\egroup
+
+\item [\tt generator add {\tt{[}}({\it order}){\tt{]}}
+    {\tt{[}}{\it coeff$_1$}{\tt{]}} {\it op$_1$}
+    {\tt{[[}}{\it coeff$_2$}{\tt{]}} {\it op$_2$}{\tt{]}} $\cdots$ ]~\\
+    Construct the specified coherence group generator, 
+    project it onto all defined irreducible representations,
+    and add the results, when independent and non-vanishing, to the
+    set of defined generators for each representation.
+    One or more \tt{Op}'s (operators in the coherence algebra)
+    may be given,
+    each optionally preceded by a numerical coefficient;
+    this is interpreted as a weighted sum of the indicated \tt{Op}'s.
+    The generator order must either be specified explicitly
+    as an initial parenthesized integer,
+    or else the first given \tt{Op}, when canonicalized,
+    must be a known observable.
+    If multiple \tt{Op}'s are given and (when canonicalized)
+    are known observables, they must all have a common creation order.
+
+\item [\tt generator activate ({\it order})] \bgroup\itemsep 0pt \parskip 0pt
+\item [\tt generator activate {\it{gen\#$_1$}} {\tt{[}}{\it gen\#$_2$}{\tt{]}} $\cdots$ ]~\\
+    First form activates all generators of the given order, in all representations.
+    Second form activates the numbered generator(s) of the currently active representation.
+\egroup
+
+\item [\tt generator suspend ({\it order})] \bgroup\itemsep 0pt \parskip 0pt
+\item [\tt generator suspend {\it{gen\#$_1$}} {\tt{[}}{\it gen\#$_2$}{\tt{]}} $\cdots$ ]~\\
+    First form suspends all generators of the given order, in all representations.
+    Second form suspends the numbered generator(s) of the currently active representation.
+\egroup
+
+\item [\tt help]~\\
+    Print a command summary.
+
+\item [\tt load {\it sys-info-file}] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt load \tt{[}{\it data-set\#}\tt{]} {\it vev-data-file}]~\\
+    Load information from a previously saved compatible sys-info or vev-data file.
+    If not specified, the default data set for vev-data files is the final one
+    in the file.
+    The theory type of the running program must match that of the specified file
+    or, for QCD theories, match the parent Yang-Mills theory.
+    The variable size (32 or 64 bit) used for observable indices and coefficients
+    must also match.
+    For vev-data files, the hash code(s) of the observable set(s)
+    must match that of the corresponding sys-info file(s), and similarly
+    the hash code for gauge observables in a QCD sys-info file must match
+    that of the corresponding YM sys-info file.
+    For sys-info files, if the file size is larger than half of system memory,
+    the global \tt{geoswap} variable is set \tt{true} and the geodesic polynomial
+    scripts are left on disk.
+\egroup
+
+\item [\tt load {\it data-set\#}] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt load {\it coupling-name} {\it coupling-value}]~\\
+    Load a specified data set from a currently open vev-data file.
+    The first form uses the data-set number, as shown by the
+    \tt{print vevindex} command.
+    The second form compares the specified coupling value to the
+    values of data records in the vev-file, and loads the last
+    such matching record.
+\egroup
+
+\item [\tt print baseobs]~\\
+    Print the list of basic observables (those used in the
+    Hamiltonian or free energy).
+
+\item [\tt print blablevels]~\\
+    Print the defined verbosity levels.
+
+\item [\tt print bucketlist]~\\
+    Print the list of observable buckets used
+    for multi-threading.
+
+\item [\tt print canon]~\\
+    Print the canonicalization cache.
+
+\item [\tt print couplings]~\\
+    Print the defined adjustable coupling constants.
+
+\item [\tt print curvature $*$] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print curvature {\it term\#} {\tt{[}}{\it gen\#$_2$}
+    {\tt{[}}{\it gen\#$_2$}{\tt{]}}{\tt{]}} ]~\\
+    Print symbolic curvature expressions.
+    The first form prints all curvature components.
+    The second form allows one to print the curvature components
+    of a specified term in the Hamiltonian or free energy
+    (without any overall adjustable coupling constant)
+    and, optionally, specify one or both
+    indices of the generators in the active symmetry representation
+    which act on the indicated term.
+\egroup
+
+\item [\tt print fermiinit]~\\
+    Print the mapping from closed fermion bilinears to loops which
+    is used for initialization of fermion bilinear expectation values.
+
+\item [\tt print freeenergy$^{++}$]~\\
+    Print the expression defining the free energy.
+
+\item [\tt print generator] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print generator $*$]
+\item [\tt print generator {\it gen\#}]~\\
+    Print generator(s).
+    The first form prints an abbreviated form of all generators in the
+    current representation.
+    The second form prints the full form of all generators in the
+    current representation.
+    The final form prints the full form of a particular generator.
+    For each generator,
+    the output displays the current representation, the generator index
+    prefixed with \tt{g} for gauge or \tt{f} for fermion generators
+    and followed by a $*$ suffix if the generator is $T$-odd,
+    and then the actual generator definition.
+\egroup
+
+\item [\tt print geodesics $*$] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print geodesics {\it obs\#} {\tt{[}}{\it gen\#}{\tt{]}}]~\\
+    Print symbolic geodesic equations.
+    The first form prints all geodesic equations.
+    The second form allows one to specify a particular observable
+    and, optionally, the $T$-even vacuum representation generator
+    which acts on the indicated observable.
+\egroup
+
+%\pagebreak[2]
+\item [\tt print gradient $*$] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print gradient {\it term\#} {\tt{[}}{\it gen\#}{\tt{]}}]~\\
+    Print symbolic gradient expressions.
+    The first form prints all gradient components.
+    The second form allows one to print the gradient components of a specified
+    term  in the Hamiltonian or free energy
+    (without any overall adjustable coupling constant) and,
+    optionally, specify the index of the
+    $T$-even vacuum representation generator which acts on the indicated term.
+\egroup
+
+\item [\tt print hamiltonian$^+$]~\\
+    Print the expression defining the Hamiltonian.
+
+\item [\tt print lagrange $*$] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print lagrange {\it $T$-even-gen\#} {\tt{[}}{\it $T$-odd-gen\#}{\tt{]}}]~\\
+    Print symbolic Lagrange bracket expressions.
+    The first form prints all Lagrange bracket components.
+    The second form allows one to specify indices of one or both of the
+    generators, in the active symmetry representation,
+    whose commutator defines a Lagrange bracket component.
+\egroup
+
+\goodbreak
+
+\item [\tt print mode$^+$ *]\bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print mode$^+$ {\tt{[}}{\it mode\#}{\tt{]}}]~\\
+    Print all, or a specified, small oscillation eigenmode
+    from the most recently evaluated spectrum.
+\egroup
+
+\item [\tt print observable $*$] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print observable {\it obs\#$_1$} \tt{[}{\it obs\#$_2$}\tt{]}]
+\item [\tt print observable {\it obs$_1$} {\tt{[}{\it obs$_2$}\tt{]}} $\cdots$]
+\item [\tt print observable ({\it obstype}) {\tt{[}\textit{...}\tt{]}}]
+\item [\tt print observable ({\it corder},{\it xorder}) {\tt{[}\textit{...}\tt{]}}]
+\item [\tt print observable ({\it corder},{\it xorder},{\it obstype}) {\tt{[}\textit{...}\tt{]}}]~\\
+    Print observables.
+    The first form prints the entire list of constructed observables.
+    The second form allows one to 
+    specify a single observable index, or a pair
+    of indices indicating a range of observables.
+    The third form allows one to input the printable form of one or more observables
+    and determine if the given observables are present in the observable list.
+    Canonicalization is not automatically performed on the input observables.
+    The final forms allow one to print all observables of a specified type,
+    with specified creation and expectation orders or, in the final form,
+    specified orders and type.
+    No spaces may be present within these parenthesized specifications.
+    Multiple such specifiers may be given.
+\egroup
+
+\item [\tt print obsstats]~\\
+    Print a table of observable statistics showing the breakdown of the
+    number of constructed observables by type, creation order
+    and expectation order.
+
+\item [\tt print operator $*$] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print operator {\it op\#$_1$} {\tt{[}}{\it op\#$_2$}{\tt{]}}]~\\
+    Print operators(s).
+    The first form prints all defined operators (or ``\tt{Op}'s'')
+    whose linear combinations, when symmetry projected, form generators.
+    The second form allows one to 
+    specify a single operator index, or a pair
+    of indices to indicate a range of operators.
+\egroup
+
+\item [\tt print polystats]~\\
+    Prints polynomial script statistics,
+    including the number of polynomial terms and their breakdown
+    by monomial order for the gradient, curvature and Lagrange bracket
+    (in all representations), and geodesic equations.
+
+\item [\tt print primary]~\\
+    Print the list of primary \tt{Op}'s (those which cannot be
+    produced by commutators of lower order \tt{Op}'s).
+
+\item [\tt print representation] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print representation $*$]
+\item [\tt print representation {\it irrep-name}]~\\
+    Print irreducible representation (irrep) projectors.
+    The first form lists all defined irrep names,
+    while the second form prints the full form of all irreps.
+    The final form allows one to specify a particular irrep by name,
+    which is printed in full.
+    For multi-dimensional representations, the \textit{irrep-name} actually
+    specifies both the representation and a particular row of the
+    representation matrices.
+    
+\egroup
+
+\item [\tt print rkmethods]~\\
+    Print the names of available Runge-Kutta ODE integration methods,
+    and report the currently selected method.
+
+\item [\tt print spectrum$^+$]~\\
+    Prints the most recently evaluated small oscillation spectrum.
+
+\item [\tt print stage]~\\
+    Print the current minimization stage.
+
+\item [\tt print state]~\\
+    Print information on the theory class, lattice size,
+    and global settings including
+    minimization stage, active representation,
+    ODE and minimization tolerances, ODE integration method,
+    output file directories, etc.
+
+\item [\tt print stats]~\\
+    Print various operational statistics including the
+    numbers of observables built, observable classifications,
+    canonicalizations,
+    approximations, symmetry transforms, etc., 
+    numbers of minimizations and ODE integration steps,
+    and canonicalization cache performance figures.
+
+\item [\tt print symmetry $*$] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt print symmetry {\it symmetry-name}]~\\
+    Print symmetry transformations.
+    The first form prints all symmetry transformations,
+    while the second form allows one to specify a particular symmetry
+    by name.
+\egroup
+
+\item [\tt print symmsets]~\\
+    Print the various symmetry subsets used in observable canonicalization.
+
+\item [\tt print sysindex]~\\
+    Print a table showing the contents of the system information index.
+
+\item [\tt print vevindex]~\\
+    Print a list of data sets in a currently open vev-data file.
+
+\item [\tt print version]~\\
+    Print the program version.
+
+\item [\tt purge observables]~\\
+    Write, if needed, sys-info file(s) containing all observable information
+    and then purge the master observable list, thereby freeing the memory
+    which the list consumed.
+    Any subsequent commands which require accessing the observable list will
+    trigger reloading observable information into memory,
+    but once all needed polynomial scripts have been generated
+    numerical minimization and spectrum calculations may proceed
+    without observable information in memory.
+
+\item [\tt quit]~\\
+    Exit the program.
+
+\item [\tt read {\it filename}]~\\
+    Read command input from the specified file.
+
+\item [\tt reset blab]\bgroup \itemsep 0pt \parskip 0pt
+\item [\tt reset maxthread]
+\item [\tt reset mintol]
+\item [\tt reset odetol]
+\item [\tt reset representation]
+\item [\tt reset rkmethod]
+\item [\tt reset stage]
+\item [\tt reset svdcutoff]
+\item [\tt reset MMAobs]~\\
+    Reset the indicated global variables to their default initial values.
+    See the various \tt{set} commands for details.
+\egroup
+
+\item [\tt reset numerics]~\\
+    Re-initialize observable expectation values
+    for the current minimization stage.
+    For gauge minimization, this zeros all pure gauge
+    observable expectation values (except the identity).
+    For fermi minimization, this zeros all fermion
+    bilinear expectation values except those for which
+    the fermion and conjugate fermion reside on the same
+    site.  Such bilinears are initialized to their
+    correct vacuum expectation values in the large mass limit.
+    For Hamiltonian theories, this is minus half
+    the value of the corresponding Wilson loop.
+    For Euclidean theories, it is minus the inverse of the fermion mass
+    times the value of the corresponding Wilson loop.
+
+\item [\tt save sys]~\\
+    Write system information for the current minimization stage
+    (gauge or fermion) to a binary \tt{.sys} file.
+    Sys-info files record the defined
+    operators, observables, generators, and the polynomial scripts
+    defining gradient, curvature, Lagrange bracket and geodesic equations,
+    plus build-related statistics counters for the current minimization stage.
+    Sys-info files are placed in theory-specific subdirectories
+    (e.g., \tt{YM2e} or \tt{QCD2h})
+    of the current save directory.
+
+    Gauge information is written to files 
+    named to indicate the Yang-Mills theory, including lattice dimension and whether
+    the theory is Hamiltonian or Euclidean,
+    the maximum order of gauge generators and observables, and
+    a two-letter upper-case hash code of the gauge observable set.
+    If observable approximation is turned on, an addition suffix
+    staring with ``a'' is added to the file name.
+    For example, \tt{YM2h_4g20QQ.sys} indicates a sys-info file for
+    two-dimensional Hamiltonian Yang-Mills with order 4 gauge
+    generators and order 20 gauge observables.
+
+    Fermion information is written to files with names
+    starting with \tt{QCD} followed by the theory specification and
+    the maximum orders of generators and observables,
+    and the associated observable set hash codes,
+    for both the gauge and fermions stages.
+    For example, \tt{QCD2h_4g20QQ_3f10CY.sys} denotes a fermion 
+    sys-info file for two-dimensional Hamiltonian QCD with order 4 gauge
+    generators and order 20 gauge observables together with
+    order 3 generators and order 10 fermion observables,
+    which is compatible with an associated \tt{YM2h_4g20QQ.sys}
+    file of gauge information.
+
+\item [\tt save vev]~\\
+    Append to a binary \tt{.vev} data file the expectation
+    values of all defined observables for the current minimization stage
+    and current values of all adjustable coupling constants for the current stage.
+    Multiple sets of such ``vev'' data may be present
+    in the same \tt{.vev} file.
+    The naming of vev-data files is identical to that of
+    sys-info files, but with \tt{.vev} extensions.
+    Vev-data files are placed, together with sys-info files,
+    in theory-specific subdirectories of the current save directory.
+
+\item [\tt set {\it coupling-name coupling-value}]~\\
+    Sets the value of the named adjustable coupling constant.
+    Changing the value of an adjustable coupling constant
+    automatically changes the minimization stage to that
+    associated with the coupling.
+
+\item [\tt set approx true $\vert$ false]~\\
+    Specifies whether non-retained observables are
+    be approximated, when possible, by products of
+    lower order retained observables (default \tt{false}).
+
+\item [\tt set autoEgens true $\vert$ false]~\\
+    Specifies whether 
+    \tt{Eloop} generators are to be automatically
+    created from each pure loop generator by
+    evaluating the commutator of the loop with
+    the gauge kinetic energy
+    (default \tt{true}).
+
+\item [\tt set autosave false $\vert$ true]~\\
+    Specifies whether a sys-info file should automatically be
+    written during geodesic script
+    construction, and if a data record recording
+    coupling values and observable vevs is automatically appended
+    to a vev-data file after every successful minimization
+    (default \tt{true}).
+
+\item [\tt set blab {\it source-file verbosity-level}]~\\
+    Sets the verbosity level for particular source files.
+    The specified source file name should omit the
+    extension, is case sensitive, and cannot be further abbreviated.
+    Current settings are reported by \tt{print blablevels}.
+    Other than \tt{set blab Build 1} or \tt{set blab Numerics 1},
+    non-zero values are generally only relevant when
+    debugging and can produce voluminous output.
+
+\item [\tt set checkobs false $\vert$ true]~\\
+    Specifies whether extra validity checking is performed
+    on every constructed observable (default \tt{false}).
+
+\item [\tt set dots false $\vert$ true]~\\
+    Specifies whether observables are printed with
+    periods separating the printed forms of individual symbols
+    (default \tt{false}).
+
+\item [\tt set echo false $\vert$ true]~\\
+    Specifies whether command input lines are echoed
+    to the output stream (default \tt{false}).
+
+\item [\tt set gennorm false $\vert$ true]~\\
+    Specifies whether to normalize generators
+    as described in section 4.7 of the
+    design and implementation [[notes]]
+    (default \tt{false}).
+
+\item [\tt set geoswap false $\vert$ true]~\\
+    Specifies whether individual buckets of
+    geodesic equation polynomials are to be
+    swapped to and from disk as needed
+    (default \tt{false}).
+    Setting \tt{geoswap} true automatically
+    also sets \tt{autosave} true.
+
+\item [\tt set inputdir {\it directory}]~\\
+    Specifies the direectory in which to find
+    command input files without full pathnames.
+    (default \tt{./}).
+
+\item [\tt set maxnewt {\it integer}]~\\
+    Specifies the maximum number of
+    Newton iteration steps to allow
+    during minimization
+    (default 500).
+
+\item [\tt set maxode {\it integer}]~\\
+    Specifies the maximum number of
+    ODE integration steps to allow
+    during each geodesic equation integration
+    (default 1500).
+
+\item [\tt set maxthread {\it integer}]~\\
+    Specifies the maximum number of
+    threads to spawn during multi-threaded
+    build or minimization stages.
+    If zero (default), the number of threads is automatically
+    controlled by \textsl{TBB} threading library.
+    However, if \tt{geoswap} is set true, then
+    the number of threads in use may be limited
+    by a requirement that the per-thread I/O buffers not
+    consume more than half of total system memory.
+
+\item [\tt set mintol {\it value}]~\\
+    Specifies the minimization convergence criterion
+    (default $10^{-10}$ for 64-bit mode,
+    $10^{-6}$ for 32-bit mode)).
+
+\item [\tt set odetol {\it value}]~\\
+    Specifies the ODE error tolerance
+    (default $10^{-10}$ for 64-bit mode,
+    $10^{-6}$ for 32-bit mode)).
+
+\item [\tt set oknegeig false $\vert$ true]~\\
+    Specifies whether the presence of negative
+    curvature eigenvalues (for sectors other than 
+    Euclidean fermions) will cause minimization to abort
+    (default \tt{false}).
+
+\item [\tt set representation {\it repname}]~\\
+    Specifies the active symmetry representation.
+    (\tt{print rep} lists the defined irreps.)
+
+\item [\tt set rkmethod {\it method-name}]~\\
+    Specifies the Runge-Kutta ODE integration method.
+
+\item [\tt set savedir {\it directory}]~\\
+    Specifies the directory in which to write
+    system information and expectation value data
+    files (default \tt{./save/}).
+    Files are placed in (automatically created)
+    theory-specific subdirectories of this directory.
+
+\item [\tt set stage gauge $\vert$ fermi]~\\
+    Specifies the minimization stage
+    (initially set to \tt{gauge}).
+    As noted above,
+    changing the value of an adjustable coupling constant
+    automatically changes the minimization stage to that
+    associated with the coupling.
+
+\item [\tt set svdcutoff {\it value}]~\\
+    Sets the cutoff below which
+    curvature singular values are truncated
+    (default $0$).
+
+\item [\tt set symcurv true $\vert$ false]~\\
+    Specifies whether the curvature is
+    symmetrized when evaluating the
+    small oscillation spectrum
+    (default \tt{true}).
+
+\item [\tt set timing true $\vert$ false]~\\
+    Specifies whether to report the time taken by each command,
+    when greater than 10 milliseconds
+    (default \tt{true}).
+
+\item [\tt set vevappend false $\vert$ true]~\\
+    When writing a vev-data file specifies if the output file,
+    if pre-existing, is to be opened in append mode
+    instead of being overwritten
+    (default \tt{false}).  The setting applies to both
+    gauge and fermion stage vev-data files.
+
+\item [\tt set xtraobs false $\vert$ true]~\\
+    Specifies whether observables which are generated
+    during the building of curvature or Lagrange bracket scripts,
+    but not already present in the set of built observables,
+    are to be added to the list of observables.
+    Such observables are not fully classified as to their
+    creation and expectation orders.
+    (default \tt{false}).
+
+\item [\tt set MMAappend false $\vert$ true]~\\
+    Specifies whether the output results file,
+    if pre-existing, is to be opened in append mode
+    instead of being overwritten
+    (default \tt{false}).  The setting applies to both
+    gauge and fermion stage MMA results files.
+
+\item [\tt set MMAdir {\it directory}]~\\
+    Specifies the directory in which to
+    write output results in Mathematica entry format
+    (default \tt{./MMA/)}.
+    Files are placed in (automatically created)
+    theory-specific subdirectories of this directory.
+
+\item [\tt set MMAobs {\it obs$_1$} \tt{[}{\it obs$_2$}\tt{ [...]]}]~\\
+    Appends the listed observables to the subset of observables whose
+    expectation values are included in output written
+    to the numerical \tt{.m} results file.
+    The default set of such observables are those appearing
+    in the Hamiltonian or free energy.
+
+\item [\tt test arithmetic 32 \tt{|} 64]~\\
+    Checks if the program is using 32 or 64 bit numbers
+    to represent observable indices and polynomial coefficients.
+    If the specified setting disagrees with the running program,
+    an exception is raised and processing of any current command
+    file is terminated.
+    This command
+    may be used within a command input file to signal that the file
+    is designed for use with either 32 or 64 bit program versions.
+
+\item [\tt test irreps]~\\
+    Test the defined irreducible representation projectors for
+    orthogonality, normalization, and completeness.
+    (Used for debugging.)
+
+\item [\tt test jacobi] \bgroup \itemsep 0pt \parskip 0pt
+\item [\tt test jacobi {\it obs\#}]
+\item [\tt test jacobi {\it op$_1$} {\it op$_2$} {\it obs\#}]~\\
+    Test the validity of the Jacobi identity.
+    The first form tests all triples of defined generators
+    of the currently active representation.
+    The second form tests the identity on the 
+    observable with the specified index and all pairs
+    of defined generators (of the currently active
+    representation).
+    The final form uses user-specified
+    coherence algebra \tt{Op}'s and a specified observable.
+    (Used for debugging.)
+\egroup
+
+\item [\tt write {\it filename}]~\\
+    Redirect command output to the specified file.
+    If the given filename is `\tt{-}', then subsequent
+    output is returned to the initial output stream.
+
+\end{description}
+
+%\newpage
+
+\begin{thebibliography}{99}
+
+%\cite{YaffeRMP}
+\bibitem{YaffeRMP}
+L.~G.~Yaffe,
+``Large $N$ limits as classical mechanics,''
+\href{https://doi.org/10.1103/RevModPhys.54.407}
+{Rev.~Mod.~Phys.~\textbf{54}, 407 (1982)}.
+%doi:10.1103/RevModPhys.54.407
+%305 citations counted in INSPIRE as of 01 Dec 2024
+
+%\cite{CSVAI}
+\bibitem{CSVAI}
+F.~R.~Brown and L.~G.~Yaffe,
+``The coherent state variational algorithm:
+A numerical method for solving large-$N$ gauge theories,''
+\href{https://doi.org/10.1016/0550-3213(86)90318-4}
+{Nucl.~Phys.~B \textbf{271}, 267-332 (1986)}.
+%doi:10.1016/S0550-3213(86)80012-8
+%24 citations counted in INSPIRE as of 01 Dec 2024
+
+%\cite{CSVAII}
+\bibitem{CSVAII}
+T.~A.~Dickens, U.~J.~Lindqwister, W.~R.~Somsky and L.~G.~Yaffe,
+``The coherent state variational algorithm. 2. Implementation and testing,''
+\href{https://doi.org/10.1016/0550-3213(88)90234-9}
+{Nucl.~Phys.~B \textbf{309}, 1 (1988)}.
+%doi:10.1016/0550-3213(88)90234-9
+%20 citations counted in INSPIRE as of 01 Dec 2024
+
+%\cite{Yaffe:2026ouz}
+\bibitem{Yaffe:2026ouz}
+L.~G.~Yaffe,
+``Resurrecting the coherent state variational algorithm for large $N$ gauge theories,''
+\href{https://arxiv.org/abs/2601.20150}
+{arXiv:2601.20150 [hep-lat]}.
+%0 citations counted in INSPIRE as of 30 Jan 2026
+
+\end{thebibliography}
+\end{document}
