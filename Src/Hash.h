@@ -26,7 +26,11 @@ struct Indxhash					// index array hash function
 
 struct Strhash					// Str hash function 
     {
-    std::size_t operator()(const Str& s) const ;
+    //std::size_t operator()(const Str& s) const ;
+    std::size_t operator()(const string& s) const
+	{
+	return std::hash<string>{}(static_cast<const string&>(s)) ;
+	}
     using is_transparent = void ;
     } ;
 

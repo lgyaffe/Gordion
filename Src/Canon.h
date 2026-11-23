@@ -1,9 +1,9 @@
 #ifndef CANON_H
 #define CANON_H
 #include "List.h"
+#include "Str.h"
 #include "Theory.h"
 
-class Str ;
 class Obs ;
 class ObsBag ;
 

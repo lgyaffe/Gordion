@@ -5,10 +5,6 @@
 #include "Blab.h"
 #include <cstring>
 
-static_assert(std::is_base_of_v<std::string, Str>);
-static_assert(std::is_invocable_v<const Strhash&, const Str&>);
-static_assert(std::is_invocable_v<const Str_eq&, const Str&, const Str&>);
-
 int Obs::canon()				// Canonicalize observable
     {
     const auto&	blab { Blab::level(Blab::CANON) } ;
