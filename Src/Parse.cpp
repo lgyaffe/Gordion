@@ -254,11 +254,6 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    echo = flag ;
 	    }
-	else if (isword(word,"inputdir") && parse_args (line,word))
-	    {
-	    if (word.back() != '/') word += '/' ;
-	    global.inputdir = word ;
-	    }
 	else if (isword(word,"gennorm") && parse_args (line,flag))
 	    {
 	    if (flag != Gen::gennorm)
@@ -271,6 +266,11 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    {
 	    global.geoswap = flag ;
 	    if (global.geoswap) Save::autosave = true ;
+	    }
+	else if (isword(word,"inputdir") && parse_args (line,word))
+	    {
+	    if (word.back() != '/') word += '/' ;
+	    global.inputdir = word ;
 	    }
 	else if (isword(word,"maxnewt") && parse_args (line,i))
 	    {
@@ -737,7 +737,6 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    else if (parse_args (line,i))	 		print_mode (i) ;
 	    else valid = false ;
 	    }
-	else if (isword(word,"primary")     && eos(line))	print_primary () ;
 	else if (isword(word,"observables"))
 	    {
 	    if (eos(line)) gripe ("Print which observables?") ;
@@ -759,6 +758,8 @@ bool Parse::parse_print (istringstream& line)		// Parse "print" commands
 	    else if (parse_args (line,i,j))			print_op (i,j) ;
 	    else valid = false ;
 	    }
+	else if (isword(word,"polystats")   && eos(line))	print_polystats () ;
+	else if (isword(word,"primary")     && eos(line))	print_primary () ;
 	else if (isword(word,"representation"))
 	    {
 	    if (eos(line))					print_rep () ;
@@ -981,21 +982,21 @@ void Parse::parse_help ()					// Print command help
 build		all		<maxorder>
 		observables	<maxorder>
 		equations	[all | <repname>]
+		curvature	[all | <repname>]
+		lagrange (+)	[all | <repname>]
 		hamiltonian (+)
 		freeenergy (++)
 		gradient
 		geodesics
-		curvature	[all | <repname>]
-		lagrange (+)	[all | <repname>]
 
 call		canon		<obs>
-		compose		<symm1> <symm2>
-		u1bound		<obs>
-		noEbound	<obs>
 		classify	<obs>
 		commute		<op> <obs>
+		compose		<symm1> <symm2>
 		do_inner	<Eloop_obs>
+		noEbound	<obs>
 		transform	<symmetry> <obs>
+		u1bound		<obs>
 
 do		step
 		minimize
@@ -1013,10 +1014,10 @@ evaluate	hamiltonian (+)
 		polystats
 
 generator	add		[(<order>)] [<coeff>] <op> [...]
-		suspend		(<order>)
 		activate	(<order>)
-		suspend		<gen_#> [<gen_#> ...]
 		activate	* | <gen_#> [<gen_#> ...]
+		suspend		(<order>)
+		suspend		<gen_#> [<gen_#> ...]
 
 load		<sys_infofile>
 		[<vev_set_#>] <vev_datafile>	
@@ -1037,18 +1038,21 @@ print		baseobs
 		hamiltonian (+)
 		lagrange (+)	* | <gen_#> [<gen_#>]
 		mode (+)	* | <mode_#>
-		observable	(<corder>,<xorder>)
-		observable	* | <obs_#> [<obs_#>] | <obs> ...
+		observable	* | <obs_#> [<obs_#>]
+		observable	<obs> ...
+		observable	(<type>) ...
+		observable	(<corder>,<xorder>) ...
+		observable	(<corder>,<xorder>,<type>) ...
 		obsstats
-		operator	* | <op_#>  [<op_#>]
+		operator	* | <op_#> [<op_#>]
 		polystats
 		primary
 		representation  [* | <repname>]
 		rkmethods
+		spectrum (+)
 		stage
 		state
 		stats
-		spectrum (+)
 		symmetry	* | <symmname>
 		symmsets
 		sysindex
@@ -1068,37 +1072,38 @@ reset		blab
 		svdcutoff
 		MMAobs
 
-save		sys		[<filename>]
-		vev		[<filename>]
+save		sys
+		vev
 
-set		stage		gauge | fermi
-		autoEgens	true | false
-		symcurv		true | false
-		timing		true | false
-		MMAappend	true | false
+set		<coupling>	<value>
 		approx		false | true
+		autoEgens	true | false
 		autosave	false | true
+		blab		<source_file> <value>
 		checkobs	false | true
 		dots		false | true
 		echo		false | true
 		gennorm		false | true
 		geoswap		false | true
-		oknegeig	false | true
-		xtraobs		false | true
+		inputdir	<directory>
 		maxnewt		<integer>
 		maxode		<integer>
 		maxthread	<integer>
-		representation  <repname>
-		rkmethod	<method>
-		inputdir	<directory>
-		savedir		<directory>
-		MMAdir		<directory>
-		MMAobs		<obs> [<obs> [...]]
-		blab		<source_file> <value>
 		mintol		<value>
 		odetol		<value>
+		oknegeig	false | true
+		representation  <repname>
+		rkmethod	<method>
+		savedir		<directory>
+		stage		gauge | fermi
 		svdcutoff	<value>
-		<coupling>	<value>
+		symcurv		true | false
+		timing		true | false
+		vevappend	false | true
+		xtraobs		false | true
+		MMAappend	true | false
+		MMAdir		<directory>
+		MMAobs		<obs> [<obs> [...]]
 
 test		arithmetic	32 | 64
 		irreps
