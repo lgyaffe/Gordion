@@ -16,10 +16,9 @@ void Theory::theoryinit()			// Report theory and version
 string Theory::addsubdir (string dir, uint stage, bool create) const
     {
     dir.append (stage ? name.data() : parent().data() ) ; // Add theory subdir
-    dir += '/' ;
     if (create && std::filesystem::create_directories (dir))
 	cout << "Created directory " << dir << "\n" ;
-    return dir ;
+    return dir += '/' ;
     }
 
 string Theory::addsubdir (string dir, bool create) const
