@@ -118,10 +118,20 @@ or Euclidean free energy:
 where $\ell$ labels positively oriented lattice links,
 $p$ denotes positively oriented plaquettes,
 $E[\ell]$ is the U($N$) electric field operator on link $\ell$, and
-$U[\partial p]$ denotes the U($N$) gauge connection around plaquette $p$.
-The relation between the dimensionless `t Hooft coupling $\lambda$ and a
-conventionally defined continuum gauge coupling $g^2$ is
-$\lambda \equiv g^2 N a^{4-d}$, with $a$ the lattice spacing and $d$ the spacetime dimension.
+$U[\partial p]$ denotes the U($N$) gauge connection around plaquette $p$.%
+\footnote
+    {
+    In the Hamiltonian theory,
+    the electric field 
+    $
+	E[\ell]_{ij} = \frac 1N \> U[\ell]_{ik} \,{\partial}\big/{\partial U[\ell]_{jk}}
+    $
+    in a coordinate representation.
+    The relation between the dimensionless lattice coupling $\lambda$ and a
+    conventionally defined continuum gauge coupling $g^2$ is
+    $\lambda \equiv g^2 N a^{4-d}$, with $a$ the lattice spacing and $d$ the spacetime dimension.
+    The above expressions are in lattice units where $a \equiv 1$.
+    }
 
 For QCD-like theories, the additional
 fermion contributions to the Hamiltonian or free energy are:
@@ -129,11 +139,11 @@ fermion contributions to the Hamiltonian or free energy are:
 \begin{align}
     H_{\rm fermi} &= \tfrac 12 \sum_{\langle xy \rangle} \>
 	\psi^\dagger_x \, \eta_{\langle xy \rangle} \, U_{\langle xy \rangle} \, \psi_y
-	+ m \, \lambda^p \sum_x \> \psi^\dagger_x \, \sigma_x \, \psi_x \,,
+	+ m \sum_x \> \psi^\dagger_x \, \sigma_x \, \psi_x \,,
     \\
     F_{\rm fermi} &= \tfrac 12 \sum_{\langle xy \rangle} \>
 	\psi^\dagger_x \, \eta_{\langle xy \rangle} \, U_{\langle xy \rangle} \, \psi_y
-	+ m \, \lambda^p \sum_x \> \psi^\dagger_x \, \psi_x \,,
+	+ m \sum_x \> \psi^\dagger_x \, \psi_x \,,
 \end{align}
 \end{subequations}
 where $x$ labels lattice sites,
@@ -209,8 +219,7 @@ correct strong-coupling expansion.%
 \footnote
     {%
     For fermion bilinears, this is a combined strong-coupling
-    and large mass expansion.
-    For details, see Ref.~\cite{CSVAII}.
+    and large mass expansion \cite{CSVAII}.
     }
 For generators, the analogous classification is the order in a
 strong-coupling expansion at which the generator is first needed.
@@ -237,10 +246,12 @@ of a pre-defined target theory:%
 \begin{description}\advance\itemsep -3pt
 \item [\tt {YM1e}]
     Euclidean Yang-Mills theory on a one-dimensional, period-one lattice,
-    equivalent to the Euclidean one-plaquette model [[ref]];
+    equivalent to the Euclidean one-plaquette model
+    \cite{Gross:1980he};
 \item [\tt {YM1h}]
     Hamiltonian Yang-Mills theory on a one-dimensional, period-one spatial lattice,
-    equivalent to the Hamiltonian one-plaquette model [[ref]];
+    equivalent to the Hamiltonian one-plaquette model
+    \cite{Wadia:1980cp,Jevicki:1980zq,Neuberger:1980qh};
 \item [\tt {YM2e}]
     Euclidean Yang-Mills theory on an infinite two-dimensional, lattice;
 \item [\tt {YM2h}]
@@ -257,7 +268,8 @@ of a pre-defined target theory:%
 \item [\tt {QCD1h}]
     Hamiltonian QCD with one species of fermion on an infinite one-dimensional
     spatial lattice
-    (a lattice formulation of the 1+1 dimensional `t Hooft model);
+    (a lattice formulation of the 1+1 dimensional `t Hooft model
+    \cite{tHooft:1974pnl});
 \item [\tt {QCD2e}]
     Euclidean QCD with one species of fermion on an infinite two-dimesional lattice;
 \item [\tt {QCD2h}]
@@ -282,16 +294,14 @@ When the resulting executable \tt{gordion}-\textit{theory} is run, the program:
 \begin{enumerate}
 \item
     First loads any previously saved system information
-    (\textit{sys-info} or \tt{.sys}) files or 
+    (\textit{sys-info} or \tt{.sys}) or 
     vacuum expectation value (\textit{vev-data} or \tt{.vev}) files
     which are provided as command line arguments.
-    These \textit{sys-info} or \textit{vev-data} files must
-    be files previously created for the selected target theory
-    (or for QCD theories, \textit{sys-info} or \textit{vev-data} files
-    created for the corresponding Yang-Mills theory);
+    These must be files, previously created and saved, for the selected target theory
+    or, for QCD theories, the corresponding pure Yang-Mills theory;
 \item
-    Then reads and executes commands from a command input file 
-    specified with a ``\tt{-f }\textit{command-file}'' command line flag.
+    Then reads and executes commands from an input file 
+    specified with a ``\tt{-f }\textit{cmd-file}'' command line flag.
     If no such command file is specified, but a \tt{.gordion}
     file exists, this is assumed to be a default startup command file
     which is read and processed.
@@ -303,39 +313,38 @@ When the resulting executable \tt{gordion}-\textit{theory} is run, the program:
 
 The program implements a simple keyword-driven command line interpreter.
 Commands may be terminated by either a semicolon (\tt{;}) or end of line.
-The full set of reconized commands is listed in the following section.
-
-As a concrete example, for a Yang-Mills theory
-the following commands
-illustrate the minimal steps of a calculation:
+The full set of recognized commands is listed in the following section.
+%
+For a Yang-Mills theory,
+the minimal steps of a calculation are just:
 \begin{quote}
-  \tt{build all 20}
-\\\tt{do lambda 10 1 1}
+  \tt{build all} \textit{max-order}
+\\\tt{do lambda} \textit{initial-value final-value increment}
 \end{quote}
 %
-The \tt{build all 20} command tells the program to construct all observables
-for the given target theory whose strong-coupling orders are less than or equal to 20.
-For gauge observables on an infinite lattice, these are essentially all
+where \textit{max-order} is the maximum strong-coupling order of observables
+to retain.
+For example, \tt{build all 20} would tell the program to construct all observables
+for the given Yang-Mills theory whose strong-coupling orders are less than or equal to 20
+which, for an infinite lattice, are essentially all
 Wilson loops constructed from up to five plaquettes, possibly
 decorated (for Hamiltonian theories) by one or two electric field insertions.
-Since no generators were explicitly defined,
-following observable generation
-the \tt{build all} command will install a minimal default
-set of generators consisting, for Yang-Mills theory,
-of one and two plaquette generators and, for QCD theories, also
-one link fermion hopping terms.
-Using these generators, the \tt{build} command then
-performs the symbolic calculations needed to define the
+The \tt{build all} command then performs the symbolic calculations needed to define the
 gradient and curvature of the Hamiltonian (or free energy),
-Lagrange bracket (for Hamiltonian theories),
-and geodesic equations for all observables in the selected set.
+the Lagrange bracket (for Hamiltonian theories),
+and the geodesic equations for all observables in the selected set.
 Expressions for the curvature and Lagrange bracket are constructed
 in all irreducible representations of the lattice cubic symmetry group (times C).
 
-Given this information, the \tt{do lambda 10 1 1} command instructs
-the program to minimize the Hamiltonian (or free energy) with the lattice
-coupling $\lambda$ first set to 10, and then successively repeat
-this minimization as $\lambda$ is decreased in steps of 1 down to 1.
+Observable expectation values are initialized with their trivial values in the
+infinite coupling limit,
+so iterative Newton minimizations converge well when the lattice coupling
+is progressively decreased toward smaller values in suitably small steps;
+this is what the \tt{do lambda} command instructs the program to perform.%
+\footnote
+    {
+    The continuum limit of the lattice theory corresponds to sending $\lambda \to 0$.
+    }
 After each minimization, the program writes a
 human and Mathematica-readable results file.
 For Hamiltonian theories, the results file contains
@@ -344,9 +353,14 @@ observable expectation values for each value of $\lambda$.
 For Euclidean theories, the results file contains
 the minimized free energy and selected observable expectation values.
 
-Prior to the generation of symbolic expressions for the gradient, curvature,
-Lagrange bracket and geodesic equations, one may define additional
-generators (and their specified creation orders) with commands such as:
+If no conherence group generators are explicitly defined,
+the \tt{build all} command automatically installs a minimal default
+set of generators consisting, for Yang-Mills theory,
+of one and two plaquette generators and, for QCD theories, also
+one link fermion hopping terms.
+One may define
+(prior to the generation of symbolic expressions for the gradient, curvature, etc.)
+additional generators with commands such as:
 \begin{quote}
 \tt{generator add (2) xyXY}
 \\\tt{generator add (4) xxyXXY}
@@ -362,10 +376,11 @@ generators (and their specified creation orders) with commands such as:
 \\\tt{generator add (6) xyxyXYxYXyXY}
 \\\tt{generator add (6) xyxYxyXYXyXY}
 \end{quote}
-Here, \tt{x} and \tt{y} denote link variables in the $+x$ and $+y$
+The parenthesized numbers define the creation order of each generator,
+and \tt{x} and \tt{y} denote link variables in the $+x$ and $+y$
 lattice directions, while \tt{X} and \tt{Y} denote the corresponding
 inverse links.
-On a two dimensional lattice, the above commands define
+On a two dimensional lattice, the above commands serve to define
 the basic order 2 (one plaquette), 4 (two plaquette) and 6 (three plaquette)
 Wilson loop generators.
 With default settings, the program also installs corresponding generators 
@@ -374,18 +389,12 @@ generator with the gauge kinetic energy operator.
 Every generator is automatically projected onto all possible
 irreducible representations of the lattice cubic symmetry group (times C).
 
-Command words, as well as subsequent argument words
-other than explicit file, representation, or symmetry names,
-may be highly abbreviated;
-any initial matching sequence of one or more characters is sufficient
-to match the first consistent target word.
-For example, the above build command could be entered as just \tt{b all 20}.
-
-The initial \tt{set autosave true} command instructs the program to
+Adding an initial \tt{set autosave true} command instructs the program to
 save the symbolic information produced during the build phase in
-a \textit{sys-info} file, save the numerical observable expectation
+a \textit{sys-info} file, and save the numerical observable expectation
 values produced by the minimization phase (for each value of $\lambda$)
 in a \textit{vev-data} file.
+Alternatively, one may use explicit \tt{save sys} and \tt{save vev} commands.
 See below (under \tt{save sys} and \tt{save vev}) for details on the
 naming and placement of these output files.
 
@@ -404,6 +413,14 @@ and a vertical bar (\tt{|}) separates alternative arguments.
 A plus mark$^+$ after the command indicates the command is only
 applicable in Hamiltonian theories, while a double plus$^{++}$
 indicates applicability only for Euclidean theories.
+
+Command words, as well as subsequent argument words
+other than explicit file, representation, or symmetry names,
+may be highly abbreviated;
+any initial matching sequence of one or more characters is sufficient
+to match the first consistent target word.
+(For example, a single \tt{b} will match ``build'',
+while \tt{p obs *} will print all observables.)
 
 \begin{description}\advance\itemsep -1pt
 \item [\tt \# {\it anything}]~\\
@@ -1183,6 +1200,45 @@ L.~G.~Yaffe,
 \href{https://arxiv.org/abs/2601.20150}
 {arXiv:2601.20150 [hep-lat]}.
 %0 citations counted in INSPIRE as of 30 Jan 2026
+
+%\cite{Gross:1980he}
+\bibitem{Gross:1980he}
+D.~J.~Gross and E.~Witten,
+``Possible third order phase transition in the large $N$ lattice gauge theory,''
+\href{https://journals.aps.org/prd/abstract/10.1103/PhysRevD.21.446}
+{Phys.~Rev.~D \textbf{21}, 446--453 (1980)}.
+%955 citations counted in INSPIRE as of 01 Apr 2025
+
+%\cite{Wadia:1980cp}
+\bibitem{Wadia:1980cp}
+S.~R.~Wadia,
+``$N = \infty$ phase transition in a class of exactly soluble model lattice gauge theories,''
+\href{https://doi.org/10.1016/0370-2693(80)90353-6}
+{Phys.~Lett.~B \textbf{93}, 403--410 (1980)}.
+%290 citations counted in INSPIRE as of 01 Apr 2025
+
+%\cite{Jevicki:1980zq}
+\bibitem{Jevicki:1980zq}
+A.~Jevicki and B.~Sakita,
+``Loop space representation and the large $N$ behavior of the one plaquette {Kogut-Susskind} Hamiltonian,''
+\href{https://doi.org/10.1103/PhysRevD.22.467}
+{Phys.~Rev.~D \textbf{22}, 467 (1980)}.
+%100 citations counted in INSPIRE as of 04 Jun 2025
+
+%\cite{Neuberger:1980qh}
+\bibitem{Neuberger:1980qh}
+H.~Neuberger,
+``Nonperturbative contributions in models with a nonanalytic behavior at infinite $N$,''
+\href{https://doi.org/10.1016/0550-3213(81)90238-8}
+{Nucl.~Phys.~B \textbf{179}, 253-282 (1981)}.
+%41 citations counted in INSPIRE as of 04 Jun 2025
+
+%\cite{tHooft:1974pnl}
+\bibitem{tHooft:1974pnl}
+G.~'t Hooft,
+``A two-dimensional model for mesons,''
+\href{https://doi.org/10.1016/0550-3213(74)90088-1}
+{Nucl. Phys. B \textbf{75}, 461-470 (1974)}.
 
 \end{thebibliography}
 \end{document}
