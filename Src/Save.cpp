@@ -159,8 +159,7 @@ void Save::save_vev ()					// Save vev data
 
 string Save::find_file (const string& dir, const string& file)
     {
-    char c { file.front() } ;
-    if ((c == '/' || c == '/') && std::filesystem::exists (file))
+    if (file.find('/') != string::npos && std::filesystem::exists (file))
 	return std::move (file) ;
 
     string path { dir + file } ;
