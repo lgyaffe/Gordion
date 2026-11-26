@@ -272,7 +272,7 @@ bool Parse::parse_set (istringstream& line)		// Parse "set" commands
 	    if (word.back() != '/') word += '/' ;
 	    global.inputdir = word ;
 	    }
-	else if (isword(word,"maxnewt") && parse_args (line,i))
+	else if (isword(word,"maxnewton") && parse_args (line,i))
 	    {
 	    numerics.maxnewt = i ;
 	    }
@@ -1086,7 +1086,7 @@ set		<coupling>	<value>
 		gennorm		false | true
 		geoswap		false | true
 		inputdir	<directory>
-		maxnewt		<integer>
+		maxnewton	<integer>
 		maxode		<integer>
 		maxthread	<integer>
 		mintol		<value>
