@@ -160,7 +160,7 @@ For further details see Ref.~\cite{CSVAII}.
 
 The key steps comprising the coherent state variation algorithm
 \cite {CSVAII} are:
-\begin{enumerate}\advance\itemsep -4pt
+\begin{enumerate}\advance\itemsep -6pt
 \item
     Construction of a truncated finite set of observables 
     which will be retained and whose expectation values will be computed.
@@ -240,10 +240,10 @@ of a pre-defined target theory:%
 \footnote
     {%
     Additional target theories with other lattice periodicities and/or fermion
-    multiplicies may be easily defined by adding further cases in the source file
+    multiplicities may be easily defined by adding further cases in the source file
     \tt{Theory.h}.
     }
-\begin{description}\advance\itemsep -3pt
+\begin{description}\advance\itemsep -6pt
 \item [\tt {YM1e}]
     Euclidean Yang-Mills theory on a one-dimensional, period-one lattice,
     equivalent to the Euclidean one-plaquette model
@@ -271,17 +271,17 @@ of a pre-defined target theory:%
     (a lattice formulation of the 1+1 dimensional `t Hooft model
     \cite{tHooft:1974pnl});
 \item [\tt {QCD2e}]
-    Euclidean QCD with one species of fermion on an infinite two-dimesional lattice;
+    Euclidean QCD with one species of fermion on an infinite two-dimensional lattice;
 \item [\tt {QCD2h}]
-    Hamiltonian QCD with one species of fermion on an infinite two-dimesional 
+    Hamiltonian QCD with one species of fermion on an infinite two-dimensional 
     spatial lattice;
 \item [\tt {QCD3e}]
-    Euclidean QCD with one species of fermion on an infinite three-dimesional lattice;
+    Euclidean QCD with one species of fermion on an infinite three-dimensional lattice;
 \item [\tt {QCD3h}]
-    Hamiltonian QCD with one species of fermion on an infinite three-dimesional 
+    Hamiltonian QCD with one species of fermion on an infinite three-dimensional 
     spatial lattice;
 \item [\tt {QCD4e}]
-    Euclidean QCD with one species of fermion on an infinite four-dimesional lattice;
+    Euclidean QCD with one species of fermion on an infinite four-dimensional lattice;
 \item [\tt {YM3ep}]
     Euclidean Yang-Mills theory on a three-dimensional lattice
     which is infinite in two dimensions and period one in the third dimension;
@@ -289,9 +289,9 @@ of a pre-defined target theory:%
     Hamiltonian Yang-Mills theory on a three-dimensional spatial lattice
     which is infinite in two dimensions and period one in the third dimension.
 \end{description}
-
+%
 When the resulting executable \tt{gordion}-\textit{theory} is run, the program:
-\begin{enumerate}
+\begin{enumerate}\advance\itemsep -6pt
 \item
     First loads any previously saved system information
     (\textit{sys-info} or \tt{.sys}) or 
@@ -310,7 +310,7 @@ When the resulting executable \tt{gordion}-\textit{theory} is run, the program:
 \item
     Subsequently reads and executes commands from standard input.
 \end{enumerate}
-
+%
 The program implements a simple keyword-driven command line interpreter.
 Commands may be terminated by either a semicolon (\tt{;}) or end of line.
 The full set of recognized commands is listed in the following section.
@@ -336,33 +336,56 @@ and the geodesic equations for all observables in the selected set.
 Expressions for the curvature and Lagrange bracket are constructed
 in all irreducible representations of the lattice cubic symmetry group (times C).
 
-Observable expectation values are initialized with their trivial values in the
+Gauge theory expectation values are initialized with their trivial values in the
 infinite coupling limit,
 so iterative Newton minimizations converge well when the lattice coupling
 is progressively decreased toward smaller values in suitably small steps;
-this is what the \tt{do lambda} command instructs the program to perform.%
+this is what the \tt{do~lambda} command instructs the program to perform.%
 \footnote
     {
     The continuum limit of the lattice theory corresponds to sending $\lambda \to 0$.
     }
 After each minimization, the program writes a
-human and Mathematica-readable results file.
+human and Mathematica-readable results file (with extension \tt{.m}).
 For Hamiltonian theories, the results file contains
 the minimized energy, small oscillation frequencies, and selected
 observable expectation values for each value of $\lambda$. 
 For Euclidean theories, the results file contains
 the minimized free energy and selected observable expectation values.
 
-If no conherence group generators are explicitly defined,
+For QCD-like theories with fermions, one must perform the leading ($O(N^2)$) pure gauge
+minimization before computing sub-leading ($O(N)$) fermion contributions.
+Fermion bilinear expectation values are initialized with their trivial values in the
+large mass limit.
+Hence, to explore a variety of values of gauge coupling $\lambda$ and fermion mass $m$,
+a typical calculational sequence for a theory with fermions looks like:
+\begin{quote}
+  \tt{build all} \textit{max-gauge-order}
+\\\tt{set stage fermi}
+\\\tt{build all} \textit{max-fermi-order}
+\\\tt{do lambda} \textit{$\lambda_0$ $\lambda_1$ $\lambda$-increment}
+\\\tt{do mass} \textit{$m_0$ $m_1$ $m$-increment}
+\\\tt{do lambda} \textit{$\lambda_1$ $\lambda_2$ $\lambda$-increment}
+\\\tt{do mass} \textit{$m_0$ $m_1$ $m$-increment}
+\\\tt{do lambda} \textit{$\lambda_3$ $\lambda_3$ $\lambda$-increment}
+\\\tt{do mass} \textit{$m_0$ $m_1$ $m$-increment}
+\\\hspace*{0.8cm} $\vdots$
+\end{quote}
+for some relatively large values of $\lambda_0$ and $m_0$ (e.g., 10).
+Separate results files are written for the gauge information
+(with glueball masses in Hamiltonian theories)
+and fermion information
+(with meson masses in Hamiltonian theories).
+
+If no coherence group generators are explicitly defined,
 the \tt{build all} command automatically installs a minimal default
 set of generators consisting, for Yang-Mills theory,
-of one and two plaquette generators and, for QCD theories, also
+of one and two plaquette generators and, for QCD theories, 
 one link fermion hopping terms.
-One may define
-(prior to the generation of symbolic expressions for the gradient, curvature, etc.)
-additional generators with commands such as:
+Prior to the generation of symbolic expressions for the gradient, curvature, etc.,
+one may define additional generators with commands such as:
 \begin{quote}
-\tt{generator add (2) xyXY}
+  \tt{generator add (2) xyXY}
 \\\tt{generator add (4) xxyXXY}
 \\\tt{generator add (4) xyxYXyXY}
 \\\tt{generator add (4) xyXYxyXY}
@@ -376,18 +399,34 @@ additional generators with commands such as:
 \\\tt{generator add (6) xyxyXYxYXyXY}
 \\\tt{generator add (6) xyxYxyXYXyXY}
 \end{quote}
+or
+\begin{quote}
+  \tt{generator add (1) Fxf}
+\\\tt{generator add (2) Fxxf}
+\\\tt{generator add (2) Fxyf}
+\\\tt{generator add (3) Fxxxf}
+\\\tt{generator add (3) Fxxyf}
+\\\tt{generator add (3) Fxyxf}
+\\\tt{generator add (3) FxyXf}
+\end{quote}
 The parenthesized numbers define the creation order of each generator,
 and \tt{x} and \tt{y} denote link variables in the $+x$ and $+y$
-lattice directions, while \tt{X} and \tt{Y} denote the corresponding
-inverse links.
+lattice directions, \tt{X} and \tt{Y} denote the corresponding
+inverse links,
+and \tt{f} and \tt{F} denote a (fundamental representation) fermion
+and its conjugate.
 On a two dimensional lattice, the above commands serve to define
 the basic order 2 (one plaquette), 4 (two plaquette) and 6 (three plaquette)
-Wilson loop generators.
-With default settings, the program also installs corresponding generators 
-containing one electric field insertion, produced by commuting the Wilson loop
-generator with the gauge kinetic energy operator.
-Every generator is automatically projected onto all possible
+Wilson loop generators,
+along with
+order 1, 2 and 3 fermion hopping terms.
+Only one instance of a set of generators related by lattice symmetries need be defined;
+every generator is automatically projected onto all possible
 irreducible representations of the lattice cubic symmetry group (times C).
+With default settings, the program automatically installs corresponding gauge generators 
+containing one electric field insertion (produced by commuting the Wilson loop
+generator with the gauge kinetic energy operator) as well as both staggered
+and unstaggered versions of fermion generators.
 
 Adding an initial \tt{set autosave true} command instructs the program to
 save the symbolic information produced during the build phase in
@@ -398,9 +437,31 @@ Alternatively, one may use explicit \tt{save sys} and \tt{save vev} commands.
 See below (under \tt{save sys} and \tt{save vev}) for details on the
 naming and placement of these output files.
 
-[[geoswap \& big calculations]]
+On multicore systems, both the build and minimization phases will make use
+of multiple threads to parallelize observable generation, symbolic evaluation
+of geodesic equations, and the numerical evaluation of geodesic equations.
+This involves dividing the set of retained observables into multiple buckets
+of observables, with each thread processing the geodesic equations for
+a given bucket of observables.
+For large sets of observables (tens of millions or more) and numerous generators,
+it is quite possible for the storage required for the geodesic equations to
+exceed available system memory.
+In such cases,
+the bulk of the geodesic equation information may be swapped to
+external storage with only subsets corresponding to individual buckets of
+observables read into memory as needed.
+The command \tt{set geoswap true} instructs the program to use this strategy.
+During the build phase, the symbolic evaluation of geodesic equations is 
+sufficiently complex that the additional time needed to write the resulting
+information to disk is negligible.
+But during the minimization phase, 
+when the required polynomial information must be repeatedly read in batches
+from disk then the bandwidth for moving information from disk (even fast SSD's)
+often becomes a performance limiting step.
 
-[[fermions]]
+Further examples of command input files may be found on the
+\href{https://github.com/lgyaffe/Gordion/blob/main/input-examples}
+{Github repository}.
 
 \section {Command summary}\label{sec:commands}
 
@@ -410,7 +471,7 @@ In the following summary,
 \textit{italic} indicates user input,
 brackets (\tt{[]}) indicate optional arguments,
 and a vertical bar (\tt{|}) separates alternative arguments.
-A plus mark$^+$ after the command indicates the command is only
+A plus mark$^+$ after a command indicates the command is only
 applicable in Hamiltonian theories, while a double plus$^{++}$
 indicates applicability only for Euclidean theories.
 
@@ -445,11 +506,12 @@ while \tt{p obs *} will print all observables.)
     for all defined representations.
 \egroup
 
+\pagebreak[2]
 \item [\tt build equations \tt{[}{\it repname}\tt{]}] \bgroup\itemsep 0pt \parskip 0pt
 \item [\tt build equations all]~\\
     Build the polynomial scripts needed for evaluating the
     curvature and Lagrange bracket (for Hamiltonian theories)
-    in the current repersentation and, if the representation is fully symmetric,
+    in the current representation and, if the representation is fully symmetric,
     also the Hamiltonian or free energy, gradient, and geodesic equations.
     A specified representation becomes the current representation, while
     the final form builds the curvature and Lagrange bracket scripts
@@ -507,7 +569,7 @@ while \tt{p obs *} will print all observables.)
     from the given initial value to the final value in steps of the
     given increment, performing Newton minimization at each step
     and writing results including the value of the Hamiltonian (or free energy),
-    expectations of a selected subset of obseravbles and,
+    expectations of a selected subset of observables and,
     for Hamiltonian theories, the small oscillation spectrum in all defined
     symmetry channels to an output \tt{.m} results file.
 
@@ -579,7 +641,7 @@ while \tt{p obs *} will print all observables.)
     including the number of polynomial terms and their breakdown
     by monomial order for the gradient, curvature, Lagrange bracket
     (for Hamiltonian theories) and geodesic equations.
-    (Only relevant for debugging or verifying sys-info file integrity.)
+    (Only relevant for debugging or verifying \textit{sys-info} file integrity.)
 
 \item [\tt evaluate spectrum$^+$ \tt{[}{\it repname}\tt{]}] \bgroup\itemsep 0pt \parskip 0pt
 \item [\tt evaluate spectrum$^+$ all]~\\
@@ -604,7 +666,7 @@ while \tt{p obs *} will print all observables.)
     each optionally preceded by a numerical coefficient;
     this is interpreted as a weighted sum of the indicated \tt{Op}'s.
     The generator order must either be specified explicitly
-    as an initial parenthesized integer,
+    as an initial parenthesized integer
     or else the first given \tt{Op}, when canonicalized,
     must be a known observable.
     If multiple \tt{Op}'s are given and (when canonicalized)
@@ -627,25 +689,26 @@ while \tt{p obs *} will print all observables.)
 
 \item [\tt load {\it sys-info-file}] \bgroup \itemsep 0pt \parskip 0pt
 \item [\tt load \tt{[}{\it data-set\#}\tt{]} {\it vev-data-file}]~\\
-    Load information from a previously saved compatible sys-info or vev-data file.
-    If not specified, the default data set for vev-data files is the final one
-    in the file.
+    Load information from a previously saved compatible \textit{sys-info}
+    or \textit{vev-data} file.
+    If not specified, the default data set loaded from a \textit{vev-data} file
+    is the final one in the file.
     The theory type of the running program must match that of the specified file
     or, for QCD theories, match the parent Yang-Mills theory.
     The variable size (32 or 64 bit) used for observable indices and coefficients
     must also match.
-    For vev-data files, the hash code(s) of the observable set(s)
-    must match that of the corresponding sys-info file(s), and similarly
-    the hash code for gauge observables in a QCD sys-info file must match
-    that of the corresponding YM sys-info file.
-    For sys-info files, if the file size is larger than half of system memory,
+    For \textit{vev-data} files, the hash code(s) of the observable set(s)
+    must match that of the corresponding \textit{sys-info} file(s), and similarly
+    the hash code for gauge observables in a QCD \textit{sys-info} file must match
+    that of the corresponding YM \textit{sys-info} file.
+    For \textit{sys-info} files, if the file size is larger than half of system memory,
     the global \tt{geoswap} variable is set \tt{true} and the geodesic polynomial
     scripts are left on disk.
 \egroup
 
 \item [\tt load {\it data-set\#}] \bgroup \itemsep 0pt \parskip 0pt
 \item [\tt load {\it coupling-name} {\it coupling-value}]~\\
-    Load a specified data set from a currently open vev-data file.
+    Load a specified data set from a currently open \textit{vev-data} file.
     The first form uses the data-set number, as shown by the
     \tt{print vevindex} command.
     The second form compares the specified coupling value to the
@@ -847,13 +910,13 @@ while \tt{p obs *} will print all observables.)
     Print a table showing the contents of the system information index.
 
 \item [\tt print vevindex]~\\
-    Print a list of data sets in a currently open vev-data file.
+    Print a list of data sets in a currently open \textit{vev-data} file.
 
 \item [\tt print version]~\\
     Print the program version.
 
 \item [\tt purge observables]~\\
-    Write, if needed, sys-info file(s) containing all observable information
+    Write, if needed, \textit{sys-info} file(s) containing all observable information
     and then purge the master observable list, thereby freeing the memory
     which the list consumed.
     Any subsequent commands which require accessing the observable list will
@@ -898,12 +961,12 @@ while \tt{p obs *} will print all observables.)
 
 \item [\tt save sys]~\\
     Write system information for the current minimization stage
-    (gauge or fermion) to a binary \tt{.sys} file.
-    Sys-info files record the defined
+    (gauge or fermion) to a binary \textit{sys-info} file.
+    \textit{Sys-info} files record the defined
     operators, observables, generators, and the polynomial scripts
     defining gradient, curvature, Lagrange bracket and geodesic equations,
     plus build-related statistics counters for the current minimization stage.
-    Sys-info files are placed in theory-specific subdirectories
+    \textit{Sys-info} files are placed in theory-specific subdirectories
     (e.g., \tt{YM2e} or \tt{QCD2h})
     of the current save directory.
 
@@ -914,7 +977,7 @@ while \tt{p obs *} will print all observables.)
     a two-letter upper-case hash code of the gauge observable set.
     If observable approximation is turned on, an addition suffix
     staring with ``a'' is added to the file name.
-    For example, \tt{YM2h_4g20QQ.sys} indicates a sys-info file for
+    For example, \tt{YM2h_4g20QQ.sys} indicates a \textit{sys-info} file for
     two-dimensional Hamiltonian Yang-Mills with order 4 gauge
     generators and order 20 gauge observables.
 
@@ -924,21 +987,21 @@ while \tt{p obs *} will print all observables.)
     and the associated observable set hash codes,
     for both the gauge and fermions stages.
     For example, \tt{QCD2h_4g20QQ_3f10CY.sys} denotes a fermion 
-    sys-info file for two-dimensional Hamiltonian QCD with order 4 gauge
+    \textit{sys-info} file for two-dimensional Hamiltonian QCD with order 4 gauge
     generators and order 20 gauge observables together with
     order 3 generators and order 10 fermion observables,
     which is compatible with an associated \tt{YM2h_4g20QQ.sys}
     file of gauge information.
 
 \item [\tt save vev]~\\
-    Append to a binary \tt{.vev} data file the expectation
+    Append to a binary \textit{vev-data} file the expectation
     values of all defined observables for the current minimization stage
     and current values of all adjustable coupling constants for the current stage.
-    Multiple sets of such ``vev'' data may be present
-    in the same \tt{.vev} file.
-    The naming of vev-data files is identical to that of
-    sys-info files, but with \tt{.vev} extensions.
-    Vev-data files are placed, together with sys-info files,
+    Multiple sets of such data may be present
+    in the same \textit{vev-data} file.
+    The naming of \textit{vev-data} files is identical to that of
+    \textit{sys-info} files, but with \tt{.vev} extensions.
+    \textit{Vev-data} files are placed, together with \textit{sys-info} files,
     in theory-specific subdirectories of the current save directory.
 
 \item [\tt set {\it coupling-name coupling-value}]~\\
@@ -961,12 +1024,12 @@ while \tt{p obs *} will print all observables.)
     (default \tt{true}).
 
 \item [\tt set autosave false $\vert$ true]~\\
-    Specifies whether a sys-info file should automatically be
+    Specifies whether a \textit{sys-info} file should automatically be
     written during geodesic script
     construction, and if a data record recording
-    coupling values and observable vevs is automatically appended
-    to a vev-data file after every successful minimization
-    (default \tt{true}).
+    coupling and observable expectation values is automatically appended
+    to a \textit{vev-data} file after every successful minimization
+    (default \tt{false}).
 
 \item [\tt set blab {\it source-file verbosity-level}]~\\
     Sets the verbosity level for particular source files.
@@ -1006,11 +1069,12 @@ while \tt{p obs *} will print all observables.)
     also sets \tt{autosave} true.
 
 \item [\tt set inputdir {\it directory}]~\\
-    Specifies the direectory in which to find
-    command input files without full pathnames.
+    Specifies the base directory in which to look
+    for command input files which are named
+    without any directory specification
     (default \tt{./}).
 
-\item [\tt set maxnewt {\it integer}]~\\
+\item [\tt set maxnewton {\it integer}]~\\
     Specifies the maximum number of
     Newton iteration steps to allow
     during minimization
@@ -1020,28 +1084,36 @@ while \tt{p obs *} will print all observables.)
     Specifies the maximum number of
     ODE integration steps to allow
     during each geodesic equation integration
-    (default 1500).
+    (default 500).
 
 \item [\tt set maxthread {\it integer}]~\\
     Specifies the maximum number of
     threads to spawn during multi-threaded
     build or minimization stages.
     If zero (default), the number of threads is automatically
-    controlled by \textsl{TBB} threading library.
-    However, if \tt{geoswap} is set true, then
-    the number of threads in use may be limited
-    by a requirement that the per-thread I/O buffers not
+    controlled by the
+    \href{https://en.wikipedia.org/wiki/Threading_Building_Blocks}
+    {oneTBB threading library}.
+    When \tt{geoswap} is true, 
+    the number of threads in use during minimizations
+    may be independently limited
+    by a requirement that per-thread I/O buffers not
     consume more than half of total system memory.
 
 \item [\tt set mintol {\it value}]~\\
     Specifies the minimization convergence criterion
     (default $10^{-10}$ for 64-bit mode,
     $10^{-6}$ for 32-bit mode)).
+    This is compared with a norm of the
+    predicted minimum Riemann normal
+    coordinate vector.
 
 \item [\tt set odetol {\it value}]~\\
     Specifies the ODE error tolerance
     (default $10^{-10}$ for 64-bit mode,
     $10^{-6}$ for 32-bit mode)).
+    This is compared with a norm of an estimated
+    ODE error vector.
 
 \item [\tt set oknegeig false $\vert$ true]~\\
     Specifies whether the presence of negative
@@ -1057,8 +1129,8 @@ while \tt{p obs *} will print all observables.)
     Specifies the Runge-Kutta ODE integration method.
 
 \item [\tt set savedir {\it directory}]~\\
-    Specifies the directory in which to write
-    system information and expectation value data
+    Specifies the base directory in which to store
+    \textit{sys-info} and \textit{vev-data}
     files (default \tt{./save/}).
     Files are placed in (automatically created)
     theory-specific subdirectories of this directory.
@@ -1088,11 +1160,11 @@ while \tt{p obs *} will print all observables.)
     (default \tt{true}).
 
 \item [\tt set vevappend false $\vert$ true]~\\
-    When writing a vev-data file specifies if the output file,
-    if pre-existing, is to be opened in append mode
+    When writing to a pre-existing \textit{vev-data} file,
+    specifies if the output file is to be opened in append mode
     instead of being overwritten
     (default \tt{false}).  The setting applies to both
-    gauge and fermion stage vev-data files.
+    gauge and fermion stage \textit{vev-data} files.
 
 \item [\tt set xtraobs false $\vert$ true]~\\
     Specifies whether observables which are generated
@@ -1100,15 +1172,15 @@ while \tt{p obs *} will print all observables.)
     but not already present in the set of built observables,
     are to be added to the list of observables.
     Such observables are not fully classified as to their
-    creation and expectation orders.
+    creation and expectation orders
     (default \tt{false}).
 
 \item [\tt set MMAappend false $\vert$ true]~\\
-    Specifies whether the output results file,
+    Specifies whether the output \tt{.m} results file,
     if pre-existing, is to be opened in append mode
     instead of being overwritten
     (default \tt{false}).  The setting applies to both
-    gauge and fermion stage MMA results files.
+    gauge and fermion stage results files.
 
 \item [\tt set MMAdir {\it directory}]~\\
     Specifies the directory in which to
@@ -1119,8 +1191,8 @@ while \tt{p obs *} will print all observables.)
 
 \item [\tt set MMAobs {\it obs$_1$} \tt{[}{\it obs$_2$}\tt{ [...]]}]~\\
     Appends the listed observables to the subset of observables whose
-    expectation values are included in output written
-    to the numerical \tt{.m} results file.
+    numerical expectation values are included in output written
+    to the \tt{.m} results file.
     The default set of such observables are those appearing
     in the Hamiltonian or free energy.
 
@@ -1161,7 +1233,7 @@ while \tt{p obs *} will print all observables.)
 
 \end{description}
 
-%\newpage
+\pagebreak[2]
 
 \begin{thebibliography}{99}
 
