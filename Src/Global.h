@@ -8,11 +8,12 @@
 #include <atomic>
 
 inline constexpr int MAXBCKT = 256 ;		// Max # Obs buckets
+inline constexpr int NENTRY  = 5 + 3 * NREP + MAXBCKT + 1 ;
+
+using SysIndex = RecIndxArr<NENTRY> ;		// Sys-info file index
 
 struct SerialData				// Serialised stage data
     {
-    SerialData (SysIndex&) ;		// Constructor
-
     DataRec		op   ;		// Operators
     DataRec		obs  ;		// Observables
     DataArr<NREP>	gens ;		// Generators
@@ -22,24 +23,20 @@ struct SerialData				// Serialised stage data
     PolyArr<NREP>	lagr ;		// Lagrange bracket
     DataRec		stat ;		// Statistics counters
     PolyArr<MAXBCKT>	geos ;		// Geodesic equations
+
+    SerialData (SysIndex& indx)		// Constructor
+	:
+	op   { indx, RecordID::Op   },
+	obs  { indx, RecordID::Obs  },
+	gens { indx, RecordID::Gen  },
+	ham  { indx, RecordID::Ham  },
+	grad { indx, RecordID::Grad },
+	curv { indx, RecordID::Curv },
+	lagr { indx, RecordID::Lagr },
+	stat { indx, RecordID::Stat },
+	geos { indx, RecordID::Geos }
+	{}
     } ;
-
-inline constexpr int NENTRY = 5 + 3 * NREP + MAXBCKT + 1 ;
-
-class SysIndex : public RecIndxArr<NENTRY> {} ;	// Sys-info file index
-
-inline SerialData::SerialData (SysIndex& indx)	// SerialData constructor
-    :
-    op   { indx, RecordID::Op   },
-    obs  { indx, RecordID::Obs  },
-    gens { indx, RecordID::Gen  },
-    ham  { indx, RecordID::Ham  },
-    grad { indx, RecordID::Grad },
-    curv { indx, RecordID::Curv },
-    lagr { indx, RecordID::Lagr },
-    stat { indx, RecordID::Stat },
-    geos { indx, RecordID::Geos }
-    {}
 
 struct SaveFile					// Save file info
     {
@@ -84,7 +81,7 @@ class ObsInfo : public ObsList			// Canonical Obs info
     numb		nobsF ;			// shadows ObsList::nobsF
     ulong		hashG ;			// shadows ObsList::hashG
     ulong		hashF ;			// shadows ObsList::hashF
-    std::vector<numb2>	fermiinit ;		// Fermion -> Loop map
+    vector<numb2>	fermiinit ;		// Fermion -> Loop map
     bool		swapped {false};	// Swapped to disk?
 
     static inline thread_local bool	freeze {true} ;	// Freeze master list?
@@ -123,32 +120,16 @@ class Global					// Global data
     auto&	data	()	{ return stagedata[stage] ; }
     auto&	count	()	{ return info().count ; }
     numb	nobs	()	{ return stage ? obs.nobsF : obs.nobsG ; }
+    char	fg	()	const { return fg (this->stage) ; }
+    char	fg (int stage)	const { return stage ? 'f' : 'g' ; }
 
     void	close_streams (uint) ;		// Close output streams
     void	clearpolys    (uint) ;		// Clear polys
     void	stageinit     (uint) ;		// Stage initialization
     void	mk_bcktlist   ()    ;		// Make bucket list
     numb3	bckt_pos      (numb) ;		// Obs bucket position
-    char	fg (int stage)	const { return stage ? 'f' : 'g' ; }
-    char	fg ()		const { return fg (this->stage) ; }
     } ;
 
 inline Global global ;					// Global information
-
-inline DataRec::DataRec (SysIndex& indx, RecordID id)	// DataRec constructor
-    : indexref { indx.next() }
-    { entry().id = id ; }
-
-template <size_t N>					// DataArr constructor
-template <size_t... Is> constexpr
-inline DataArr<N>::DataArr (std::index_sequence<Is...>, SysIndex& indx, RecordID id)
-    : array<DataRec,N> { DataRec ( (static_cast<void>(Is), indx), id )... }
-    {}
-
-template <size_t N>					// PolyArr constructor
-template <size_t... Is> constexpr
-inline PolyArr<N>::PolyArr (std::index_sequence<Is...>, SysIndex& indx, RecordID id)
-    : array<PolyRec,N> { PolyRec ( (static_cast<void>(Is), indx), id )... }
-    {}
 
 #endif

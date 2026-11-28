@@ -1,8 +1,6 @@
 #ifndef GEN_H
 #define GEN_H
-#include "List.h"
 #include "Op.h"
-#include "Poly.h"
 
 class Proj ;
 
@@ -26,6 +24,7 @@ class Gen : public OpSum		// Coherence algebra generator
     void 	inner_commute	() ;		// Evaluate reduction
     void 	settype		(Op&) ;		// Set type
     void	normalize	(int) ;		// Normalize generator
+    bool	isnew		(int) const ;	// Dependency test
     bool	allzero		() const ;	// Vanishing Gen?
     ostream&	print   (ostream&) const ;	// Short print form
 
@@ -41,19 +40,18 @@ class Gen : public OpSum		// Coherence algebra generator
     static inline array<int,NREP> newgens ;	// # newly added gens
     static inline ObsList redu { "Reduction" }; // Reduction Obs
 
-    static bool	isnew	(int, const Gen&) ;	// Dependency test
+    static int	store	(Gen&&, int) ;		// Store generator
     static int	project	(const Op&) ;		// Project Op onto reps
     static int	project	(const OpSum&) ;	// Project Op sum
     static int	project	(const OpSum&&) ;	// Project Op sum
     static int	addgen	(const OpSum&) ;	// Add generator
-    static int	store	(Gen&&,   int) ;	// Store generator
-    static void	geninit		(uint) ;	// Initialization
     static void	suspend_group	(uint) ;	// Suspend gen group
     static void	activate_group	(uint) ;	// Activate gen group
     static void	suspend_gen	(uint) ;	// Suspend generator
     static void	activate_gen	(uint) ;	// Activate generator
     static void	activate_gen	() ;		// Activate generators
     static void	normalize	() ;		// Normalize all Gen's
+    static void	geninit		(uint) ;	// Initialization
 
     friend ostream& operator<< (ostream&, const Gen&) ;
     } ;

@@ -201,7 +201,7 @@ void Symm::symminit()				// Initialize symmetry group data
 			if (R & (0x1 << a)) CRname += linkname[a] ;
 			}
 		    }
-		trans.indx = indx ;
+		//trans.indx = indx ;
 		trans.name = CRname + Pname ;
 		if (trans.name == "") trans.name = "E" ;
 

@@ -157,7 +157,7 @@ int Gen::project (const OpSum&& s)		// Project onto all reps
 int Gen::store (Gen&& gen, int repnum)		// Valodate & store Gen
     {
     int added(0) ;
-    if (gen.size() && gen.valid() && isnew (repnum,gen))
+    if (gen.size() && gen.valid() && gen.isnew (repnum))
 	{
 	auto& info  { global.info(gen.is_Fermion()) } ;
 	auto& gens  { info.gens[repnum] } ;
@@ -184,9 +184,9 @@ int Gen::store (Gen&& gen, int repnum)		// Valodate & store Gen
     return added ;
     }
 
-bool Gen::isnew (int repnum, const Gen& b)		// New generator?
+bool Gen::isnew (int repnum) const			// New generator?
     {
-    bool	stage { b.is_Fermion() } ;
+    bool	stage { is_Fermion() } ;
     const auto& gens  { global.info(stage).gens[repnum] } ;
     uint	ngen  ( gens.size() ) ;
     int		maxop (-1) ;
@@ -197,7 +197,7 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
 	    if (maxop < 0 || s.item > maxop)
 		maxop = s.item ;
 	}
-    for (const auto& s : b)
+    for (const auto& s : *this)
 	{
 	if (maxop < 0 || s.item > maxop) return true ;
 	}
@@ -208,7 +208,7 @@ bool Gen::isnew (int repnum, const Gen& b)		// New generator?
 	{
 	for (const auto& s : gens[i]) genmtx(s.item,i) = s.coeff ;
 	}
-    for (const auto& s : b) genmtx(s.item,ngen) = s.coeff ;
+    for (const auto& s : *this) genmtx(s.item,ngen) = s.coeff ;
 
     return arma::rank (genmtx) == genmtx.n_cols ;
     }

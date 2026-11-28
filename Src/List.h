@@ -33,9 +33,9 @@ class List : protected vector<const T*>		// Indexed list of T*'s
     public:
     using const_iterator = typename std::vector<const T*>::const_iterator ;
 
-    const_iterator	cbegin() const noexcept
+    const_iterator	begin() const noexcept
 			    { return vector<const T*>::cbegin() ; }
-    const_iterator	cend() const noexcept
+    const_iterator	end() const noexcept
 			    { return vector<const T*>::cend() ; }
 
     auto	size() const				// List length

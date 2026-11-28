@@ -62,9 +62,9 @@ class Numerics
     const Cdvec& eval_spectra	(uint,bool=false) ;	// Evaluate spectrum
     const Cdvec& eval_spectra	(string,bool=false) ;	// Evaluate spectrum
 
-    bool	check_loops	() ;			// Loop vevs < 1?
     void	initialize	(uint=global.stage) ;	// Initialize & reset
     void	status_rpt	(uint,uint) ;		// Report status
+    bool	check_loops	() ;			// Loop vevs < 1?
     bool	open_MMA	() ;			// Open MMA output file
     void	write_data	() ;			// Write to MMA file
 
@@ -80,14 +80,13 @@ class Numerics
 	 { return termvalue (ptr, vev.memptr()) ; }
 
 #ifdef NUM64
-    static constexpr doub DFLTTOL { 1.e-10 } ;	// Default ODE tolerance
+    static inline doub	 dflttol { 1.e-10 } ;	// Default min & ODE tolerance
 #else
-    static constexpr doub DFLTTOL { 1.e-6 } ;	// Default ODE tolerance
+    static inline doub	 dflttol { 1.e-6 } ;	// Default min & ODE tolerance
 #endif
-    static inline doub	 svdcut  { 0 } ;	// Singular value cutoff
-    static inline doub	 dflttol { DFLTTOL } ;	// Default min & ODE tolerance
     static inline doub	 mintol  { dflttol } ;	// Minimiization tolerance
     static inline doub	 odetol  { dflttol } ;	// ODE integration tolerance
+    static inline doub	 svdcut  { 0 } ;	// Singular value cutoff
     static inline Status status ;		// Status info
 
     static bool		check_curv (const Dmtx&) ;	// Curvature OK?

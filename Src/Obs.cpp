@@ -235,8 +235,8 @@ ObsStats::ObsStats (const ObsList& list)		 // Construct ObsStats
     ulong	lengthsum (0) ;
     auto&	vevs { numerics.vev  } ;
     auto	nvev { vevs.size()   } ;
-    auto 	beg  { list.cbegin() } ;
-    auto 	end  { list.cend()   } ;
+    auto 	beg  { list.begin() } ;
+    auto 	end  { list.end()   } ;
 
     for (auto ptr { beg } ; ptr < end ; ++ptr)
 	{
@@ -486,6 +486,8 @@ void ObsList::retain (const Obs& o)			// Retain for later insertion
 
 void ObsList::ondisk ()			// Leave global.obs on disk
     {
+    if (this != &global.obs) abort ("Bad call to ObsList::ondisk") ;
+
     auto stage	{ global.stage } ;
 
     if (size() > 1) cout << "Swapping " << name << " Obs list to disk\n" ;

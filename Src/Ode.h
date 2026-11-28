@@ -30,13 +30,13 @@ class Ode : public RKdef			// Runge-Kutta ODE integrator
     uint		rejects      = 0 ;		// # rejceted steps
     uint		maxstep ;			// Max # steps
 
-    bool		integrate (doub&, doub, Rvec&) ;	// Integrator
+    bool		integrate (doub&, doub, Rvec&); // Integrator
 
     Ode (OdeRhs rhsfunc, OdeNorm normfunc, doub& tol, const RKdef& rk, uint max=dfltmax)
 	: rhs(rhsfunc), norm(normfunc), tolerance(tol), RKdef(rk), maxstep(max) {} ;
 
     static inline OdeStats stats ;
-    static constexpr int   dfltmax = 500 ;	// Default max steps
+    static constexpr int   dfltmax = 500 ;		// Default max steps
     } ;
 
 #endif

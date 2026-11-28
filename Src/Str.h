@@ -14,16 +14,15 @@ class Str : public string				// Symbol string
     Str	(const_iterator p,const_iterator q) : string(p,q) {}
     Str	(const string& s) ;
 
-    string	print (const_iterator, const_iterator) const ;
-    string	print    () const ;			// Printable version
     int		join     (symb) ;			// Append Symb
     int		join     (const_iterator, const_iterator) ; // Append
-
     int		joinends (Str::iterator, Str::iterator) noexcept ;
+    Str&	joinends () { resize (joinends (begin(), end())) ; return *this ; }
     void	excise   (Str::iterator, Str::iterator) noexcept ;	
     bool	isclosed (const_iterator, const_iterator) const noexcept ;
     bool	isclosed () const { return isclosed (cbegin(), cend()) ; }
-    Str&	joinends () { resize (joinends (begin(), end())) ; return *this ; }
+    string	print	 (const_iterator, const_iterator) const ;
+    string	print    () const ;
 
 #ifdef DELPHI
     bool	alllinks () const ;			// No specials?

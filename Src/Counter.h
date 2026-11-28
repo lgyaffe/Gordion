@@ -1,6 +1,5 @@
 #ifndef COUNTER_H
 #define COUNTER_H
-#include "Types.h"
 #include "Poly.h"
 #include <atomic>
 #ifdef DELPHI
@@ -25,9 +24,7 @@ class alignas (cachelinelen) Counter		// Cache line aligned counter
 	{ return stream << c.x ; }
     } ;
 
-using CountArr = array<Counter,PSIZ+3> ;	// Array of Counter's
-
-class PolyStats : public CountArr		// Polynomial statistics
+class PolyStats : public array<Counter,PSIZ+3>	// Polynomial statistics
     {
     public:
     PolyStats& operator=(const array<ulong,PSIZ+3>& v)

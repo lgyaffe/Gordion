@@ -6,7 +6,7 @@ AdjTerm::AdjTerm ()				// Default constructor
     {}
 
 AdjTerm::AdjTerm (Coeff& c, ObsPoly& p, bool img)	// Construct
-    : coeff (c), imag  (img), poly  (p)
+    : coeff (c), imag (img), poly (p)
     {}
 
 uint Coupling::ncoup ()				// # couplings for stage

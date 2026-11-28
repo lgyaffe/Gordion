@@ -2,9 +2,9 @@
 #define SYMB_H
 #include "Types.h"
 #include "Theory.h"
-#include <numeric>
+#include <numeric>		// for std::iota
 
-namespace Symb					// Symbol namespace
+namespace Symb			// Symbol namespace
     {
     // Symbol code bits:
     //   0,1:   link direction or fermion type & flavor
@@ -55,8 +55,8 @@ namespace Symb					// Symbol namespace
     inline bool isEElink (symb c)	{ return type(c) == 4 ; }
     inline bool isferm	 (symb c)	{ return type(c) == 5 ; }
     inline bool	nonlink	 (symb c)	{ return type(c) != 0 ; }
-    inline bool isxtra	 (symb c)	{ return type(c) >  5 ; }
     inline bool	nongauge (symb c)	{ return type(c) >  4 ; }
+    inline bool isxtra	 (symb c)	{ return type(c) >  5 ; }
     inline bool	inclE	 (symb c)	{ return type(c)  > 0 &&
     						 type(c)  < 5 ; }
 
@@ -164,6 +164,7 @@ namespace Symb					// Symbol namespace
 	std::iota (tmp.begin(), tmp.end(), 0) ;
 	return tmp ;
 	}
+
     inline const auto symblist { countup() } ;		// Symbol list
     } ;
 

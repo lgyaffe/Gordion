@@ -62,7 +62,6 @@ class Obs : public Str				// Obs = Str + meta-info
     int		findstart () noexcept ;			// Rotate to start
     short	middleE	  () const ;			// Return mid-E loc
     bool	Esublat	  () const ; 			// E sublattice?
-    void	validate  () const ;			// Validate
     SiteVec&	sitelist  () const ;			// Sort site coords
     int		trans (const Symm&, int) noexcept ;	// Symmetry transform
 
@@ -133,10 +132,13 @@ class Obs : public Str				// Obs = Str + meta-info
 	} ;
 
     friend ostream& operator<< (ostream&, const Obs&) ;
+    friend ObsList ;
+
+    private:
+    void	validate  () const ;			// Validate
     } ;
 
-class ObsBag : public unordered_set<Obs,Strhash,Str_eq>	// Bag of Obs
-    {} ;
+using ObsBag = unordered_set<Obs,Strhash,Str_eq> ;	// Bag of Obs
 
 class ObsSubset : public std::map<Obs,numb>		// Obs subset
     {
@@ -151,6 +153,11 @@ class ObsSubset : public std::map<Obs,numb>		// Obs subset
 class ObsStats : public array<vector<vector<ulong>>,nobstype>	// Obs statistics
     {
     public:
+    short maxc = 0 ;
+    short maxx = 0 ;
+    float avglen ;
+    numb  maxloop ;
+
     ObsStats (const ObsList&) ;
 
     numb get(int t, int c, int x) const		// given type, corder, xorder
@@ -184,10 +191,6 @@ class ObsStats : public array<vector<vector<ulong>>,nobstype>	// Obs statistics
 	    }
 	return 0 ;
 	}
-    short maxc = 0 ;
-    short maxx = 0 ;
-    float avglen ;
-    numb  maxloop ;
     } ;
 
 class ObsList: public List<Obs>			// Indexed list of Obs's
@@ -204,43 +207,39 @@ class ObsList: public List<Obs>			// Indexed list of Obs's
 
     ObsList (const string, bool=false, bool=false) ;	// Constructor
 
-    using vector::const_iterator ;		// Base const_iterator
-    const_iterator begin() const { return vector::cbegin() ; }
-    const_iterator end()   const { return vector::cend()   ; }
-
-    void	obsinit	(uint) ;		// Load basic Obs
-    ostream&	print	(ostream&, numb) const ;// Print Obs
-    ostream&	print	(ostream&) const ;	// Print list
-    bool	neq (const ObsList& l) const { return this != &l ; }
-
     numb	store	 (const Obs&) ;		// Store in list
     void	purge	 (numb) ;		// Purge entries
     void	clear	 () ;			// Clear list
+    void	ondisk   () ;			// Swap list to disk
     void	rehash	 () ;			// Recalculate hashes
     void	hasher	 (ulong&,const Obs&) const ; // List hasher
-    PolyTerm	catalog  (Obs) ;		// Catalog Obs
-    PolyTerm	catalog  (Obs, Obs) ;		// Catalog Obs
-    PolyTerm	is_known (Obs&&) const ;	// Find in list
-    PolyTerm	is_known (Obs&&, Obs&&) const ;	// Find in list
-
-    numb&  nobs	(int stage) { return stage ? nobsF : nobsG ; }
-    ulong& hash	(int stage) { return stage ? hashF : hashG ; }
-
-    PolyTerm	is_known (Obs&) const ;		// Find in list
-    PolyTerm	assess   (Obs&) ;		// Store, approx or discard?
-    numb	find (const Str&) const ;	// Find Obs, return index
-    void	ondisk	 () ;			// Leave ObsList on disk
     bool	frozen   () const ;		// Frozen master list?
     bool	freezeif () const ;		// Freeze if master list
     void	refreezeif (bool) const ;	// Reset freeze if master list
+
+    PolyTerm	assess   (Obs&) ;		// Store, approx or discard?
+    PolyTerm	catalog  (Obs) ;		// Catalog Obs
+    PolyTerm	catalog  (Obs, Obs) ;		// Catalog Obs
+    PolyTerm	is_known (Obs&) const ;		// Find in list
+    PolyTerm	is_known (Obs&&) const ;	// Find in list
+    PolyTerm	is_known (Obs&&, Obs&&) const ;	// Find in list
+    numb	find     (const Str&) const ;	// Find Obs, return index
     int		do_fermiinit () ;		// Load Fermion -> Loop map
+    void	obsinit	(uint) ;		// Load basic Obs
+
+    bool	neq (const ObsList& l) const { return this != &l ; }
+    numb&  	nobs (int stage) { return stage ? nobsF : nobsG ; }
+    ulong& 	hash (int stage) { return stage ? hashF : hashG ; }
+    auto	shrink()	 { return shrink_to_fit() ; }
 
     void	insert	(ObsBag& set)		// Merge new Obs set
 		    {
 		    reserve (size() + set.size()) ;
 		    for (const auto& obs : set) store (obs) ;
 		    }
-    auto	shrink() { return shrink_to_fit() ; } // Shrink
+
+    ostream&	print	(ostream&, numb) const ;// Print Obs
+    ostream&	print	(ostream&) const ;	// Print list
 
     static void	retain (const Obs&) ;		// Retain for later insertion
     } ;

@@ -34,7 +34,6 @@ using std::setprecision ;
 using std::pair ;			// STL classes, etc.
 using std::list ;
 using std::span ;
-using std::tuple ;
 using std::array ;
 using std::string ;
 using std::string_view ;

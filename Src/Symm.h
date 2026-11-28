@@ -35,7 +35,7 @@ class Symm						// Symmetry transformation
     array<symb,Nsymb>		map ;			// Symb transform map
     std::bitset<Nsymb+1>	sgn ;			// Symb sign flips
     string			name ;			// Symmetry name
-    int				indx = -1 ;		// Symmetry number
+    //int				indx = -1 ;		// Symmetry number
 
     Symm() : map (Symb::symblist) {}			// default constructor
 
@@ -53,8 +53,8 @@ class Symm						// Symmetry transformation
 #endif
 
     static void		 symminit  () ;			// Initialize symmetries
-    static SymmTerm	 known	  (const string&&) ;	// Return named Symm
     static uint		 knownindx (const string&&) ;	// Return named Symm index
+    static SymmTerm	 known	   (const string&&) ;	// Return named Symm
 
     friend ostream& operator<< (ostream&, const Symm&) ;
     } ;

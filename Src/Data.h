@@ -2,7 +2,7 @@
 #define DATA_H
 #include "Types.h"
 #include "Gripe.h"
-#include <functional>
+#include <functional>		// for std::reference_wrapper
 
 #ifdef NUM64
 using uqutr = ushort ;		// quarter size unsigned int
@@ -142,14 +142,15 @@ class RecIndxArr : public array<RecIndx,N>	// RecIndx array
 	}
     } ;
 
-class SysIndex ;
-
 class DataRec : public vector<Element>		// Data record
     {
     public:
     std::reference_wrapper<RecIndx> indexref ;	// Data index entry
 
-    DataRec (SysIndex&, RecordID) ;		// Constructor
+    template <size_t M>
+    DataRec (RecIndxArr<M>& indx, RecordID id)	// Constructor
+	: indexref { indx.next() }
+	{ entry().id = id ; }
 
     RecIndx& entry() const { return indexref ;} // Return index entry
 
@@ -197,12 +198,15 @@ template <size_t N>
 class DataArr : public array<DataRec,N>			// Array of DataRec's
     {
     public:
-    DataArr (SysIndex& indx, RecordID id)		// Public constructor
+    template <size_t M>
+    DataArr (RecIndxArr<M>& indx, RecordID id)		// Public constructor
 	: DataArr (std::make_index_sequence<N>{}, indx, id) {}
 
     private:
-    template <size_t... Is> constexpr			// Private constructor
-    DataArr (std::index_sequence<Is...>, SysIndex&, RecordID) ;
+    template <size_t... Is, size_t M> constexpr		// Private constructor
+    DataArr (std::index_sequence<Is...>, RecIndxArr<M>& indx, RecordID id)
+	: array<DataRec,N> { DataRec ( (static_cast<void>(Is), indx), id )... }
+	{}
     } ;
 
 #endif

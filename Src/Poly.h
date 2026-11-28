@@ -4,13 +4,10 @@
 #include "Hash.h"
 #include "Term.h"
 #include "Theory.h"
-#include <functional>
-#include <utility>
+#include <functional>		// for std::reference_wrapper
 
 class Gen ;
 class ObsList  ;
-class PolyElem ;
-class SysIndex ;
 
 #ifdef DELPHI
 inline constexpr int PSIZ = theory.euclid ? 2 : 3 ;	// Polyterm order
@@ -92,25 +89,7 @@ class PolyMap : public hash<PolyIndx,real,Indxhash<PSIZ>> // Observable polynomi
     friend ostream& operator<< (ostream&, const PolyMap&) ;
     } ;
 
-class ObsPoly : public vector<PolyTerm>			// Polynomial of Obs
-    {
-    std::reference_wrapper<ObsList> list ;		// Observable list
-
-    public:
-    void	sort() ;				// Sort terms
-    void	push_map (PolyMap&) ;			// PolyMap -> ObsPoly
-    ObsPoly&	negate() ; 				// Negate poly
-    ObsList&	obslist() const { return list ; }	// Underlying ObsList
-
-    ObsPoly (ObsList&, const PolyElem&) ;		// Constructor
-    ObsPoly (ObsList& l) : list(l) {}			// Constructor
-    ObsPoly (ObsList& l, numb indx)			// Constructor
-	    : list(l), vector<PolyTerm>(1, PolyTerm(indx)) {}
-
-    friend ostream& operator<< (ostream&, const ObsPoly&) ;
-    } ;
-
-class PolyElem : public Element			// Packed ObsPoly element
+class PolyElem : public Element			// Packed PolyRec element
     {
     public:
     const PolyElem* begin() const { return this + 1 ; }
@@ -132,6 +111,24 @@ class PolyElem : public Element			// Packed ObsPoly element
     } ;
 
 static_assert (sizeof(PolyElem) == sizeof(numb)) ;
+
+class ObsPoly : public vector<PolyTerm>			// Polynomial of Obs
+    {
+    std::reference_wrapper<ObsList> list ;		// Observable list
+
+    public:
+    ObsList&	obslist() const { return list ; }	// Underlying ObsList
+    void	sort() ;				// Sort terms
+    ObsPoly&	negate() ; 				// Negate poly
+    void	push_map (PolyMap&) ;			// PolyMap -> ObsPoly
+
+    ObsPoly (ObsList&, const PolyElem&) ;		// Constructor
+    ObsPoly (ObsList& l) : list(l) {}			// Constructor
+    ObsPoly (ObsList& l, numb indx)			// Constructor
+	    : list(l), vector<PolyTerm>(1, PolyTerm(indx)) {}
+
+    friend ostream& operator<< (ostream&, const ObsPoly&) ;
+    } ;
 
 class PolyRec : public DataRec				// Polynomial data record
     {
@@ -159,10 +156,9 @@ class PolyRec : public DataRec				// Polynomial data record
 	{
 	auto n { entry().items() } ;
 	long m ( n ) ;
-if (entry().reclen != size())
-    {
-    gripe (format("Corrupted data block: reclen {}, size {}", entry().reclen, size())) ;
-    }
+	if (entry().reclen != size())
+	    abort (format("Corrupted data block: reclen {}, size {}",
+	    entry().reclen, size())) ;
 
 	offset.reserve (n) ;
 	for (const auto& poly : *this)
@@ -195,12 +191,15 @@ template <size_t N>
 class PolyArr : public array<PolyRec,N>			// Array of PolyRec's
     {
     public:
-    PolyArr (SysIndex& indx, RecordID id)		// Public constructor
+    template <size_t M>
+    PolyArr (RecIndxArr<M>& indx, RecordID id)		// Public constructor
 	: PolyArr (std::make_index_sequence<N>{}, indx, id) {}
 
     private:
-    template <size_t... Is> constexpr			// Private constructor
-    PolyArr (std::index_sequence<Is...>, SysIndex&, RecordID) ;
+    template <size_t... Is, size_t M> constexpr		// Private constructor
+    PolyArr (std::index_sequence<Is...>, RecIndxArr<M>& indx, RecordID id)
+	: array<PolyRec,N> { PolyRec ( (static_cast<void>(Is), indx), id )... }
+	{}
     } ;
 
 #endif

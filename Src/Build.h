@@ -1,6 +1,6 @@
 #ifndef BUILD_H
 #define BUILD_H
-#include "Op.h"
+#include "Types.h"
 
 class Gen ;
 class PolyMap ;

@@ -1,7 +1,6 @@
 #ifndef LINALG
 #define LINALG
 #include "Types.h"
-
 #define ARMA_WARN_LEVEL 1
 #include <armadillo>
 
@@ -12,10 +11,12 @@ using Cdvec  = arma::Col<dcmplx>  ;
 using Dmtx   = arma::Mat<doub>    ;
 using Cdmtx  = arma::Mat<dcmplx>  ;
 
+#ifdef DELPHI
 using Cvec   = arma::Col<cmplx>   ;
 using Crow   = arma::Row<cmplx>   ;
 using Cmtx   = arma::Mat<cmplx>   ;
 using Blkmtx = arma::Cube<cmplx>  ;
+#endif
 
 inline constexpr auto nofill   { arma::fill::none } ;
 inline constexpr auto onefill  { arma::fill::ones } ;

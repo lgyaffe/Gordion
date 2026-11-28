@@ -17,19 +17,18 @@ class Version				// Gordion program version
     bool	arith () const { return (version &  1) ; }
 
     public:
-    bool incompat () const { return arith() != r_is_f ; }
-    bool newer	  () const { return (version >> 1) > (mkversion >> 1) ; }
-
-    friend ostream& operator<< (ostream& stream, const Version v)
-	{
-	stream << v.major() << "." << v.minor() << "." << 8 * v.rsize() ;
-	return stream ;
-	}
-    string print() const
+    bool	incompat () const { return arith() != r_is_f ; }
+    bool	newer	 () const { return (version >> 1) > (mkversion >> 1) ; }
+    string	print	 () const
 	{
 	std::stringstream buf ;
 	buf << *this ;
 	return string { buf.str() } ;
+	}
+    friend ostream& operator<< (ostream& stream, const Version v)
+	{
+	stream << v.major() << "." << v.minor() << "." << 8 * v.rsize() ;
+	return stream ;
 	}
     } ;
 

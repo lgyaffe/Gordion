@@ -1,8 +1,7 @@
 #ifndef RK_H
 #define RK_H
-#include <limits>
-#include <cstring>
 #include <array>
+#include <cstring>
 
 class RKdef				// embedded Runge-Kutta method
     {
