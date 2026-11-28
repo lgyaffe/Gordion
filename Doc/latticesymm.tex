@@ -1,0 +1,1276 @@
+%&pdflatex
+\documentclass [12pt]{article}
+\usepackage{authblk}
+\usepackage{silence}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{wasysym}
+\usepackage{hhline}
+\usepackage{cite}
+\usepackage{tocloft}
+\usepackage[plainpages=false,pdfpagelabels]{hyperref}
+\usepackage[nottoc]{tocbibind}
+
+\WarningFilter{latexfont}{Font shape `U/wasy/b/n'}
+\WarningFilter{latexfont}{Font shape `OMS/cmtt/m/n'}
+\WarningFilter{latexfont}{Font shape `OMS/cmtt/bx/n'}
+
+\setlength{\topmargin}{-2cm}
+\setlength{\oddsidemargin}{0cm}
+\setlength{\textheight}{23cm}
+\setlength{\textwidth}{16cm}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1.2pt}
+\setlength{\cftparskip}{-2pt} % paragraph spacing across entries
+
+\makeatletter
+\newcommand{\tr}{\mathop{\mathrm{tr}}}
+\makeatother
+
+\title
+    {
+    Lattice Gauge Theory Symmetries
+    \vspace*{-8pt}
+    }
+\date	{\small\today\vspace*{-30pt}}
+\author	{Laurence G.~Yaffe}
+\affil{%
+    \small
+    Department of Physics, University of Washington, Seattle WA 98195, USA
+    \vspace*{-12pt}
+    }%
+\pagenumbering{roman}
+\begin {document}
+\maketitle
+\tableofcontents
+\setlength{\parskip}{5pt plus 2pt minus 1pt}
+\pagenumbering{arabic}
+
+\section{Introduction}
+
+This note describes, in detail, the action of lattice gauge theory symmetries
+acting on both the fundamental fields and on basic observables,
+for theories, either Hamiltonian or Euclidean, defined on a simple cubic lattice.
+Theories in Hamiltonian form are discussed first, followed by 
+Euclidean theories.
+This material expands on the presentation in Ref.~\cite{CSVAII}
+(and corrects a few misprints).
+
+Lattice Hamiltonians under consideration are the sum of
+gauge and fermion pieces,
+$
+    H = H_{\rm gauge} + H_{\rm fermi}
+$,
+with the gauge Hamiltonian having the standard Kogut-Susskind form:
+\begin{align}
+    H_{\rm gauge}/N
+    &=
+    \tfrac 14 \lambda \sum_\ell \> \tr \, (E_\ell^2)
+    + \lambda^{-1} \sum_p \> \tr\, (2 - U[\partial p] - U[\partial p]^\dagger) \,,
+\label{eq:Hgauge}
+\end{align}
+where the sums run over all positively oriented links ($\ell$) and plaquettes ($p$).
+The fermion discretization considered is the simplest staggered fermion formulation,
+for which a single flavor fermion Hamiltonian takes the form:
+\begin{align}
+    H_{\rm fermi}
+    &=
+    \tfrac 12 \sum_{\langle xy \rangle} \>
+    \psi^\dagger_x \, U_{\langle xy \rangle} \, \eta_{\langle xy \rangle} \, \psi_y
+    + m \sum_x \> \sigma_x \, \psi^\dagger_x \, \psi_x \,,
+\label{eq:Hfermi}
+\end{align}
+with the first sum running over all nearest-neighbor pairs of sites
+(so that $\langle xy \rangle$ may be either a forward or backward directed link).
+The ``staggering factor'' $\sigma_x$ appearing in the mass term is defined to equal
+$+1$ on the even sublattice (i.e., sites displaced from the origin by an even
+number of unit lattice translations), and $-1$ on the odd sublattice.%
+\footnote
+    {%
+    The length of any compactified dimension must be even
+    for the distinction between sublattices to be meaningful,
+    and hence for the mass term to be well-defined.
+    }
+
+The ``flavor connection'' $\eta_{\langle xy \rangle}$ is a non-dynamical U$(1)$ connection
+whose product around every plaquette equals minus one,
+$\eta[\partial p] \equiv -1$;
+this condition ensures recovery of the Dirac equation in the continuum limit.
+This flavor connection may be chosen to be pure imaginary, and this is assumed
+in the following.%
+\footnote
+    {%
+    A standard form for the flavor connection is
+    $
+	\eta_{\langle xy \rangle} = i \prod_{\nu < \mu} (-1)^{x_\nu}
+    $
+    for a link $\langle xy \rangle$ running in the $+\mu$ direction
+    starting at site $x$ with coordinates $\{ x_\mu \}$.
+    But no such specific choice is ever needed.
+    }
+Fermion bilinears are most naturally defined with
+the gauge connection and flavor connection appearing together,
+so it is convenient to define the product
+\begin{align}
+    \hat U[\Gamma] \equiv U[\Gamma] \, \eta[\Gamma]
+\label {eq:fermconnection}
+\end{align}
+as the fermion connection for any lattice path $\Gamma$.
+
+\section  {Cubic lattice symmetries}\label{sec:Cubic}
+
+Let $\Theta$ denote a cubic lattice symmetry
+(some combination of discrete translations, rotations and/or reflections)
+which maps sites to sites, $x \to \theta x$
+and links to links, $\alpha \to \theta \alpha$.
+The gauge fields (in a Hamiltonian formulation)
+transform as:
+\begin{align}
+    (U_\alpha)_{ij} \xrightarrow{\Theta} (U_{\theta \alpha})_{ij} \,,
+\qquad
+    (E_\alpha)_{ij} \xrightarrow{\Theta} (E_{\theta \alpha})_{ij} \,.
+\label{eq:thetagauge}
+\end{align}
+If a link $\alpha$ (or its transform) is backwards directed, so that $\alpha = \bar\ell$
+for some forward directed link $\ell$, then
+\begin{align}
+    (U_{\bar\ell})_{ij} \equiv (U_\ell^\dagger)_{ij} = (U_\ell)_{ji}^* \,,
+\qquad
+    (E_{\bar\ell})_{ij} \equiv -(U_{\bar\ell} \, E_\ell \, U_\ell)_{ij} \,.
+\end{align}
+Due to the U(1) fermion flavor connection
+appearing in the Hamiltonian (or action)
+the transformation of fermion operators must include
+a flavor connection running from the initial site to the transformed site,
+\begin{align}
+    \psi_x \xrightarrow{\Theta}
+    \eta[\Gamma_{x,\theta x}] \> \psi_{\theta x} \,.
+\label{eq:thetafermi}
+\end{align}
+The particular path $\Gamma_{x,\theta x}$ associated
+with a lattice symmetry $\Theta$ is constructed by designating
+(arbitrarily) some site $o$ as the origin,
+choosing some path $\Gamma_{x,o}$ connecting site $x$ to the origin,
+and choosing a path
+$\Gamma_{o,\theta o}$ connecting the origin to its transform
+under the lattice symmetry in question.
+Then the complete flavor connection path is given by
+\begin{equation}
+    \Gamma_{x,\theta x} \equiv
+    \Gamma_{x,o} \, \Gamma_{o,\theta o} \, (\overline{\theta\Gamma})_{\theta o,\theta x} \,,
+\end{equation}
+where $(\overline{\theta \Gamma})_{\theta o,\theta x}$ denotes the transformed, reversed
+path which runs from $\theta o$ to $\theta x$.
+This definition leaves the fermion hopping term invariant:
+\begin{align}
+    \tfrac 12 \sum_{\langle xy \rangle}
+	\psi_x^\dagger \,
+	\eta_{\langle xy \rangle} \,
+	U_{\langle xy \rangle} \,
+	\psi_y
+    &\to
+    \tfrac 12 \sum_{\langle \theta x \> \theta y \rangle}
+	\psi_{\theta x}^\dagger \,
+	\eta[\Gamma_{x,\theta x}]^\dagger \,
+	\eta_{\langle xy \rangle} \,
+	\eta[\Gamma_{y,\theta y}] \,
+	U_{\langle \theta x \, \theta y \rangle} \,
+	\psi_{\theta y}
+    \nonumber\\ &=
+    \tfrac 12 \sum_{\langle \theta x \> \theta y \rangle}
+	\psi_{\theta x}^\dagger \,
+	\eta_{\langle \theta x \> \theta y \rangle} \,
+	U_{\langle \theta x \> \theta y \rangle} \, \psi_{\theta y}
+    %\nonumber\\ &=
+    =
+    \tfrac 12 \sum_{\langle xy \rangle}
+	\psi_x^\dagger \,
+	\eta_{\langle xy \rangle} \,
+	U_{\langle xy \rangle} \,
+	\psi_y \,.
+\end{align}
+
+    To see this, note that
+    \begin{align}
+	    &\eta_{\langle \theta x \> \theta y \rangle}{}^\dagger \,
+	    \eta[\Gamma_{x,\theta x}]^\dagger \,
+	    \eta_{\langle xy \rangle} \,
+	    \eta[\Gamma_{y,\theta y}]
+	\nonumber\\ &\qquad {} =
+	    \eta_{\langle \theta x \> \theta y \rangle}{}^\dagger \,
+	    \eta[(\overline{\theta \Gamma})_{\theta o,\theta x}]^\dagger \,
+	    \eta[\Gamma_{o,\theta o}]^\dagger \,
+	    \eta[\Gamma_{x,o}]^\dagger \,
+	    \eta_{\langle xy \rangle} \,
+	    \eta[\Gamma_{y,o}] \,
+	    \eta[\Gamma_{o,\theta o}] \,
+	    \eta[(\overline{\theta \Gamma})_{\theta o,\theta y}]
+	\nonumber\\ &\qquad {} =
+	    \left(
+	    \eta[(\overline{\theta \Gamma})_{\theta o,\theta x}] \,
+	    \eta_{\langle \theta x \> \theta y \rangle} \,
+	    \eta[(\overline{\theta \Gamma})_{\theta o,\theta y}]^\dagger
+	    \right)^\dagger
+	    \left(
+	    \eta[\Gamma_{x,o}]^\dagger \,
+	    \eta_{\langle xy \rangle} \,
+	    \eta[\Gamma_{y,o}] \,
+	    \right)
+	\nonumber\\ & \qquad {} = 1 \,.
+    \end{align}
+    In the penultimate form, the second factor
+    $
+	    \left(
+	    \eta[\Gamma_{x,o}]^\dagger \,
+	    \eta_{\langle xy \rangle} \,
+	    \eta[\Gamma_{y,o}]
+	    \right)
+    $
+    is the flavor connection around a closed path running from the origin $o$ to $x$,
+    then to $y$, and back to $o$,
+    while the first factor
+    $
+	    \left(
+	    \eta[(\overline{\theta \Gamma})_{\theta o,\theta x}] \,
+	    \eta_{\langle \theta x \> \theta y \rangle} \,
+	    \eta[(\overline{\theta \Gamma})_{\theta o,\theta y}]^\dagger
+	    \right)^\dagger
+    $
+    is the inverse flavor connection of the symmetry transformed path running from
+    $\theta o$ to $\theta x$, then to $\theta y$, and back to $\theta o$.
+    These two factors cancel because the two closed paths are geometrically similar;
+    the flavor connection around every plaquette gives an identical
+    factor of $-1$, and any surface spanning the first loop will
+    necessarily contain the same number of plaquettes as the symmetry
+    transform of that surface spanning the second loop.
+
+    Physical observables transform in the natural manner:%
+    \begin{subequations}\label{eq:latttrans}
+    \begin{align}
+	\tr(U[\Gamma])
+	&\xrightarrow{\Theta}
+	\tr(U[\theta\Gamma]) \,,
+    \\
+	\tr({:}E_\alpha \, U[\Gamma]{:})
+	&\xrightarrow{\Theta}
+	\tr({:}E_{\theta\alpha} \, U[\theta\Gamma]{:}) \,,
+    \\
+	\tr({:}E_\alpha \, U[\Gamma] \, E_\beta \, U[\Gamma']{:})
+	&\xrightarrow{\Theta}
+	\tr({:}E_{\theta\alpha} \, U[\theta\Gamma] \, E_{\theta\beta} \, U[\theta\Gamma']{:}) \,,
+    \\
+	{:} \psi_x^\dagger \, \hat U[\Gamma_{xy}] \, \psi_y {:}
+	&\xrightarrow{\Theta}
+	{:} \psi_{\theta x}^\dagger \, \hat U[(\theta\Gamma)_{\theta x, \theta y}] \,
+	    \psi_{\theta y} {:} \,,
+	\label{eq:transferm}
+    \\
+	{:} \psi_x^\dagger \, \hat U[\Gamma] \, E_\alpha \, \hat U[\Gamma'] \psi_y {:}
+	&\xrightarrow{\Theta}
+	{:} \psi_{\theta x}^\dagger \, \hat U[\theta\Gamma] \,
+	    E_{\theta\alpha} \, \hat U[\theta\Gamma'] \psi_{\theta y} {:} \,.
+	\label{eq:transEferm}
+    \end{align}
+    \end{subequations}
+    Here, ${:}\mathcal O{:}$ denotes the 
+    normal ordered form of an observable containing
+    electric field insertions and/or fermions.
+    This ordering is defined to symmetrize the placement of electric field insertions
+    at the beginning and end of the observable while also antisymmetrizing the ordering
+    of fermions \cite{CSVAII}.  Specifically:
+    \begin{subequations}
+    \begin{align}
+	:U[\Gamma]_{ij} (E_\alpha)_{jk} U[\Gamma']_{kl}:
+	& \equiv
+	\tfrac 12
+	\bigl( (E_\alpha)_{jk} U[\Gamma]_{ij} U[\Gamma']_{kl}
+    \nonumber
+    \\ &\quad{}
+	+
+	U[\Gamma]_{ij} U[\Gamma']_{kl} (E_\alpha)_{jk} \bigr) ,
+    \\[3pt]
+	:U[\Gamma]_{ij} (E_\alpha)_{jk} U[\Gamma']_{kl} (E_\beta)_{lm} U[\Gamma'']_{mn}:
+	& \equiv
+	\tfrac 12
+	\bigl(
+	    (E_\alpha)_{jk} U[\Gamma]_{ij} U[\Gamma']_{kl} U[\Gamma'']_{mn} (E_\beta)_{lm}
+    \nonumber
+    \\ &\quad{}
+	+
+	    (E_\beta)_{lm} U[\Gamma]_{ij} U[\Gamma']_{kl} U[\Gamma'']_{mn} (E_\alpha)_{jk}
+	\bigr) \,,
+    \\
+	:(\psi_x^\dagger)_i \, G[\Gamma]_{ij} (\psi_y)_j:
+	& \equiv
+	\tfrac 12
+	\bigl(
+	    (\psi_x^\dagger)_i (\psi_y)_j
+	    -
+	    (\psi_y)_j (\psi_x^\dagger)_i
+	\bigr) \,
+	{:} G[\Gamma]_{ij} {:}
+    \nonumber
+    \\ &=
+	(\psi_x^\dagger)_i \, {:}G[\Gamma]_{ij}{:} \, (\psi_y)_j
+	-\tfrac 12
+	\delta_{xy} \> \tr ({:}G[\Gamma]{:}) \,,
+    \label{eq:normordferm}
+    \end{align}
+    \end{subequations}
+    where $G[\Gamma]$ denotes any string operator, possibly
+    including electric field insertions.
+    
+    The simple form (\ref{eq:latttrans}) for the transformation for fermion bilinears
+    is only possible because
+    the connection $\hat U$ appearing in all fermionic operators is always
+    understood to be the product (\ref{eq:fermconnection}) of the U($N$)
+    gauge connection and the U(1) flavor connection.
+    Verifying the transformation (\ref{eq:transferm})
+    involves
+    the same argument as above, with the flavor connection around the closed path
+    $(\Gamma_{x,o})^\dagger \, \Gamma_{xy} \, \Gamma_{y,o}$
+    canceling that around the
+    transformed path
+    $
+	(\overline{\theta\Gamma})_{\theta o,\theta x} \,
+	(\theta\Gamma)_{\theta x\, \theta y} \,
+	(\overline{\theta\Gamma})_{\theta o,\theta y}^\dagger
+    $,
+    and likewise for (\ref{eq:transEferm}).
+
+    A staggered sum over all lattice sites of a fermion bilinear
+    transforms as
+    \begin{align}
+	\sum_x \,
+	{:} \psi_x^\dagger \sigma_x \, \hat U[\Gamma_{xy}] \, \psi_y {:}
+	&\xrightarrow{\Theta}
+	\sigma_\theta
+	\sum_{\theta x} \,
+	{:} \psi_{\theta x}^\dagger \sigma_{\theta x} \,
+	    \hat U[\theta\Gamma_{\theta x , \theta y}] \,
+	    \psi_{\theta y} {:} \,,
+    \end{align}
+    with the overall factor of $\sigma_\theta \equiv \sigma_x \, \sigma_{\theta x}$
+    equaling $-1$ for lattice symmetries which interchange even and odd sublattices,
+    and $+1$ otherwise.
+    The fermion mass term is such a staggered sum, and hence only translations by
+    even numbers of lattice spacings
+    are symmetries of the theory when massive fermions are present.
+
+\section  {Charge conjugation}\label{sec:ChargeConj}
+
+The action of charge conjugation on the gauge fields is given by
+\begin{align}
+    (U_\alpha)_{ij}
+    \xrightarrow{C}
+    (U_\alpha)_{ij}^*
+    =
+    (U_{\bar\alpha})_{ji} \,,\qquad
+    (E_\alpha)_{ij}
+    \xrightarrow{C}
+    (E_\alpha)_{ij}^*
+    =
+    -(E_\alpha)_{ji} \,.
+\label{eq:Cgauge}
+\end{align}
+The naive definition of the action of charge conjugation on fermions is
+\begin{align}
+    \psi_x
+    \xrightarrow{C}
+    \psi_x^\dagger \, c_x^* \,,
+\label{eq:Cfermi}
+\end{align}
+with $c_x$ a charge conjugation phase which satisfies the
+condition
+\begin{align}
+    c_x = - \eta_{\langle xy \rangle}^* \, c_y \, \eta_{\langle yx \rangle} \,.
+\end{align}
+With the assumed pure imaginary form for the flavor connection,
+this charge conjugation phase may be set to unity.
+
+The transformations (\ref{eq:Cgauge}) and (\ref{eq:Cfermi}) leave all terms
+in the Hamiltonian invariant, except the fermion mass term which changes sign.
+With multiple fermion flavors and a mass matrix which is unitarily
+equivalent to its negative, one may define charge conjugation to include
+a $\mathbb Z_2$ flavor exchange transformation and thereby produce a
+symmetry of the massive theory.
+But with a single staggered lattice fermion flavor, the only way to compensate
+the change in sign of the fermion mass is to combine the naive charge
+conjugation transformation with a lattice transformation which interchanges
+even and odd sublattices, such as a translation $S$ by a single lattice spacing
+(in some direction),
+\begin{align}
+    C \equiv C_{\rm naive} \, S \,.
+\end{align}
+This is the definition used.
+
+When acting on physical observables, charge conjugation reverses the orientation
+of the gauge connection, as well as producing a sign change for each
+electric field insertion:
+\begin{subequations}
+\begin{align}
+    \tr(U[\Gamma])
+    &\xrightarrow{C}
+    \tr(U[\Gamma])^*
+    =
+    \tr(U[\overline\Gamma]) \,,
+\\[3pt]
+    \tr({:} E_\alpha \, U[\Gamma]{:})
+    &\xrightarrow{C}
+    \tr({:} E_\alpha \, U[\Gamma]{:})^*
+    =
+    -\tr({:} E_\alpha \, U[\overline\Gamma]{:}) \,,
+\\[3pt]
+    \tr({:}E_\alpha \, U[\Gamma] \, E_\beta \, U[\Gamma']{:})
+    &\xrightarrow{C}
+    \tr({:}E_\alpha \, U[\Gamma] \, E_\beta \, U[\Gamma']{:})^*
+    =
+    \tr({:}E_\alpha \, U[\overline\Gamma'] \, E_\beta \, U[\overline\Gamma]{:}) \,,
+\end{align}
+\end{subequations}
+where $\overline\Gamma$ denotes the reverse of a path $\Gamma$.
+Fermion bilinears summed over all lattice sites (i.e., momentum zero) transform as:
+\begin{subequations}\label{eq:Cfermobs}
+\begin{align}
+    \sum_x \,
+    {:} \psi_x^\dagger \, \hat U[\Gamma_{xy}] \, \psi_y {:}
+    &\xrightarrow{C}
+    -(-1)^{|\Gamma|}
+    \sum_y \,
+    {:} \psi_y^\dagger \, \hat U[\overline\Gamma_{yx}] \,
+	\psi_x {:} \,,
+    \label{eq:Cferm}
+\\
+    \sum_x \,
+    {:} \psi_x^\dagger \, \hat U[\Gamma] \, E_\alpha \, \hat U[\Gamma'] \psi_y {:}
+    &\xrightarrow{C}
+    (-1)^{|\Gamma|}
+    \sum_y \,
+    {:} \psi_y^\dagger \, \hat U[\overline\Gamma'] \,
+	E_\alpha \, \hat U[\overline\Gamma] \psi_x {:} \,.
+    \label{eq:CEferm}
+\end{align}
+\end{subequations}
+Note that charge conjugation preserves the normal ordered forms of observables.
+The factor of $-(-1)^{|\Gamma|}$ in (\ref{eq:Cferm})
+arises from the reversal of the implicit flavor connection which
+(with a pure imaginary flavor connection) gives a $-1$ for each link
+in the path $\Gamma$, plus an additional minus sign from the
+anticommutation of the fermion fields, while
+(\ref{eq:CEferm}) has one further minus sign from the electric field
+transformation.
+%
+For staggered (i.e., momentum $\pi$) fermion bilinears, the relations
+analogous to (\ref{eq:Cferm}) and (\ref{eq:CEferm}) read:
+\begin{subequations}\label{eq:Cfermstag}
+\begin{align}
+    \sum_x \,
+    {:} \psi_x^\dagger \, \sigma_x \,\hat U[\Gamma_{xy}] \, \psi_y {:}
+    &\xrightarrow{C}
+    (-1)^{|\Gamma|}
+    \sum_x \,
+    {:} \psi_y^\dagger \, \hat U[\overline\Gamma_{yx}] \,
+	\sigma_x \, \psi_x {:}
+\nonumber \\ & \;\;\quad {}=
+    \sum_y \,
+    {:} \psi_y^\dagger \, \sigma_y \,\hat U[\overline\Gamma_{yx}]  \,
+	\psi_x {:} \,,
+\\
+    \sum_x \,
+    {:} \psi_x^\dagger \, \sigma_x \,\hat U[\Gamma] \, E_\alpha \, \hat U[\Gamma'] \psi_y {:}
+    &\xrightarrow{C}
+    -\sum_y
+    {:} \psi_y^\dagger \, \sigma_y \,\hat U[\overline\Gamma'] \,
+	E_\alpha \, \hat U[\overline\Gamma] \psi_x {:} \,,
+\end{align}
+\end{subequations}
+where the change by a factor of $-(-1)^{|\Gamma|}$ in these expressions
+relative to (\ref{eq:Cfermobs}) comes from  rewriting
+$\sigma_x = (-1)^{|\Gamma|} \, \sigma_y$, together with the
+additional minus sign from the unit shift in the definition of $C$.
+
+\section {Time reversal}\label{sec:TimeReversal}
+
+Time reversal (in the Hamiltonian formulation)
+is an anti-unitary transformation which acts on the gauge fields as:
+\begin{subequations}
+\begin{align}
+    (U_\alpha)_{ij}
+    \xrightarrow{T}
+    (U_{\bar\alpha})_{ji} \,,\quad
+    (E_\alpha)_{ij}
+    \xrightarrow{T}
+    -(E_\alpha)_{ji} \,.
+\label{eq:Tgauge}
+\end{align}
+while the naive definition of time reversal on fermions is
+\begin{align}
+    (\psi_x)_i
+    \xrightarrow{T}
+    (\psi_x^\dagger)_i \,\sigma_x \,.
+\label{eq:Tfermi}
+\end{align}
+\end{subequations}
+This transformation leaves
+the fermion kinetic term invariant,
+\begin{align}
+    \sum_{\langle xy\rangle} \>
+    \psi_x^\dagger \, \eta_{\langle xy \rangle} \,  U_{\langle xy\rangle} \, \psi_y
+    &\xrightarrow{T}
+    \sum_{\langle xy\rangle} \>
+    \psi_x \, \sigma_x \,
+    \eta_{\langle xy \rangle}^* \,
+    U_{\langle xy\rangle}^* \,
+    \sigma_y \, \psi_y^\dagger
+    =
+    \sum_{\langle yx\rangle} \>
+    \psi_y^\dagger \, \eta_{\langle yx \rangle} \, U_{\langle yx\rangle} \, \psi_x \,.
+\end{align}
+The product of staggering factors cancels the minus sign
+arising from anticommuting the fermions, while the
+anti-unitary nature of the transformation causes the non-dynamical
+flavor connection in this (and any other fermion bilinear)
+to be complex-conjugated, which is equivalent to reversing its direction.
+The pure gauge terms in the Hamiltonian are likewise invariant.
+
+The transformation (\ref{eq:Tfermi}) acts on
+the fermion mass term as
+\begin{align}
+    m \sum_x
+    \psi_x^\dagger \, \sigma_x \, \psi_x
+    &\xrightarrow{T}
+    -m^* \sum_x \>
+    \psi_x^\dagger \, \sigma_x \, \psi_x
+    =
+    -m \sum_x \>
+    \psi_x^\dagger \, \sigma_x \, \psi_x \,.
+\end{align}
+Since the fermion mass must be real (for a Hermitian Hamiltonian),
+the sign of the mass term flips.
+Therefore, just as for complex conjugation, in the presence of
+fermions a time reversal transformation will be combined with a single
+lattice spacing translation,
+\begin{align}
+    T \equiv T_{\rm naive} \, S \,,
+\end{align}
+to produce a valid symmetry.
+
+When acting on our set of physical observables, the action
+of time reversal is identical to the effect of charge conjugation:
+\begin{subequations}\label{eq:Ttrans}
+\begin{align}
+    \tr(U[\Gamma])
+    &\xrightarrow{T}
+    \tr(U[\overline\Gamma]) \,,
+\\[3pt]
+    \tr({:}E_\alpha \, U[\Gamma]{:})
+    &\xrightarrow{T}
+    -\tr({:}E_\alpha \, U[\overline\Gamma]{:}) \,,
+\\[3pt]
+    \tr({:}E_\alpha \, U[\Gamma] \, E_\beta \, U[\Gamma']{:})
+    &\xrightarrow{T}
+    \tr({:}E_\alpha \, U[\overline\Gamma'] \, E_\beta \, U[\overline\Gamma]{:}) \,.
+\\[5pt]
+    \sum_x \,
+    {:} \psi_x^\dagger \, \hat U[\Gamma_{xy}] \, \psi_y {:}
+    &\xrightarrow{T}
+    -(-1)^{|\Gamma|}
+    \sum_x \,
+    {:} \psi_y^\dagger \, \hat U[\overline\Gamma_{yx}] \,
+	\psi_x {:} \,,
+\\
+    \sum_x \,
+    {:} \psi_x^\dagger \, \sigma_x \, \hat U[\Gamma_{xy}] \, \psi_y {:}
+    &\xrightarrow{T}
+    \sum_y \,
+    {:} \psi_y^\dagger \, \sigma_y \, \hat U[\overline\Gamma_{yx}] \,
+	\psi_x {:} \,,
+\\
+    \sum_x \,
+    {:} \psi_x^\dagger \, \hat U[\Gamma] \, E_\alpha \, \hat U[\Gamma'] \psi_y {:}
+    &\xrightarrow{T}
+    (-1)^{|\Gamma|}
+    \sum_y \,
+    {:} \psi_y^\dagger \, \hat U[\overline\Gamma'] \,
+	E_\alpha \, \hat U[\overline\Gamma] \psi_x {:} \,,
+\\
+    \sum_x \,
+    {:} \psi_x^\dagger \, \sigma_x \, \hat U[\Gamma] \, E_\alpha \, \hat U[\Gamma'] \psi_y {:}
+    &\xrightarrow{T}
+    -\sum_y
+    {:} \psi_y^\dagger \, \sigma_y \, \hat U[\overline\Gamma'] \,
+	E_\alpha \, \hat U[\overline\Gamma] \psi_x {:} \,.
+\end{align}
+\end{subequations}
+
+\section {Hermitian conjugation}\label{sec:HermitianConj}
+
+While not a symmetry per se, it is useful to compare the above transformations with
+the action of Hermitian conjugation on observables:
+\begin{subequations}\label{eq:Hermconj}
+\begin{align}
+    \tr(U[\Gamma])^\dagger
+    &\xrightarrow{\dagger}
+    \tr(U[\overline\Gamma]) \,,
+\\[3pt]
+    \tr({:}E_\alpha \, U[\Gamma]{:})
+    &\xrightarrow{\dagger}
+    \tr({:}E_\alpha \, U[\overline\Gamma]{:}) \,,
+\\[3pt]
+    \tr({:}E_\alpha \, U[\Gamma] \, E_\beta \, U[\Gamma']{:})
+    &\xrightarrow{\dagger}
+    \tr({:}E_\alpha \, U[\overline\Gamma'] \, E_\beta \, U[\overline\Gamma]{:}) \,.
+\\[5pt]
+    \sum_x \,
+    {:} \psi_x^\dagger \, \hat U[\Gamma_{xy}] \, \psi_y {:}
+    &\xrightarrow{\dagger}
+    \sum_y \,
+    {:} \psi_y^\dagger \, \hat U[\overline\Gamma_{yx}] \,
+	\psi_x {:} \,,
+\\
+    \sum_x \,
+    {:} \psi_x^\dagger \sigma_x \, \hat U[\Gamma_{xy}] \, \psi_y {:}
+    &\xrightarrow{\dagger}
+    (-1)^{|\Gamma|}
+    \sum_y \,
+    {:} \psi_y^\dagger \sigma_y \, \hat U[\overline\Gamma_{yx}] \,
+	\psi_x {:} \,,
+\label{eq:fermstagdag}
+\\
+    \sum_x \,
+    {:} \psi_x^\dagger \, \hat U[\Gamma] \, E_\alpha \, \hat U[\Gamma'] \psi_y {:}
+    &\xrightarrow{\dagger}
+    \sum_y \,
+    {:} \psi_y^\dagger \, \hat U[\overline\Gamma'] \,
+	E_\alpha \, \hat U[\overline\Gamma] \psi_x {:} \,,
+\\
+    \sum_x \,
+    {:} \psi_x^\dagger \sigma_x \, \hat U[\Gamma] \, E_\alpha \, \hat U[\Gamma'] \psi_y {:}
+    &\xrightarrow{\dagger}
+    (-1)^{|\Gamma|}
+    \sum_y
+    {:} \psi_y^\dagger \sigma_y \, \hat U[\overline\Gamma'] \,
+	E_\alpha \, \hat U[\overline\Gamma] \psi_x {:} \,.
+\label{eq:Efermstagdag}
+\end{align}
+\end{subequations}
+The factors of $(-1)^{|\Gamma|}$ in (\ref{eq:fermstagdag})
+and (\ref{eq:Efermstagdag}) result from moving the staggering factor
+to the other end of the bilinear.
+
+These Hermitian conjugation transformations differ from the corresponding
+actions of time reversal, or charge conjugation, by at most a minus sign.
+Consequently, the expectation value of any observable $\mathcal O$ for which
+charge conjugation equals either plus or minus Hermitian conjugation,
+$
+    C^\dagger \, \mathcal O C = \pm \mathcal O^\dagger
+$,
+in any state $|u\rangle$ which is charge conjugation invariant
+must be either purely real or purely imaginary, since
+\begin{align}
+    \langle u | \mathcal O |u \rangle^*
+    =
+    \langle u | \mathcal O^\dagger |u \rangle
+    =
+    \pm \langle u | C^\dagger \mathcal O \, C |u \rangle
+    =
+    \pm \langle u | \mathcal O |u \rangle \,.
+\label{eq:Creality}
+\end{align}
+Comparing (\ref{eq:Ttrans}) to (\ref{eq:Hermconj}) one sees that
+observables with real expectation values (in any $C$-invariant state)
+are:
+\begin{itemize}\advance\itemsep -6pt
+\item
+    Wilson loops;
+\item
+    Wilson loops with two electric field insertions;
+\item
+    Odd-length, unstaggered fermion bilinears;
+\item
+    Even-length, staggered fermion bilinears;
+\item
+    Even-length, unstaggered fermion bilinears with one electric field insertion;%
+    \footnote
+	{%
+	``Length'' means the number of links in the bilinear;
+	the electric field insertion does not count.
+	}
+\item
+    Odd-length, staggered fermion bilinears with one electric field insertion.
+\end{itemize}
+while observables with imaginary expectation values are:
+\begin{itemize}\advance\itemsep -6pt
+\item
+    Wilson loops with one electric field insertion;
+\item
+    Even-length, unstaggered fermion bilinears;
+\item
+    Odd-length, staggered fermion bilinears;
+\item
+    Odd-length, unstaggered fermion bilinears with one electric field insertion;
+\item
+    Even-length, staggered fermion bilinears with one electric field insertion.
+\end{itemize}
+
+In Hamiltonian theories, the relation between time reversal and Hermitian conjugation
+implies that in any time-reversal invariant state
+the expectation values of observables $\mathcal O$ for which
+$
+    T \mathcal O T^{-1} = - \mathcal O^\dagger
+$
+(which are the same as observables for which
+$
+    C^\dagger \mathcal O C = - \mathcal O^\dagger
+$)
+actually vanishes in any $T$-invariant state.
+This follows from combining this relation with
+the defining relation for anti-unitary transformations,
+$
+    \langle T \Psi | T \chi \rangle
+    =
+    \langle \Psi | \chi \rangle^*
+$,
+and the invariance of the state
+$
+    |u\rangle = T |u \rangle
+$,
+to obtain:
+\begin{align}
+    \langle u | \mathcal O | u \rangle
+    =
+    \langle T u | \mathcal O | T u \rangle
+    =
+    \langle T u | \mathcal O^\dagger | T u \rangle^*
+    =
+    - \langle T u | T \mathcal O T^{-1} | T u \rangle^*
+    =
+    - \langle u | \mathcal O | u \rangle \,.
+\end{align}
+The first equality is $T$-invariance of $|u\rangle$,
+the second is the definition of Hermitian conjugation,
+the third is the assumed property of $\mathcal O$,
+and the last is the defining relation of time-reversal
+with $\langle \Psi| = \langle u|$ and
+$|\chi\rangle = \mathcal O T^{-1}|T u\rangle = \mathcal O |u\rangle$.
+Consequently, in any $C$- and $T$-invariant state, observables for which
+charge conjugation would imply an imaginary expectation value actually have
+vanishing expectation values.
+
+\section {Implications}\label{sec:Consequences}
+
+The above symmetry relations have numerous implications regarding the structure
+of the large-$N$ phase space and associated dynamics.
+These include:
+\begin{itemize}\advance\itemsep -6pt
+\item
+    Time reversal invariance implies
+    that the $N = \infty$ dynamics has a natural configuration space
+    corresponding to the subspace of time-reversal invariant points within the
+    $N = \infty$ phase space, with these points arising from the large-$N$ limit
+    of (equivalence classes of) $T$-invariant coherent states.
+
+\item
+    Any function on phase space may be decomposed into components which
+    are either even or odd under time reversal.
+    In particular, phase space coordinates may be partitioned into those
+    which are even under time reversal, i.e., configuration space coordinates,
+    or those which are odd, i.e.., classical momenta.
+
+\item
+    Classical coordinates correspond to expectation values of the operators
+    with real expectation values (in $C$-invariant states),
+    while classical momenta correspond to expectation values of the
+    operators for which charge conjugation implies imaginary expectation values,
+    but whose expectation values actually vanish on the classical configuration space
+    due to time reversal invariance.
+
+\item
+    Elements of the coherence algebra, which generate deformations in phase space,
+    may be written as a linear combination of basis generators,
+    $\mathfrak g = \sum_a c^a \, \hat e_a$, with the coefficients $\{ c^a \}$
+    serving as Riemann normal coordinates in the neighborhood of any point
+    in phase space.
+    The generators $\hat e_a$
+    may be partitioned into those which are time-reversal
+    even, and those which are time-reversal odd.
+    Time-reversal even generators
+    are anti-Hermitian linear combinations of
+    loops with a single electric field insertion,
+    even-length unstaggered fermion bilinears,
+    and odd-length staggered fermion bilinears;
+    the coefficients $\{ c^a \}$ of these generators
+    serve as configuration space coordinates.
+    Correspondingly,
+    time-reversal odd generators
+    are anti-Hermitian linear combinations of
+    Wilson loops,
+    odd-length unstaggered fermion bilinears,
+    and even-length staggered fermion bilinears;
+    the coefficients $\{ c^a \}$ of these generators
+    serve as classical momenta.
+
+\item
+    In order to be properly anti-Hermitian, coherence group generators composed
+    of linear combinations of operators for which
+    $C^\dagger \mathcal O C = \mathcal O^\dagger$,
+    namely Wilson loops, odd-length unstaggered bilinears,
+    and even-length staggered bilinears,
+    must have imaginary coefficients when projected onto $C$-even
+    symmetry representations, and real coefficient when projected onto
+    $C$-odd representations.
+    Because time reversal is anti-unitary, both types of such generators are
+    time-reversal odd.
+
+    The opposite situation applies to generators composed
+    of linear combinations of operators for which
+    $C^\dagger \mathcal O C = -\mathcal O^\dagger$,
+    namely Wilson loops with an electric field insertion,
+    even-length unstaggered bilinears,
+    and odd-length staggered bilinears.
+    Such generators must have real coefficients when projected
+    onto $C$-even symmetry representations, and imaginary
+    coefficients when projected onto $C$-odd representations.
+    Both types of such generators are time-reversal even.
+
+\end{itemize}
+
+These various categories of coherence group generators are
+shown schematically in Table \ref{tab:gens}, classified according
+to their behavior under $C$ and $T$ transformations.
+Of course, each such category can be further projected onto
+particular irreducible representations of the lattice cubic
+symmetry point group.
+
+\begin{table}
+\begin{center}
+\setlength{\tabcolsep}{4pt}
+\hspace*{-10pt}%
+\begin{tabular}{ccccc}
+$T$ & $C$ & gauge generators & \multicolumn{2}{c}{fermion generators}
+\\[3pt]
++ & + & \phantom i $\tr (E \, U[\Gamma] - E \, U[\overline\Gamma])$
+	& $ (\psi^\dagger \, \sigma\, \hat U[\Gamma_{\rm o}]\, \psi +
+	      \psi^\dagger \, \sigma\, \hat U[\overline\Gamma_{\rm o}]\, \psi) $
+	& $ (\psi^\dagger \, \hat U[\Gamma_{\rm e}]\, \psi -
+	      \psi^\dagger \, \hat U[\overline\Gamma_{\rm e}]\, \psi) $
+
+\\[3pt]
+$-$ & + & $i \tr ( U[\Gamma] + U[\overline\Gamma])$
+	& $ i(\psi^\dagger \, \hat U[\Gamma_{\rm o}]\, \psi +
+	      \psi^\dagger \, \hat U[\overline\Gamma_{\rm o}]\, \psi) $
+	& $ i(\psi^\dagger \, \sigma\, \hat U[\Gamma_{\rm e}]\, \psi +
+	      \psi^\dagger \, \sigma\, \hat U[\overline\Gamma_{\rm e}]\, \psi )$
+
+\\[3pt]
++ & $-$ & $i \tr (E \, U[\Gamma] + E \, U[\overline\Gamma])$
+	& $ i(\psi^\dagger \, \sigma\, \hat U[\Gamma_{\rm o}]\, \psi -
+	      \psi^\dagger \, \sigma\, \hat U[\overline\Gamma_{\rm o}]\, \psi )$
+	& $ i(\psi^\dagger \, \hat U[\Gamma_{\rm e}]\, \psi +
+	      \psi^\dagger \, \hat U[\overline\Gamma_{\rm e}]\, \psi )$
+
+\\[3pt]
+$-$ & $-$ & $ \phantom i \tr (U[\Gamma] - U[\overline\Gamma])$
+	& $ (\psi^\dagger \, \hat U[\Gamma_{\rm o}]\, \psi -
+	      \psi^\dagger \, \hat U[\overline\Gamma_{\rm o}]\, \psi )$
+	& $ (\psi^\dagger \, \sigma\, \hat U[\Gamma_{\rm e}]\, \psi -
+	      \psi^\dagger \, \sigma\, \hat U[\overline\Gamma_{\rm e}]\, \psi )$
+\end{tabular}%
+\hspace*{-10pt}
+\end{center}
+\caption
+    {%
+    Schematic forms of anti-Hermitian coherence group generators,
+    classified according to their behavior under charge conjugation and
+    time reversal symmetries.
+    $\Gamma_e$ denotes an even-length lattice path and
+    $\Gamma_o$ an odd-length path,
+    overbars indicate path reversal,
+    and $\sigma$ is the lattice staggering factor at the location of the preceding
+    conjugate fermion field.
+    Coefficients of the listed time-reversal even generators serve as Riemann normal
+    coordinates within the classical configuration space of the fermion large-$N$ phase
+    space, while coefficients of time-reversal odd generators serve as conjugate momenta.
+    Only the first category of fully symmetric generators need be used for minimization.
+    \label{tab:gens}
+    }
+\end{table}
+
+
+\section {Euclidean theory symmetries}\label{sec:Euclidean}
+
+Lattice actions for
+Euclidean gauge theories under consideration 
+are the sum of gauge and fermion contributions,
+$A = A_{\rm gauge} + A_{\rm fermi}$, with the gauge action
+having a standard Wilson form,
+\begin{align}
+    A_{\rm gauge}/N
+    =
+    \lambda^{-1} \sum_p \> \tr (2 - U[\partial p] - U[\partial p]^\dagger) \,.
+\label{eq:Agauge}
+\end{align}
+Obviously, this gauge action is real provided the gauge coupling $\lambda$ is
+real, which is assumed.
+
+The most economical discretization for a single (massive) fermion flavor 
+has just $N$ pairs (for U($N$) fundamentals) 
+of independent Grassmann generators,
+$\{ \chi{}_x^{\,i},\, \overline\chi{}_x^{\,i}\}$,
+residing on each lattice site.
+The fermion lattice action may be defined in a manner
+completely analogous to the Hamiltonian form (\ref{eq:Hfermi}),
+\begin{align}
+    A_{\rm fermi}
+    =
+    \tfrac 12 \sum_{\langle xy \rangle} \>
+    \overline\chi_x \, U_{\langle xy \rangle} \, \eta_{\langle xy \rangle} \, \chi_y
+    + m \sum_x \> \sigma_x \, \overline\chi_x \, \chi_x \,,
+\label{eq:Afermiold}
+\end{align}
+where, once again, the U(1) flavor connection $\eta_{\langle xy\rangle}$ is defined
+to be pure imaginary and to have a product of minus one around every plaquette,
+$\eta[\partial p] = -1$.
+More abstractly, this fermion action is a quadratic form,
+$
+    A_{\rm fermi} = (\overline\chi, D \,\chi)
+$,
+where $D$ is a discretized Dirac operator with non-vanishing matrix elements
+only for coincident or nearest-neighbor sites:
+\begin{align}
+    (D)_{xy}^{ij} \equiv
+    \tfrac 12 \, U_{\langle xy \rangle}^{ij} \, \eta_{\langle xy \rangle}
+    + m \, \sigma_x \, \delta_{xy} \, \delta^{ij} \,.
+\end{align}
+Because both the U($N$) gauge connection and the flavor connection 
+are unitary connections
+(i.e., $U_{\langle xy \rangle}^\dagger = U_{\langle yx \rangle}$
+and $\eta_{\langle xy \rangle}^* = \eta_{\langle yx \rangle}$)
+this Dirac operator is Hermitian,
+provided the fermion mass $m$ is real, which is assumed.
+Hermiticity of $D$ ensures reality of the fermionic partition function,
+\begin{align}
+    Z_{\rm fermi} \equiv \int d\overline \chi \, d\chi \> e^{-A_{\rm fermi}}
+    = \det (D) \,.
+\end{align}
+
+This may be equivalently expressed as invariance of
+the action $A_{\rm fermi}$ under a complex conjugation transformation
+(an involutive automorphism)
+which performs ordinary complex conjugation on all
+commuting numbers while simultaneously interchanging Grassmann variables,
+\begin{align}
+    \chi_x \xrightarrow{*}  \overline\chi_x \,,\quad
+    \overline\chi_x \xrightarrow{*}  \chi_x \,,
+\label{eq:fermirealityold}
+\end{align}
+and flipping the order of all products of Grassmann variables.
+%
+Any statistical ensemble,
+such as the equilibrium ensemble
+$
+    \rho_{\rm eq} \equiv Z^{-1} \, e^{-A}
+$
+or those generated by the
+Euclidean large-$N$ coherence group acting on an initial uncorrelated ensemble,
+must satisfy this same reality condition,
+\begin{align}
+    \rho(\{U_\ell\},\{\overline\chi_x\},\{\chi_x\})^*
+    =
+    \rho(\{U_\ell\},\{\overline\chi_x\},\{\chi_x\}) \,.
+\label{eq:rhoreal}
+\end{align}
+The relevant physical observables in Euclidean theories are just
+Wilson loops and fermion bilinears.
+The reality condition (\ref{eq:rhoreal})
+implies that expectation values of these observables satisfy
+the basic Hermiticity relations:
+\begin{align}
+    \langle \tr(U[\Gamma]) \rangle^*
+    =
+    \langle \tr(U[\overline\Gamma]) \rangle \,,
+    \qquad
+    \big\langle \overline \chi_x \, \hat U[\Gamma_{xy}] \, \chi_y \big\rangle^*
+    =
+    \big\langle \overline \chi_y \, \hat U[\overline\Gamma_{yx}] \, \chi_x \big\rangle \,,
+\label{eq:bilinearsold}
+\end{align}
+which are identical in form to the corresponding relations in Hamiltonian theories.
+
+Ref.~\cite{CSVAII} chose to discuss Euclidean theories with
+a fermion action of the form (\ref{eq:Afermiold}),
+as this choice makes the action of symmetry transformations
+as similar as possible between Hamiltonian and Euclidean formulations
+and also makes the reality condition (\ref{eq:fermirealityold})
+and its consequences (\ref{eq:bilinearsold})
+as simple as possible.
+However, the presence of a lattice staggering factor in the mass term
+is an inconvenience which, in particular, obscures the fact that
+the Euclidean theory (\ref{eq:Afermiold}) actually possess full lattice
+translation invariance, including translations by an odd number of lattice spacings
+(unlike the Hamiltonian theory).
+
+The independence of the Grassmann generators
+$\overline\chi$ and $\chi$ in the Euclidean formulation
+allows one to make a change of variables involving
+independent phase rotations of these variables, and this
+enables one to make a field redefinition which will 
+simplify the form of lattice symmetry transformations.
+Let
+\begin{align}
+    \epsilon_x \equiv
+    \begin{cases}
+	1 \,, & x \mbox { even}; \\
+	i \,, & x \mbox{ odd}\,,
+    \end{cases}
+\end{align}
+denote a square root of the staggering factor $\sigma_x$,
+and define
+\begin{align}
+    \overline\chi_x \equiv \overline\psi_x \, \epsilon_x^* \,,
+    \qquad
+    \chi_x \equiv i \sigma_x \, \epsilon_x \, \psi_x \,.
+\label{eq:redef}
+\end{align}
+This field redefinition converts the lattice staggering factor in the
+fermion mass term into a factor of $i$, while leaving the hopping term unchanged,
+so the fermion action becomes
+\begin{align}
+    \widetilde A_{\rm fermi}
+    =
+    \tfrac 12 \sum_{\langle xy \rangle} \>
+    \overline\psi_x \, U_{\langle xy \rangle} \,
+    \eta_{\langle xy \rangle} \, \psi_y
+    + i \, m \sum_x \> \overline\psi_x \, \psi_x \,.
+\label{eq:Afermi}
+\end{align}
+The key benefit of this form for the fermion action
+is that it obviates the
+need for separate representations of staggered and
+unstaggered versions of fermion bilinears.
+The fermion action (\ref{eq:Afermi}) agrees with the form used
+in most other literature on Euclidean staggered lattice fermions
+(see, e.g., Ref.~\cite{Kronfeld:2007ek}),
+except for an overall factor of $i$ in the action (\ref{eq:Afermi})
+(hidden in the imaginary $\eta_{\langle xy \rangle}$ in
+the hopping term and explicit in the mass term).
+The presence, or absence, of this overall 
+factor of $i$ is physically irrelevant, but its
+inclusion makes $\eta_{\langle xy \rangle}$ a conventional
+unitary Abelian connection which is convenient for the following symmetry analysis.
+
+The fermion action (\ref{eq:Afermi}) remains a quadratic form,
+$
+    \widetilde A_{\rm fermi} = (\overline\psi,\widetilde D\, \psi)
+$,
+but with a transformed Dirac operator
+$\widetilde D \equiv -i \epsilon^* D \epsilon$
+now obeying a Hermiticity condition of the form
+$\widetilde D^\dagger = - \sigma \, \widetilde D \, \sigma$.
+This Hermiticity condition may also be expressed as invariance of
+the action (\ref{eq:Afermi}) under a complex conjugation transformation
+in which the redefined Grassmann fields transform as
+\begin{align}
+    \psi_x \xrightarrow{*}  i \, \overline\psi_x \, \sigma_x \,,\quad
+    \overline\psi_x \xrightarrow{*}  i \, \sigma_x \, \psi_x \,,
+\label{eq:fermireality}
+\end{align}
+(while also inverting the order of Grassmann products).
+In terms of the redefined Grassmann fields,
+the reality condition (\ref{eq:bilinearsold}) on fermion bilinear
+expectation values becomes
+\begin{align}
+    \big\langle \overline \psi_x \, \hat U[\Gamma_{xy}] \, \psi_y \big\rangle^*
+    &=
+    -(-1)^{|\Gamma|}
+    \big\langle \overline \psi_y \, \hat U[\overline\Gamma_{yx}] \, \psi_x \big\rangle \,.
+\label{eq:fermirealityobs}
+\end{align}
+
+Before proceeding to an explicit discussion of the implications
+of different symmetries,
+recall that coherence group generators for Euclidean theories
+contain first order derivatives acting on the fundamental fields.
+These are defined as
+\begin{align}
+    E_{\ell,ij} \equiv
+    \frac 1N \, U_{\ell,ik} \, \frac{\partial}{\partial U_{\ell,jk}} \,,
+    \quad
+    \overline \upsilon_{x,i} \equiv \frac{\partial}{\partial \psi_{x,i}} \,,
+    \quad
+    \upsilon_{x,i} \equiv \frac{\partial}{\partial \overline\psi_{x,i}} \,,
+\end{align}
+with the Grassmann derivatives $\upsilon_{x,i}$ and $\overline\upsilon_{x,i}$
+satisfying the basic anticommutation relations
+$
+    \{ \overline\upsilon_{x,i},\, \psi_{y,j} \} = \delta_{xy} \, \delta_{ij}
+$
+and
+$
+    \{ \upsilon_{x,i},\, \overline\psi_{y,j} \} = \delta_{xy} \, \delta_{ij}
+$,
+with other anticommutators vanishing.
+Invariance of these relations under a
+complex conjugation transformation (\ref{eq:fermireality})
+implies that the Grassmann derivatives behave as
+\begin{align}
+    \upsilon_x \xrightarrow{*}  -i \, \overline\upsilon_x \, \sigma_x \,,\quad
+    \overline\upsilon_x \xrightarrow{*}  -i \, \sigma_x \, \upsilon_x 
+\label{eq:fermirealityv}
+\end{align}
+under complex conjugation.
+
+Cubic lattice symmetry transformations act identically to
+the Hamiltonian formulation transformations
+(\ref{eq:thetagauge}) and (\ref{eq:thetafermi}),
+with the understanding that link derivatives $\{ E_\ell \}$ transform in
+the same manner as electric field operators of the Hamiltonian theory
+(and hence are denoted identically),
+while the conjugate fermion $\overline\psi_x$ transforms as does 
+the Hermitian conjugate $\psi^\dagger_x$ of the Hamiltonian theory.%
+\footnote
+    {%
+    Time-reversal, if one so designates some lattice direction, is just
+    part of the lattice symmetry group.
+    }
+The Grassmann derivatives $\overline \upsilon_x$ and $\upsilon_x$
+transform in the same manner as do $\overline \psi_x$ and $\psi_x$, respectively.
+
+Since the fermion mass term no longer contains a lattice staggering factor,
+both gauge (\ref{eq:Agauge}))
+and fermion (\ref{eq:Afermi}) actions in the Euclidean formulation
+are invariant under odd lattice translations as well as even.%
+\footnote
+    {
+    Note, however, that to define a flavor connection satisfying $\eta[\partial p] = -1$
+    on every plaquette, it is necessary that the length of any compactified
+    lattice direction be even.
+    }
+
+The action of charge conjugation on gauge fields is identical to the
+Hamiltonian form (\ref{eq:Cgauge}), while the action on fermion fields
+and their derivatives
+may be defined as
+\begin{equation}
+    \psi_x \xrightarrow{C} \overline\psi_x \,\sigma_x \,,\quad
+    \overline\psi_x \xrightarrow{C} - \sigma_x \, \psi_x \,,\quad
+    \upsilon_x \xrightarrow{C} -\overline \upsilon_x \,\sigma_x \,,\quad
+    \overline \upsilon_x \xrightarrow{C} \sigma_x \, \upsilon_x \,.
+\label{eq:Cfermieuclid}
+\end{equation}
+
+In the mass term, the explicit minus sign from the transformation cancels
+the minus sign from anticommuting the fermion fields back to their original order.
+In the hopping term, the factor of $-\sigma_x \sigma_y$ equals one  since $x$ and $y$
+are nearest-neighbor sites, while the minus sign from anticommuting the fermion
+fields cancels the minus sign from reversing the flavor connection.
+The transformations for the Grassmann derivatives $\upsilon_x$ and $\overline\upsilon_x$
+follow from their definition as derivatives.
+
+Acting on Wilson loops or fermion bilinears,
+charge conjugation merely reverses the paths:
+\begin{align}
+    \tr(U[\Gamma])
+    \xrightarrow{C}
+    \tr(U[\overline\Gamma]) \,,
+    \qquad
+    \overline\psi_x \, \hat U[\Gamma_{xy}] \, \psi_y
+    \xrightarrow{C}
+    \overline\psi_y \, \hat U[\overline\Gamma_{yx}] \, \psi_x \,.
+\label{eq:Ctransobs}
+\end{align}
+Just as for the hopping term of the action, the product of 
+lattice staggering factors from the transformation (\ref{eq:Cfermieuclid})
+cancels the minus signs from reversal of the flavor connection.
+Charge conjugation acts on
+fermion bilinear coherence group generators as
+\begin{align}
+    \overline\upsilon_x \, \hat U[\Gamma_{xy}] \, \psi_y
+    \xrightarrow{C}
+    -\overline\psi_y \, \hat U[\overline\Gamma_{yx}] \, \upsilon_x \,,
+    \qquad
+    \overline\psi_x \, \hat U[\Gamma_{xy}] \, \upsilon_y
+    \xrightarrow{C}
+    -\overline\upsilon_y \, \hat U[\overline\Gamma_{yx}] \, \psi_x \,.
+\label{eq:Ctransgens}
+\end{align}
+
+Combining the charge conjugation relations (\ref{eq:Ctransobs}) with
+the complex conjugation relations
+(\ref{eq:bilinearsold}) and (\ref{eq:fermirealityobs})
+shows that in any $C$-invariant state:
+\begin{itemize}\advance\itemsep -3pt
+\item $\langle \tr(U[\Gamma]) \rangle$ is real;
+\item $\langle \overline\psi \,\hat U[\Gamma_e] \,\psi\rangle$ is imaginary;
+\item $\langle \overline\psi \,\hat U[\Gamma_o] \,\psi\rangle$ is real;
+\end{itemize}
+with $\Gamma_e$ and $\Gamma_o$ denoting arbitrary paths of even or odd length,
+respectively.
+So the ``price'' for making the field redefinition (\ref{eq:redef})
+is that all even length bilinears now have pure imaginary expectation values,
+while odd length bilinears have real expectations.
+The compensating benefit of using the form (\ref{eq:Afermi}) for the
+fermion action is that physical observables now have very simple
+behavior under all lattice symmetry transformations as well as
+charge conjugation.
+
+Table \ref{tab:euclidgens} shows the schematic forms of
+coherence group generators for Euclidean gauge theories
+when projected onto charge conjugation eigenstates.
+The overall factors of $i$ in odd-length $C$-even
+and even-length $C$-odd generators are
+dictated by the requirement that deformations of the
+statistical ensemble generated by these generators,
+when multiplied by real coefficients, preserve
+the reality condition for the statistical measure.
+
+\begin{table}[t]
+\begin{center}
+\begin{tabular}{ccccc}
+$C$ & gauge generators & \multicolumn{2}{c}{fermion generators}
+\\[3pt]
+  $+$ & $\tr\, (E U[\Gamma] - E U[\overline\Gamma])$
+      & $(\overline \upsilon \, \hat U[\Gamma_e] \, \psi -
+	\overline \psi \, \hat U[\overline \Gamma_e] \, \upsilon)$
+      & $i\,(\overline \upsilon \, \hat U[\Gamma_o] \, \psi -
+	\overline \psi \, \hat U[\overline \Gamma_o] \, \upsilon)$
+\\[3pt]
+  $-$ & $i \, \tr\, (E U[\Gamma] + E U[\overline\Gamma])$
+      & $i\,(\overline \upsilon \, \hat U[\Gamma_e] \, \psi +
+	\overline \psi \, \hat U[\overline \Gamma_e] \, \upsilon)$
+      & $(\overline \upsilon \, \hat U[\Gamma_o] \, \psi +
+	\overline \psi \, \hat U[\overline \Gamma_o] \, \upsilon)$
+\end{tabular}
+\end{center}
+\caption
+    {%
+    Schematic forms of coherence group generators for Euclidean gauge theories,
+    classified according to their behavior under charge conjugation.
+    $\Gamma_e$ denotes an even-length lattice path and
+    $\Gamma_o$ an odd-length path, while overbars indicate path reversal.
+    \label{tab:euclidgens}
+    }
+\end{table}
+
+\begin{thebibliography}{99}
+
+%\cite{CSVAII}
+\bibitem{CSVAII}
+T.~A.~Dickens, U.~J.~Lindqwister, W.~R.~Somsky and L.~G.~Yaffe,
+``The coherent state variational algorithm. 2. Implementation and testing,''
+\href{https://doi.org/10.1016/0550-3213(88)90234-9}
+{Nucl.~Phys.~B \textbf{309}, 1 (1988)}.
+%doi:10.1016/0550-3213(88)90234-9
+%20 citations counted in INSPIRE as of 01 Dec 2024
+
+%\cite{Kronfeld:2007ek}
+\bibitem{Kronfeld:2007ek}
+A.~S.~Kronfeld,
+``Lattice gauge theory with staggered fermions: how, where, and why (not),''
+\href{https://doi:10.22323/1.042.0016}
+{PoS \textbf{LATTICE2007}, 016 (2007)}
+[arXiv:0711.0699 [hep-lat]].
+%114 citations counted in INSPIRE as of 23 Sep 2025
+
+\end{thebibliography}
+\end{document}
